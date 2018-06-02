@@ -100,7 +100,7 @@ Next, you define the regions as two lines each
 
 For example, a mesh that has a spacing of 0.01 for the first 0.1 of the region and 0.1 for the remaining 0.9 would be
 
-`
+
 %  Example mesh
 19 <br /><br />
 2 <br /><br />
@@ -108,7 +108,7 @@ For example, a mesh that has a spacing of 0.01 for the first 0.1 of the region a
 0.1 <br /><br />
 9 <br /><br />
 0.9 
-`
+
 
 #### Ouptut flag file setup
 
