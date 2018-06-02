@@ -28,7 +28,7 @@ Time_step
 Number_of_time_steps
 100
 #----------------------------------------------------------
-# Spatial order of accuracy
+# Order of accuracy
 Space_order
 2
 #----------------------------------------------------------
@@ -40,17 +40,9 @@ Data_writing_frequency
 Restart
 0
 #----------------------------------------------------------
-# If storing for a restart, this is the amount of time (in seconds) until the code shuts things down
-Restart_time
-86000
-#----------------------------------------------------------
 # Initial Data flag
 Init_field
 2
-#----------------------------------------------------------
-# Boundary condition flag
-Bound_cond
-0
 #----------------------------------------------------------
 # Flag for space homogensous problem (default value is 0 - space homogeneous problem
 SpaceInhom
@@ -66,11 +58,8 @@ Recompute_weights
 Anisotropic
 0
 #----------------------------------------------------------
-# Location of the mesh file - note this is stored in "meshes" directory
-mesh_file
-default.mesh
-#----------------------------------------------------------
-# Location of file with output flags - note that this is stored in this same "input" directory
-Output_choices
-default.output
+# Species info
+num_species
+1
+default
 Stop

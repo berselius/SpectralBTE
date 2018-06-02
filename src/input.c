@@ -14,7 +14,7 @@ void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt, int
   FILE  *input_file;
 
   /*Set input parameters to default values*/
-  set_default_values(N, L_v, Kn, lambda, dt, nT, order, dataFreq, restart, restart_time, initFlag, bcFlag, homogFlag, weightFlag, isoFlag, meshFile);
+  set_default_values(N, L_v, Kn, lambda, dt, nT, order, dataFreq, restart, restart_time, initFlag, bcFlag, homogFlag, weightFlag, num_species, isoFlag, meshFile);
 
   strcat(input_path,inputFilename);
   printf("Opening input file %s\n",input_path);
@@ -129,7 +129,7 @@ void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt, int
 /*!
  *  This function sets the input parameters to their defualt values, and sets up flags for a few if they are not set by the input file
  */ 
-void set_default_values(int *N, double *L_v, double *Kn, double *lambda, double *dt, int *nT, int *order, int *dataFreq, int *restart, double *restart_time, int *initFlag, int *bcFlag, int *homogFlag, int *weightFlag, int *isoFlag, char **meshFile)
+void set_default_values(int *N, double *L_v, double *Kn, double *lambda, double *dt, int *nT, int *order, int *dataFreq, int *restart, double *restart_time, int *initFlag, int *bcFlag, int *homogFlag, int *weightFlag, int *num_species, int *isoFlag, char **meshFile)
 {
   /*Assumes space-homogeneous problem*/
   *homogFlag = 0;
@@ -174,6 +174,8 @@ void set_default_values(int *N, double *L_v, double *Kn, double *lambda, double 
   *isoFlag = 0;  
 
   *meshFile = malloc(80*(sizeof(char)));
+
+  *num_species = 1;
 
   //Flag for no mesh warning?
   strcpy(*meshFile,"not set");

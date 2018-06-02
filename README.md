@@ -84,6 +84,14 @@ The input file parser reads the file line by line looking for keywords that set 
 * `Recompute_weights` - 0 or 1. If set to 1, this tells the code to recompute the convolution weights even if they already exist in the Weights directory. (default: 0)
 * `Anisotropic` - 0 or 1. If set to 1, this means that we are solving with an anisotropic cross section (e.g. for plasmas). The code checks to see if the weights exist, if they do not the code exits and reminds you that you need to use the separate `WeightGen_` program to precompute these as it is very intensive calculation. (default: 0)
 * `mesh_file` - for 1D problems, this points to the file in `input/` that has information about the physical mesh. See below for specifications for this file. (default: not_set)
+* `num_species` - sets the number of species, then species names are listed in order in each line afterwords. For generic nondimensional single species runs, set 
+
+num_species <br />
+1 <br />
+default <br /><br />
+
+If you want to do more, contact me. Mass ratio issues can cause multispecies Boltzmann to get infeasibly expensive in a hurry.
+
 
 
 #### Mesh file setup
