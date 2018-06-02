@@ -102,12 +102,12 @@ For example, a mesh that has a spacing of 0.01 for the first 0.1 of the region a
 
 `
 %  Example mesh
-19
-2
-10
-0.1
-9
-0.9
+19  
+2  
+10  
+0.1  
+9  
+0.9  
 `
 
 #### Ouptut flag file setup
