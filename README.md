@@ -55,7 +55,7 @@ Use `mpirun` to run the code, as
 
 The input file parser reads the file line by line looking for keywords that set up the problem
 
-###keywords
+### keywords
 
 * `N` - Number of velocity nodes / Fourier modes in each dimension. As this code is a 3V code, this means a total of N^3 velocity grid nodes / Fourier modes. (default: 16)
 * `L_v` - Nondimensionalized width of velocity domain. (default: 5)
