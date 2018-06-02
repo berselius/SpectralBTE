@@ -1,0 +1,68 @@
+# INPUT FILE FOR CONSERVATIVE SPECTRAL CODE
+#----------------------------------------------------------
+# Number of nodes in each direction in velocity space
+N
+16
+#----------------------------------------------------------
+# Velocity domain cutoff
+L_v
+5.0
+#----------------------------------------------------------
+# knudsen number
+Knudsen
+1.0
+#----------------------------------------------------------
+# exponent of differential cross section (lambda)
+Lambda
+1.0
+#----------------------------------------------------------
+# Timestep
+Time_step
+0.01
+#----------------------------------------------------------
+# Number of steps
+Number_of_time_steps
+10000
+#----------------------------------------------------------
+# Spatial order of accuracy
+Space_order
+1
+#----------------------------------------------------------
+# Data writing frequency - number of timesteps between output snaphot
+Data_writing_frequency
+50
+#----------------------------------------------------------
+# Flag telling whether this is restarting from a previous code
+Restart
+0
+#----------------------------------------------------------
+# If storing for a restart, this is the amount of time (in seconds) until the code shuts things down
+Restart_time
+0
+#----------------------------------------------------------
+# Initial Data flag
+Init_field
+3
+#----------------------------------------------------------
+# Flag for space homogensous problem (default value is 0 - space homogeneous problem
+SpaceInhom
+1
+#----------------------------------------------------------
+# Flag for forcing recomputation of stored weights, if they are detected
+Recompute_weights
+0
+#----------------------------------------------------------
+# Flag to tell weights if we need to do AnIsotropic calculation
+# 0 - isotropic
+# 1 - anisotropic
+Anisotropic
+0
+#----------------------------------------------------------
+# Location of the mesh file - note this is stored in "meshes" directory
+mesh_file
+heatTrans.mesh
+# Number of species
+num_species
+1
+default
+Stop
