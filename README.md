@@ -129,3 +129,22 @@ This reads the specified file looking for the following keywords. A 1 in the lin
 * `marginal` - marginal distribution function $\int f dv_2 dv_3$ at each grid point
 * `slice` - slice of the distribution function at v_2 = v_3 = N/2
 * `entropy` - Boltzmann entropy at each grid point. Negative distribution function values are set to zero.
+
+## Instructions for `WeightGen_`
+
+This generates the precomputed weights for anisotropic cross sections (e.g. Coulomb interactions). 
+
+### Setup and run
+
+This is run using
+
+`mpirun -n <number of tasks> WeightGen_ N glance beta lambda L_v`
+
+where
+
+* `N` - the number of grid points in one direction in velocity space / Fourier modes in one direction. The total size of the weights array will be N^6
+* `glance` - the angular cutoff for the Coulomb cross section. 
+  * Set this to 0 to generate weights for the Landau collision operator
+* `beta` - parameter for inelastic collisions. Set to 1 for the usual/elastic case
+* `lambda` - exponent on the relative velocity in the scattering kernel. Set to `-3` for Coulomb.
+* `L_v` - Nondimensional semi-length of velocity domain.
