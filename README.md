@@ -28,6 +28,7 @@ To build a standalone program that precomputes weights for anisotropic cross sec
 
 ## Running the code
 
+### Some directory setup
 The `boltz_` executable expects the following directories to be co-located with itself, you need to create them:
 
 * `input/`
@@ -39,6 +40,16 @@ The code looks for input files in the input directory
 Output is stored in the Data directory
 
 The Weights directory is where the code will look to check to see if you have already precomputed the collision weights for your input setup. If not, it will compute them and store them here for future use.
+
+### To execute the code
+
+Use `mpirun` to run the code, as
+
+`mpirun -n <num_tasks> boltz_ input_file output_flags`
+
+* Even if you are doing a serial run this needs to be launched with mpirun (use `-n 1`). 
+* The code will look for the specified `input_file` in `input/`. See below and in the examples firectory for details on writing input files.
+* The code will look for the specified output flag directions in the specified `output_flags` in `input/`. This tells the code what variables you want to dump. See below for more details. 
 
 ### Input file setup
 
