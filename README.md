@@ -30,9 +30,9 @@ To build a standalone program that precomputes weights for anisotropic cross sec
 
 The `boltz_` executable expects the following directories to be co-located with itself, you need to create them:
 
-* input/
-* Weights/
-* Data/
+* `input/`
+* `Weights/`
+* `Data/`
 
 The code looks for input files in the input directory
 
@@ -42,3 +42,70 @@ The Weights directory is where the code will look to check to see if you have al
 
 ### Input file setup
 
+The input file parser reads the file line by line looking for keywords that set up the problem
+
+###keywords
+
+* `N` - Number of velocity nodes / Fourier modes in each dimension. As this code is a 3V code, this means a total of N^3 velocity grid nodes / Fourier modes. (default: 16)
+* `L_v` - Nondimensionalized width of velocity domain. (default: 5)
+* `Knudsen` - The Knudsen number of the problem. This is the ratio of the mean free path to a characteristic macroscopic length scale. When the Knudsen number is small, one is close to a hydrodynamic limit. (default: 1)
+* `Lambda` - exponent on the relative velocity in the cross section. For spheres-like (isotropic) kernels, 1 corresponds to hard spheres, 0 corresponds to Maxwell molecules, -3 corresponds to Coulomb like velocity scaling. (default: 1)
+* `Time_step` - the non-dimensional time step. (default: -1, i.e. the code will exit if this is not set)
+* `Number_of_time_steps` - How many steps to run until the code exits. (default: 1000)
+* `Space_order` - 0 or 1. Seets the spatial discretization order for the LHS/Vlasov terms. 0 is an upwind scheme, 1 is a second order shock capturing method using a minmod slope limiter. (default: 1)
+* `Data_writing_frequency` - the code will dump data at this rate (in timesteps) (default: 10)
+* `Restart` - 0 or 1. If set to 1, this will restart the code from a previous dump. More info below. (default: 0)
+* `Restart_time` - Amount of wall clock time (in seconds) until the code halts, generates restart info, then exits. This can then be restarted by running the code with the same input file but with a `Restart` value of 1. (default: 85500, i.e. 23 hours, 45 minutes)
+* `Init_field` - Flag for different initial data cases. See `src/initializer.c` for specifics...you may wish to change some of the parameters. 
+  * For 0D/space homogenous problems:
+     * 0: Shifted isotropic problem
+     * 1: Discontinous Maxwellian
+     * 2: Bobylev-Krook-Wu problem
+     * 3: Two Maxwellians
+     * 4: Steady state test (initial condition is a Maxwellians)
+     * 5: Perturbed Maxwellian
+  * For 1D/space inhomogenous problem
+    * 0: Shock wave (reflection BCs)
+    * 1: Sudden heating problem (diffuse reflection BC at one wall, reflection at the other)
+    * 2: Two Maxwellian problem (reflection BCs)
+    * 3: Heat transfer between two plates (diffuse reflection BCs at each wall)
+* `SpaceInhom` - 0 or 1. If 0, this is a 0D-3V problem. If 1, this is a 1D-3V problem. (default: 0)
+* `Recompute_weights` - 0 or 1. If set to 1, this tells the code to recompute the convolution weights even if they already exist in the Weights directory. (default: 0)
+* `Anisotropic` - 0 or 1. If set to 1, this means that we are solving with an anisotropic cross section (e.g. for plasmas). The code checks to see if the weights exist, if they do not the code exits and reminds you that you need to use the separate `WeightGen_` program to precompute these as it is very intensive calculation. (default: 0)
+* `mesh_file` - for 1D problems, this points to the file in `input/` that has information about the physical mesh. See below for specifications for this file. (default: not_set)
+
+
+#### Mesh file setup
+
+This expects values in a certain order to set up the 1D / physical space mesh. This sets up blocks/regions, each with a specified uniform spatial grid. The spatial grid is assumed to start with x=0 as its leftmost point. 
+
+* first line - comment that is ignored
+* second line - total number of points in the mesh
+* third line - total number of regions
+
+Next, you define the regions as two lines each
+* first line - number of points in the region
+* second line - size of the region in (nondimensional) physical space. 
+
+For example, a mesh that has a spacing of 0.01 for the first 0.1 of the region and 0.1 for the remaining 0.9 would be
+
+%  Example mesh
+19
+2
+10
+0.1
+9
+0.9
+
+
+#### Ouptut flag file setup
+
+This reads the specified file looking for the following keywords. A 1 in the line following the keyword indicates that you want to dump this information
+
+* `density` - number density at each grid point
+* `velocity`- x component of bulk velocity at each grid point
+* `temperature` - temperature at each grid point
+* `pressure` - pressure at each grid point
+* `marginal` - marginal distribution function $\int f dv_2 dv_3$ at each grid point
+* `slice` - slice of the distribution function at v_2 = v_3 = N/2
+* `entropy` - Boltzmann entropy at each grid point. Negative distribution function values are set to zero.
