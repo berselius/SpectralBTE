@@ -34,12 +34,14 @@ The `boltz_` executable expects the following directories to be co-located with 
 * `input/`
 * `Weights/`
 * `Data/`
-
+* `restart/`
 The code looks for input files in the input directory
 
 Output is stored in the Data directory
 
 The Weights directory is where the code will look to check to see if you have already precomputed the collision weights for your input setup. If not, it will compute them and store them here for future use.
+
+If you tell the code to dump restart information, it will be stored in the restart folder
 
 ### To execute the code
 
@@ -47,9 +49,16 @@ Use `mpirun` to run the code, as
 
 `mpirun -n <num_tasks> boltz_ input_file output_flags`
 
-* Even if you are doing a serial run this needs to be launched with mpirun (use `-n 1`). 
 * The code will look for the specified `input_file` in `input/`. See below and in the examples firectory for details on writing input files.
 * The code will look for the specified output flag directions in the specified `output_flags` in `input/`. This tells the code what variables you want to dump. See below for more details. 
+* If the restart flag is set in the input file, it will look for information in the `restart` folder.
+
+#### How many MPI ranks, OMP threads should/can I use?
+
+* If running a 0D/homogeneous problem, run with one MPI rank (`-n 1`).
+* Set `OMP_NUM_THREADS` to the number of cores on one node
+* For 1D/inhomogenous problems, the number of MPI ranks must evenly divide the number of spatial grid cells.
+  * Past computational studies suggest that the most efficient way to set up the problem is to run with *one MPI rank per socket* and to set `OMP_NUM_THREADS` to be the number of cores per socket. 
 
 ### Input file setup
 
@@ -66,7 +75,7 @@ The input file parser reads the file line by line looking for keywords that set 
 * `Space_order` - 0 or 1. Seets the spatial discretization order for the LHS/Vlasov terms. 0 is an upwind scheme, 1 is a second order shock capturing method using a minmod slope limiter. (default: 1)
 * `Data_writing_frequency` - the code will dump data at this rate (in timesteps) (default: 10)
 * `Restart` - 0 or 1. If set to 1, this will restart the code from a previous dump. More info below. (default: 0)
-* `Restart_time` - Amount of wall clock time (in seconds) until the code halts, generates restart info, then exits. This can then be restarted by running the code with the same input file but with a `Restart` value of 1. (default: 85500, i.e. 23 hours, 45 minutes)
+* `Restart_time` - Amount of wall clock time (in seconds) until the code halts, generates restart info, then exits. This can then be restarted by running the code with the same input file but with a `Restart` value of 1. (default: 85500, i.e. 23 hours, 45 minutes). Set this to `-1` if you want the code to exit without creating a restart dump.
 * `Init_field` - Flag for different initial data cases. See `src/initializer.c` for specifics...you may wish to change some of the parameters. 
   * For 0D/space homogenous problems:
      * 0: Shifted isotropic problem
@@ -91,8 +100,6 @@ num_species <br />
 default <br /><br />
 
 If you want to do more, contact me. Mass ratio issues can cause multispecies Boltzmann to get infeasibly expensive in a hurry.
-
-
 
 #### Mesh file setup
 
