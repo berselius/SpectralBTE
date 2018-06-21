@@ -39,8 +39,6 @@ void ComputeQ(double *f, double *g, double *Q, double **conv_weights);
 
 void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights);
 
-void fft3D(fftw_complex *in, fftw_complex *out);
-
-void ifft3D(fftw_complex *in, fftw_complex *out);
+void fft3D(fftw_complex *in, fftw_complex *out, int inverse);
 
 #endif

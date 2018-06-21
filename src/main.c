@@ -80,6 +80,7 @@ int main(int argc, char **argv) {
   int restart_flag;
 
   //command line arguments
+  printf("Debug %d\n", argc);
   char *inputFilename = malloc(80*sizeof(char));
   strcpy(inputFilename,argv[1]);
 
