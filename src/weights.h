@@ -11,6 +11,8 @@ weights.h - contains frontend for generating anisotropic weights
 
 void alloc_weights(int N, double ****conv_weights, int total_species);
 
+void dealloc_weights(int N, double **conv_weights);
+
 /*******************
 function initialize_weights
 
@@ -35,17 +37,5 @@ conv_weights: pointer to memory allocated by alloc_weights
 
  *******************/
 void initialize_weights(int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j);
-
-
-
-//Internal functions
-
-void generate_conv_weights_iso(double **conv_weights);
-
-void dealloc_weights(int N, double **conv_weights);
-
-double ghat(double r, void *args);
-
-double gHat3(double ki1, double ki2, double ki3, double zeta1, double zeta2, double zeta3);
 
 #endif
