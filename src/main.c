@@ -80,7 +80,6 @@ int main(int argc, char **argv) {
   int restart_flag;
 
   //command line arguments
-  printf("Debug %d\n", argc);
   char *inputFilename = malloc(80*sizeof(char));
   strcpy(inputFilename,argv[1]);
 
@@ -165,7 +164,7 @@ int main(int argc, char **argv) {
 
   //Set up conservation routines
 
-  initialize_conservation(N, v[1]-v[0], v, mixture, num_species);
+  initialize_conservation(N, v[1]-v[0], v, mixture, num_species, 0);
 
   //////////////////////////////////////////////////
   //ALL SETUP COMPLETE                            //
@@ -419,6 +418,3 @@ int main(int argc, char **argv) {
   
   return 0;
 }
-
-
-

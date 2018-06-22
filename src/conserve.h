@@ -3,9 +3,7 @@
 
 #include "species.h"
 
-void initialize_conservation(int nodes, double h_v, double *vel, species *mix, int num_spec);
-
-void initialize_conservation_fast(int nodes, double h_v, double *vel);
+void initialize_conservation(int nodes, double h_v, double *vel, species *mix, int num_spec, int fast);
 
 void dealloc_conservation();
 

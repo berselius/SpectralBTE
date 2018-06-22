@@ -474,7 +474,7 @@ void initialize_coll(int nodes, double length, double *vel, double *M, double *z
   fclose(fidWeights);
   
   //Set up conservation routines
-  initialize_conservation_fast(N, dv, v);
+  initialize_conservation(N, dv, v, 1);
 }
 
 
