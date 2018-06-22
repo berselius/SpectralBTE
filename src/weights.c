@@ -38,8 +38,9 @@ static double gHat3(double ki1, double ki2, double ki3, double zeta1, double zet
 void alloc_weights(int N, double ****conv_weights, int total_species) {
     int i;
     *conv_weights = malloc(total_species * sizeof(double **));
-    for (i = 0; i < total_species; i++)
+    for (i = 0; i < total_species; i++) {
         (*conv_weights)[i] = malloc(N * N * N * sizeof(double *));
+    }
 }
 
 // weightFlag = recompute weights even if they are already saved
@@ -100,7 +101,7 @@ void initialize_weights(int nodes, double *eta, double Lv, double lam, int weigh
         sprintf(buffer_weights, "Weights/N%d_AnIso_L_v%g_lambda%g_Landau.wts", N, L_v, lambda);
         //sprintf(buffer_weights,"Weights/N%d_AnIso_L_v%g_lambda%g_glance0.0001_C.wts",N, L_v,lambda);
         if(weightFlag == 0) {
-            if(!load(conv_weights, buffer_weights, N)){
+            if(!load(conv_weights, buffer_weights, N)) {
                 printf("Please use the MPI Weight generator to build the weights for this anisotropic function\n");
                 exit(1);
             }
@@ -170,10 +171,12 @@ void dealloc_weights(int N, double **conv_weights) {
 }
 
 double sinc(double x) {
-    if (x != 0.0)
+    if (x != 0.0){
         return sin(x) / x;
-    else
+    }
+    else {
         return 1.0;
+    }
 }
 
 /*
@@ -193,10 +196,12 @@ double ghat(double r, void *args) {
 }
 
 double func_cos(double x) {
-    if (fabs(x) > 1e-12)
+    if (fabs(x) > 1e-12) {
         return (cos(x) - 1.0) / (x * x);
-    else
+    }
+    else {
         return -0.5 + x * x / 24.0;
+    }
 }
 
 /*
