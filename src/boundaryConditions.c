@@ -39,78 +39,39 @@ void initializeBC(int nv, double *vel, species *mix) {
 
 void setDiffuseReflectionBC(double *in, double *out, double TW, double vW, int bdry, int id)
 {
-	double sigmaW;
+	double sigmaW, sign, factor;
 	int i, j, k;
 	
-//	TW = 2.0;
 	sigmaW = 0.0;
-/*	vW[0] = 0.0;
-	vW[1] = 0.0;
-	vW[2] = 0.0;*/
-	/*
-	for(i=0;i<N;i++)
-	{
-		if(v[i] - vW <= 0.0)
-		{
-			for(j=0;j<N;j++)
-			for(k=0;k<N;k++)
-			{
-				sigmaW += (v[i] - vW)*wtN[i]*wtN[j]*wtN[k]*h_v*h_v*h_v*in[k + N*(j + N*i)];
-			}
-		}
+
+	if (bdry == 0) {
+		sign = 1.0;
 	}
-	*/
+	else {
+		sign = -1.0;
+	}
 	
-	if(bdry == 0) //left wall
-	{
-		sigmaW = 0.0;
-		
-		for(i=0;i<N/2;i++)
-		for(j=0;j<N;j++)
-		for(k=0;k<N;k++) {
-			sigmaW += v[i]*wtN[i]*wtN[j]*wtN[k]*h_v*h_v*h_v*in[k + N*(j + N*i)];
-		}
-		
-		sigmaW *= -sqrt(2.0*PI*mixture[id].mass/(KB*TW));
-		
-		for(i=N/2;i<N;i++)
-		for(j=0;j<N;j++)
-		for(k=0;k<N;k++)
-		{
-		  out[k + N*(j + N*i)] = sigmaW*pow(0.5*mixture[id].mass/(PI*KB*TW), 1.5)*exp(-0.5*mixture[id].mass/(KB*TW) *( v[i]*v[i] + v[j]*v[j] + v[k]*v[k]));
-		}
-	}
-	else //right wall
-	{
-		sigmaW = 0.0;
-		
-		for(i=N/2;i<N;i++)
-		for(j=0;j<N;j++)
-		for(k=0;k<N;k++)
-		{
-			sigmaW += v[i]*wtN[i]*wtN[j]*wtN[k]*h_v*h_v*h_v*in[k + N*(j + N*i)];
-		}
-		
-		sigmaW *= sqrt(2.0*PI*mixture[id].mass/(KB*TW));
-		
-		for(i=0;i<N/2;i++)
-		for(j=0;j<N;j++)
-		for(k=0;k<N;k++)
-		{
-		  out[k + N*(j + N*i)] = sigmaW*pow(0.5*mixture[id].mass/(PI*KB*TW), 1.5)*exp(-0.5*mixture[id].mass/(KB*TW)*( v[i]*v[i] + v[j]*v[j] + v[k]*v[k] ));
-		}
-	}
-// 	for(i=0;i<N;i++)
-// 	{
-// 		if(v[i] - vW > 0.0)
-// 		{
-// 			for(j=0;j<N;j++)
-// 			for(k=0;k<N;k++)
-// 			{
-// 				out[k + N*(j + N*i)] = sigmaW/pow(PI*TW, 1.5)*exp(-( (v[i] - vW)*(v[i] - vW) + v[j]*v[j] + v[k]*v[k] )/TW);
-// 			}
-// 		}
-// 	}
+	double ratio = mixture[id].mass / (KB * TW);
+	factor = sign * 0.5 * ratio * ratio / PI;
+
+	double hv3 = h_v * h_v * h_v;
+
+	#pragma omp parallel for reduction(+:sigmaW) private(i, j, k)
+	for (i = 0; i < N/2; i++) {
+	for (j = 0; j < N; j++) {
+	for (k = 0; k < N; k++) {
+		sigmaW += v[i] * wtN[i] * wtN[j] * wtN[k] * hv3 * in[k + N * (j + N * i)];
+	}}}
+
+	sigmaW *= sign * factor;
+
+	#pragma omp parallel for private(i, j, k)
+	for (i = N/2; i < N; i++) {
+	for (j = 0; j < N; j++) {
+	#pragma omp simd
+	for (k = 0; k < N; k++) {
+		out[k + N * (j + N * i)] = sigmaW * exp(-0.5 * ratio * (v[i] * v[i] + v[j] * v[j] + v[k] * v[k]));
+	}}}
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
