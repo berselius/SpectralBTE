@@ -266,7 +266,7 @@ void generate_conv_weights_iso(double **conv_weights)
 {
   int i, j, k, l, m, n;
 
-#pragma parallel for private(i,j,k,l,m,n)
+#pragma omp parallel for private(i,j,k,l,m,n)
   for(i=0;i<N;i++)
   for(j=0;j<N;j++)
   for(k=0;k<N;k++) 
