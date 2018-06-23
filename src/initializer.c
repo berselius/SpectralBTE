@@ -293,6 +293,16 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
   }
   else {
     *t = 0;
+    
+    //set some defaults
+    rho_l = 1.0;
+    ux_l = 0.0;
+    T_l = 1.0;
+    
+    rho_r = 1.0;
+    ux_r = 0.0;
+    T_r = 1.0;
+
     switch(initFlag) {
     case 0: 
       rho_l = 4.0*Ma*Ma/(Ma*Ma + 3.0);
@@ -328,6 +338,18 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
       T_l = 1.0;
       printf("Poiseuille: rho%g T%g\n",rho_l,T_l);
       break;
+    case 6:
+      rho_l = 1.0;
+      ux_l = 1.2972;
+      T_l = 1.0;
+
+      rho_r = 1.297;
+      ux_r = 1.0;
+      T_r = 1.195;
+
+      printf("Shock problem: left rho:%g ux:%g T:%g, right rho:%g ux:%g T:%g\n",rho_l,ux_l,T_l,rho_r,ux_r,T_r);
+      break;
+
     }
 
     double maxTemp = T_r;
@@ -381,11 +403,28 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 	      f[m][l][k + N*(j + N*i)] = rho_l*exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/T_l)/((T_l*M_PI)*sqrt(T_l*M_PI));
 	    }		  		  
 	break;	
+      case 6: //Mach 1.2 shock
+	if(l < nX/2)  {	  
+	  for(i=0;i<N;i++)
+	    for(j=0;j<N;j++)
+	      for(k=0;k<N;k++) {
+		f[m][l][k + N*(j + N*i)] = rho_l*exp(-((v[i] - ux_l)*(v[i]-ux_l) + v[j]*v[j] + v[k]*v[k])/T_l)/((T_l*M_PI)*sqrt(T_l*M_PI));
+	      }
+	}
+	else {
+	  for(i=0;i<N;i++)
+	    for(j=0;j<N;j++)
+	      for(k=0;k<N;k++) {
+		f[m][l][k + N*(j + N*i)] = rho_r*exp(-((v[i]-ux_r)*(v[i]-ux_r) + v[j]*v[j] + v[k]*v[k])/T_r)/((T_r*M_PI)*sqrt(T_r*M_PI));
+	      }
+	}
+	break;
       }
     }
-    }
     
+    }
   }
+  
 }
 
 void dealloc_inhom(int nX, int order, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, double **Q) {
