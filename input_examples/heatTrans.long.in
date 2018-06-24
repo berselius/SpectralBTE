@@ -2,7 +2,7 @@
 #----------------------------------------------------------
 # Number of nodes in each direction in velocity space
 N
-16
+22
 #----------------------------------------------------------
 # Velocity domain cutoff
 L_v
@@ -10,7 +10,7 @@ L_v
 #----------------------------------------------------------
 # knudsen number
 Knudsen
-3.2
+0.3
 #----------------------------------------------------------
 # exponent of differential cross section (lambda)
 Lambda
@@ -22,7 +22,7 @@ Time_step
 #----------------------------------------------------------
 # Number of steps
 Number_of_time_steps
-
+75000
 #----------------------------------------------------------
 # Spatial order of accuracy
 Space_order
@@ -30,7 +30,7 @@ Space_order
 #----------------------------------------------------------
 # Data writing frequency - number of timesteps between output snaphot
 Data_writing_frequency
-50
+500
 #----------------------------------------------------------
 # Flag telling whether this is restarting from a previous code
 Restart
@@ -60,7 +60,7 @@ Anisotropic
 #----------------------------------------------------------
 # Location of the mesh file - note this is stored in "meshes" directory
 mesh_file
-heatTrans.mesh
+heatTrans.test.mesh
 # Number of species
 num_species
 1
