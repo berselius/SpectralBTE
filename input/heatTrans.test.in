@@ -22,7 +22,7 @@ Time_step
 #----------------------------------------------------------
 # Number of steps
 Number_of_time_steps
-
+100
 #----------------------------------------------------------
 # Spatial order of accuracy
 Space_order
@@ -60,7 +60,7 @@ Anisotropic
 #----------------------------------------------------------
 # Location of the mesh file - note this is stored in "meshes" directory
 mesh_file
-heatTrans.mesh
+heatTrans.test.mesh
 # Number of species
 num_species
 1
