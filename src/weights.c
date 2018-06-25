@@ -125,7 +125,6 @@ void initialize_weights(int nodes, double *eta, double Lv, double lam, int weigh
 int load(double **conv_weights, char buffer_weights[100], int N) {
    FILE* fidWeights;
     int readFlag;
-
     if ((fidWeights = fopen(buffer_weights, "r"))) {
         printf("Loading weights from file %s\n", buffer_weights);
         for (int i = 0; i < N * N * N; i++) {

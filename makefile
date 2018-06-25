@@ -1,8 +1,11 @@
-# Directories
+.PHONY: cori cori_prof boltz
+#directories
 DIR=$(PWD)/
 EXECDIR=$(DIR)
 OBJDIR=$(DIR)obj/
 SRCDIR=$(DIR)src/
+FFTW_DIR=/project/projectdirs/m3118/fftw3_3.3.3_gcc/
+MAPLIB =$(DIR)allinea-profiler.ld
 
 # GNU C compiler 
 CC=mpicc
@@ -11,10 +14,10 @@ WEIGHTCC=mpicc
 
 # Compiler flags
 CFLAGS= -O2 -fopenmp -Wall -g
-FFTFLAGS = -lgsl -lgslcblas -lfftw3_omp -lfftw3 -lm
+FFTFLAGS = -lgsl -lgslcblas -lfftw3_omp -lfftw3 -lm -g
 
-WEIGHTCFLAGS = -O2 -fopenmp -Wall -g
-WEIGHTFFTFLAGS = -lgsl -lgslcblas -lfftw3 -lm
+WEIGHTCFLAGS = -O2 -fopenmp -Wall -g 
+WEIGHTFFTFLAGS = -lgsl -lgslcblas -lfftw3 -lm -g
 
 # Command definition
 RM=rm -f
@@ -27,6 +30,18 @@ objects = weights.o collisions.o output.o input.o gauss_legendre.o momentRoutine
 weight_sources = $(SRCDIR)MPIWeightGenerator.c $(SRCDIR)MPIcollisionroutines.c $(SRCDIR)gauss_legendre.c
 
 pref_objects = $(addprefix $(OBJDIR), $(objects))
+
+cori: CFLAGS += -I${FFTW_DIR}/include -L${FFTW_DIR}/lib ${GSL} -g -dynamic -L${PWD}
+cori: FFTFLAGS += -dynamic -L${PWD}
+cori: WEIGHTFLAGS += -dynamic -L${PWD}
+cori: WEIGHTFFTFLAGS += -dynamic -L${PWD}
+cori: boltz
+
+cori_prof: CFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_prof: FFTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_prof: WEIGHTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_prof: WEIGHTFFTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_prof: cori
 
 # linking step
 boltz: $(pref_objects) $(sources)
@@ -61,14 +76,14 @@ $(OBJDIR)collisions.o: $(SRCDIR)collisions.c
 $(OBJDIR)output.o: $(SRCDIR)output.c 
 	@echo "Compiling  $< ... " ; \
 	if [ -f  $@ ] ; then \
-		rm $@ ;\
+ 		rm $@ ;\
 	fi ; \
 	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
 
 $(OBJDIR)input.o: $(SRCDIR)input.c
 	@echo "Compiling  $< ... " ; \
 	if [ -f  $@ ] ; then \
-		rm $@ ;\
+ 		rm $@ ;\
 	fi ; \
 	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
 
@@ -139,4 +154,3 @@ $(OBJDIR)aniso_weights.o : $(SRCDIR)aniso_weights.c
 clean:
 	$(RM) $(OBJDIR)*.o 
 	$(RM) $(EXECDIR)*_
-
