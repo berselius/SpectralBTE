@@ -10,7 +10,7 @@ MPICC=mpicc
 WEIGHTCC=mpicc
 
 # Compiler flags
-CFLAGS= -O2 -fopenmp -Wall
+CFLAGS= -O2 -fopenmp -Wall -g
 FFTFLAGS = -lgsl -lgslcblas -lfftw3_omp -lfftw3 -lm
 
 WEIGHTCFLAGS = -O2 -fopenmp -Wall
