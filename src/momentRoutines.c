@@ -40,6 +40,7 @@ void initialize_moments(int nodes, double L_v, double *vel, species *mix, int fa
   
   wtN = malloc(N*sizeof(double));
   wtN[0] = 0.5;
+  #pragma omp simd
   for(i=1;i<(N-1);i++)
     wtN[i] = 1.0;
   wtN[N-1] = 0.5;
@@ -51,13 +52,15 @@ double getDensity(double *in, int spec_id)
 	int i, j, k;
 
 	//printf("in get dens %p %p\n", wtN, in);
-	
+        #pragma omp parallel for	
 	for(i=0;i<N;i++) {
-	  for(j=0;j<N;j++)
+	  for(j=0;j<N;j++) {
+            #pragma omp simd
 	    for(k=0;k<N;k++)
 	      {
 		result += dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)];
 	      }
+           }
 	  
 	}
 	  return mixture[spec_id].mass*result;
@@ -71,8 +74,10 @@ double getEntropy(double *in)
 	int i, j, k;
 	
 	//Original
+	#pragma omp parallel for
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
+        #pragma omp simd
 	for(k=0;k<N;k++)
 	{
 	  if(in[k + N*(j + N*i)] > 0)
@@ -87,15 +92,18 @@ double getEntropy(double *in)
 double Kullback(double *in, double rho, double T) {
   double result = 0.0, max;
   int i, j, k;
+  double factor = rho * pow(0.5 / (M_PI * T), 1.5);
+  double in_val;
 
-
+  #pragma omp parallel for
   for(i=0;i<N;i++)
     for(j=0;j<N;j++)
-      for(k=0;k<N;k++)
-	{
-	  max = rho * pow(0.5/(M_PI*T),1.5)*exp(-(0.5/T) *((v[i])*(v[i]) + v[j]*v[j] + v[k]*v[k]));
-	  if(in[k + N*(j + N*i)] > 0)
-	    result += dv3*wtN[i]*wtN[j]*wtN[k]*(in[k + N*(j + N*i)]*log(in[k + N*(j + N*i)]/max) - in[k + N*(j + N*i)] + max);
+      #pragma omp simd
+      for(k=0;k<N;k++) {
+	  max = factor * exp(-0.5/T * ((v[i])*(v[i]) + v[j]*v[j] + v[k]*v[k]));
+          in_val = in[k + N * (j + N * i)];
+	  if(in_val > 0)
+	    result += dv3 * wtN[i] * wtN[j] * wtN[k] * (in_val * log(in_val/max) - in_val + max);
 	}
   
   
@@ -107,26 +115,27 @@ double Kullback(double *in, double rho, double T) {
 
 void getBulkVelocity(double *in, double *out, double rho, int spec_id)
 {
-	double temp1, temp2, temp3;
 	int i, j, k;
 	
 	double mass = mixture[spec_id].mass;
+        double factor = dv3 / rho;
+        double in_val, temp_factor;
 
 	out[0] = 0.0;
 	out[1] = 0.0;
 	out[2] = 0.0;
 	
+        #pragma omp parallel for
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
-	for(k=0;k<N;k++)
-	{
-		temp1 = v[i]*dv3*wtN[i]*wtN[j]*wtN[k]/rho;
-		temp2 = v[j]*dv3*wtN[i]*wtN[j]*wtN[k]/rho;
-		temp3 = v[k]*dv3*wtN[i]*wtN[j]*wtN[k]/rho;
-		
-		out[0] += temp1*in[k + N*(j + N*i)];
-		out[1] += temp2*in[k + N*(j + N*i)];
-		out[2] += temp3*in[k + N*(j + N*i)];
+        #pragma omp simd
+	for(k=0;k<N;k++) {
+                in_val = in[k + N * (j + N * i)];
+                temp_factor = factor * in_val * wtN[i] * wtN[j] * wtN[k];
+
+		out[0] += v[i] * temp_factor;
+		out[1] += v[j] * temp_factor;
+		out[2] += v[k] * temp_factor;;
 	}
 	
 	out[0] = mass*out[0];
@@ -142,8 +151,10 @@ void getEnergy(double *in, double *out)
   double current_en;
 
   int i, j, k;
+  #pragma omp parallel for
   for(i=0;i<N;i++)
     for(j=0;j<N;j++)
+      #pragma omp simd
       for(k=0;k<N;k++) {
 	current_en = dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)]*(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]);
 	if (current_en > 0)
@@ -160,17 +171,22 @@ void getEnergy(double *in, double *out)
 
 double getTemperature(double *in, double *bulkV, double rho, int spec_id)
 {
-	double result = 0.0, temp;
+	double result = 0.0;
 	int i, j, k;
+	double factor = dv3 / (3.0 * rho);
+	double vibv0, vjbv1, vkbv2;
 
 	double mass = mixture[spec_id].mass;
-
+        #pragma omp parallel for
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
-	for(k=0;k<N;k++)
-	{
-		temp = (v[i] - bulkV[0])*(v[i] - bulkV[0]) + (v[j] - bulkV[1])*(v[j] - bulkV[1]) + (v[k] - bulkV[2])*(v[k] - bulkV[2]);
-		result += temp*dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)]/(3.0*rho);
+        #pragma omp simd
+	for(k=0;k<N;k++) {
+		vibv0 = v[i] - bulkV[0];
+		vjbv1 = v[j] - bulkV[1];
+		vkbv2 = v[k] - bulkV[2];
+
+		result += factor * (vibv0 * vibv0 + vjbv1 * vjbv1 + vkbv2 * vkbv2) * wtN[i] * wtN[j] * wtN[k] * in[k + N*(j + N*i)];
 	}	
 	return (mass*mass/KB)*result;
 }
@@ -187,26 +203,33 @@ double getPressure(double rho, double temperature)
 void getStressTensor(double *in, double *bulkV, double **out)
 {
 	int i, j, k;
-	double temp = 0.0;
-	
+        double dv3 = dv * dv * dv;
+        double factor, vibv0, vjbv1, vkbv2;
+
+        #pragma omp simd collapse (2)	
 	for(i=0;i<3;i++)
 	for(j=0;j<3;j++)
 	out[i][j] = 0.0;
 	
+        #pragma omp parallel for
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
+        #pragma omp simd
 	for(k=0;k<N;k++)
 	{
-		temp = 2.0*dv*dv*dv*wtN[i]*wtN[j]*wtN[k];
+                factor = 2.0 * dv3 * wtN[i] * wtN[j] * wtN[k] * in[k + N * (j + N * i)];
+		vibv0 = v[i] - bulkV[0];
+                vjbv1 = v[j] - bulkV[1];
+                vkbv2 = v[k] - bulkV[2];
+                
+		out[0][0] += vibv0 * vibv0 * factor;
+		out[0][1] += vibv0 * vjbv1 * factor;
+		out[0][2] += vibv0 * vkbv2 * factor;
 		
-		out[0][0] += (v[i] - bulkV[0])*(v[i] - bulkV[0])*temp*in[k + N*(j + N*i)];
-		out[0][1] += (v[i] - bulkV[0])*(v[j] - bulkV[1])*temp*in[k + N*(j + N*i)];
-		out[0][2] += (v[i] - bulkV[0])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
+		out[1][1] += vjbv1 * vjbv1 * factor;
+		out[1][2] += vjbv1 * vkbv2 * factor;
 		
-		out[1][1] += (v[j] - bulkV[1])*(v[j] - bulkV[1])*temp*in[k + N*(j + N*i)];
-		out[1][2] += (v[j] - bulkV[1])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
-		
-		out[2][2] += (v[k] - bulkV[2])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
+		out[2][2] += vkbv2 * vkbv2 * factor;
 	}
 	
 	out[1][0] = out[0][1];
@@ -220,41 +243,26 @@ void getHeatFlowVector(double *in, double *bulkV, double *out)
 {
 	int i, j, k;
 	double temp = 0.0;
+	double factor = 2.0 * dv * dv * dv;
+	double vibv0, vjbv1, vkbv2;
 	
 	for(i=0;i<3;i++) out[i] = 0.0;
 	
+	#pragma omp parallel for
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
+	#pragma omp simd
 	for(k=0;k<N;k++)
 	{
-		temp = 2.0*( (v[i] - bulkV[0])*(v[i] - bulkV[0]) + (v[j] - bulkV[1])*(v[j] - bulkV[1]) + (v[k] - bulkV[2])*(v[k] - bulkV[2]) )*dv*dv*dv*wtN[i]*wtN[j]*wtN[k];
+		vibv0 = v[i] - bulkV[0];
+		vjbv1 = v[j] - bulkV[1];
+		vkbv2 = v[k] - bulkV[2];
+		temp = factor * (vibv0 * vibv0 + vjbv1 * vjbv1 + vkbv2 * vkbv2) * wtN[i] * wtN[j] * wtN[k] * in[k + N * (j + N * i)];
 		
-		out[0] += temp*(v[i] - bulkV[0])*in[k + N*(j + N*i)];
-		out[1] += temp*(v[j] - bulkV[1])*in[k + N*(j + N*i)];
-		out[2] += temp*(v[k] - bulkV[2])*in[k + N*(j + N*i)];
+		out[0] += temp * vibv0;
+		out[1] += temp * vjbv1;
+		out[2] += temp * vkbv2;
 	}
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
-
-double halfmoment(double *in) {
-  int i,j,k;
-  double moment = 0.0;
-
-  for(i=0;i<N;i++)
-    for(j=0;j<N;j++)
-      for(k=0;k<N;k++)
-	moment += dv*dv*dv*wtN[i]*wtN[j]*wtN[k]*sqrt(sqrt(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]))*in[k + N*(j + N*i)];
-  return moment;
-}
-
-double thirdmoment(double *in) {
-  int i,j,k;
-  double moment = 0.0;
-
-  for(i=0;i<N;i++)
-    for(j=0;j<N;j++)
-      for(k=0;k<N;k++)
-	moment += dv*dv*dv*wtN[i]*wtN[j]*wtN[k]*pow(sqrt(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]),3)*in[k + N*(j + N*i)];
-  return moment;
-}

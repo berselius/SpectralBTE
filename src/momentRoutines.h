@@ -23,8 +23,6 @@ void getStressTensor(double *in, double *bulkV, double **out);
 
 void getHeatFlowVector(double *in, double *bulkV, double *out);
 
-double halfmoment(double *in);
-
-double thirdmoment(double *in);
+double moment(double *in, char moment_type[]);
 
 #endif
