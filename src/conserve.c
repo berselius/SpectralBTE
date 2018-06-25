@@ -193,8 +193,9 @@ void solveWithCCt(int nElem, double *b)
 //MAIN CONSERVATION ROUTINE
 void conserveAllMoments(double **Q)
 {
-    int i, j, k, l, m, n;
-    double prefact;
+    int i, j, k, l, m, n, index;
+    double prefactor, vi, vj, vk;
+    double dv3m = dv * dv * dv * mixture[m].mass;
 
     //lambda from before is now the sum_i sum_j C_i*Q_ij term
     #pragma omp parallel
@@ -210,22 +211,27 @@ void conserveAllMoments(double **Q)
                 for(k=0;k<N;k++) {
         
                     //entries of C_i
-                    prefact = wtN[i]*wtN[j]*wtN[k]*dv*dv*dv*mixture[m].mass;
+                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3m;
+                    vi = v[i];
+                    vj = v[j];
+                    vk = v[k];
 
-                    temp_cons[m]        = prefact;
-                    temp_cons[Ns]     = prefact*v[i];
-                    temp_cons[Ns+1] = prefact*v[j];
-                    temp_cons[Ns+2] = prefact*v[k];
-                    temp_cons[Ns+3] = prefact*0.5*(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]);
+                    temp_cons[m] = prefactor;
+                    temp_cons[Ns] = prefactor * vi;
+                    temp_cons[Ns+1] = prefactor * vj;
+                    temp_cons[Ns+2] = prefactor * vk;
+                    temp_cons[Ns+3] = prefactor * 0.5 * (vi * vi + vj * vj + vk * vk);
+
+                    index = k + N * (j + N * i);
 
                     //computes sum_j    C_i * Qij
                     #pragma omp simd
                     for(n=0;n<Ns;n++) {
-                        masterQ[m]        += Q[n*Ns + m][k + N*(j + N*i)]*temp_cons[m];
-                        masterQ[Ns]     += Q[n*Ns + m][k + N*(j + N*i)]*temp_cons[Ns];
-                        masterQ[Ns+1] += Q[n*Ns + m][k + N*(j + N*i)]*temp_cons[Ns+1];
-                        masterQ[Ns+2] += Q[n*Ns + m][k + N*(j + N*i)]*temp_cons[Ns+2];
-                        masterQ[Ns+3] += Q[n*Ns + m][k + N*(j + N*i)]*temp_cons[Ns+3];            
+                        masterQ[m] += Q[n*Ns + m][index] * temp_cons[m];
+                        masterQ[Ns] += Q[n*Ns + m][index] * temp_cons[Ns];
+                        masterQ[Ns+1] += Q[n*Ns + m][index] * temp_cons[Ns+1];
+                        masterQ[Ns+2] += Q[n*Ns + m][index] * temp_cons[Ns+2];
+                        masterQ[Ns+3] += Q[n*Ns + m][index] * temp_cons[Ns+3];            
                     }
                 }
             }
@@ -241,17 +247,22 @@ void conserveAllMoments(double **Q)
         for(i=0;i<N;i++) {
             for(j=0;j<N;j++) {
                 for(k=0;k<N;k++) {
-                    prefact = wtN[i]*wtN[j]*wtN[k]*dv*dv*dv*mixture[m].mass/Ns;
+                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3m / Ns;
+                    vi = v[i];
+                    vj = v[j];
+                    vk = v[k];
 
-                    temp_cons[m]        = prefact;
-                    temp_cons[Ns]     = prefact*v[i];
-                    temp_cons[Ns+1] = prefact*v[j];
-                    temp_cons[Ns+2] = prefact*v[k];
-                    temp_cons[Ns+3] = prefact*0.5*(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]);        
+                    temp_cons[m] = prefactor;
+                    temp_cons[Ns] = prefactor * vi;
+                    temp_cons[Ns+1] = prefactor * vj;
+                    temp_cons[Ns+2] = prefactor * vk;
+                    temp_cons[Ns+3] = prefactor * 0.5 * (vi * vi + vj * vj + vk * vk);
+
+                    index = k + N * (j + N * i);
 
                     //Computes Q_ij = Q_ij - C_i^T lambda
                     for(n=0;n<Ns;n++) {
-                        Q[n*Ns + m][k + N*(j + N*i)] -= (temp_cons[m]*masterQ[m] + temp_cons[Ns]*masterQ[Ns] + temp_cons[Ns+1]*masterQ[Ns+1] + temp_cons[Ns+2]*masterQ[Ns+2] + temp_cons[Ns+3]*masterQ[Ns+3]);
+                        Q[n*Ns + m][index] -= (temp_cons[m]*masterQ[m] + temp_cons[Ns]*masterQ[Ns] + temp_cons[Ns+1]*masterQ[Ns+1] + temp_cons[Ns+2]*masterQ[Ns+2] + temp_cons[Ns+3]*masterQ[Ns+3]);
                     }
                 }
             }
@@ -264,7 +275,9 @@ void conserveAllMoments(double **Q)
 void createCCtAndPivot()
 {
     double ***C, det = 1, prefactor;
-    int i, j, k, m, n, iError = 0;
+    int i, j, k, m, n, index, iError = 0;
+    double dv3m = dv * dv * dv * mixture[m].mass;
+    double vi, vj, vk;
     
     //array of integration matrices
     C = malloc(Ns*sizeof(double **));
@@ -282,17 +295,22 @@ void createCCtAndPivot()
             for(j=0;j<N;j++) {
                 #pragma omp simd
                 for(k=0;k<N;k++) {        
-                    prefactor = wtN[i]*wtN[j]*wtN[k]*dv*dv*dv*mixture[m].mass;
-                    
+                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3m;
+
+                    index = k + N * (j + N * i);
+                    vi = v[i];
+                    vj = v[j];
+                    vk = v[k];
+
                     for(n=0;n<Ns;n++) {
-                        C[m][n][k + N*(j + N*i)] = 0;
+                        C[m][n][index] = 0;
                     }
                     
-                    C[m][m][k + N*(j + N*i)]        = prefactor;            
-                    C[m][Ns][k + N*(j + N*i)]     = prefactor*v[i];            
-                    C[m][Ns+1][k + N*(j + N*i)] = prefactor*v[j];            
-                    C[m][Ns+2][k + N*(j + N*i)] = prefactor*v[k];            
-                    C[m][Ns+3][k + N*(j + N*i)] = prefactor*0.5*(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]);
+                    C[m][m][index] = prefactor;            
+                    C[m][Ns][index] = prefactor * vi;
+                    C[m][Ns+1][index] = prefactor * vj;
+                    C[m][Ns+2][index] = prefactor * vk;
+                    C[m][Ns+3][index] = prefactor * 0.5 * (vi * vi + vj * vj + vk * vk);
                 }
             }
         }
@@ -306,7 +324,7 @@ void createCCtAndPivot()
             #pragma omp simd
             for(m=0;m<Ns;m++) {
                 for(k=0;k<N*N*N;k++) {
-                    CCt[i][j] += C[m][i][k]*C[m][j][k];
+                    CCt[i][j] += C[m][i][k] * C[m][j][k];
                 }
             }
         }
