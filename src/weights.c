@@ -299,7 +299,7 @@ double gHat3(double ki1, double ki2, double ki3, double zeta1, double zeta2, dou
 //this generates the convolution weights G
 void generate_conv_weights_iso(double **conv_weights)
 {
-    int i, j, k, l, m, n;
+    int i,j,k,l,m,n;
 
     #pragma omp parallel for private(i,j,k,l,m,n)
     for (i = 0; i < N; i++) {

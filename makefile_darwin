@@ -22,16 +22,27 @@ RM=rm -f
 # sources for main
 sources = $(SRCDIR)main.c $(SRCDIR)initializer.c $(SRCDIR)restart.c
 
-objects = weights.o collisions.o output.o input.o gauss_legendre.o momentRoutines.o conserve.o transportroutines.o boundaryConditions.o mesh_setup.o species.o aniso_weights.o
+sources_fast = $(SRCDIR)main_fast.c $(SRCDIR)initializer_fast.c
+
+objects = weights.o collisions.o output.o input.o gauss_legendre.o momentRoutines.o conserve.o transportroutines.o boundaryConditions.o mesh_setup.o species.o pot_weights.o aniso_weights.o poisson.o
+
+objects_fast = collisions_fast.o output.o input.o gauss_legendre.o momentRoutines.o conserve.o species.o
 
 weight_sources = $(SRCDIR)MPIWeightGenerator.c $(SRCDIR)MPIcollisionroutines.c $(SRCDIR)gauss_legendre.c
 
 pref_objects = $(addprefix $(OBJDIR), $(objects))
 
+pref_objects_fast = $(addprefix $(OBJDIR), $(objects_fast))
+
 # linking step
 boltz: $(pref_objects) $(sources)
 	@echo "Building Boltzmann deterministic solver"
 	$(CC) $(CFLAGS) -o $(EXECDIR)boltz_ $(sources) $(pref_objects) $(FFTFLAGS)
+
+fast: $(pref_objects_fast) $(sources_fast)
+	@echo "Building NLogN Boltzmann deterministic solver"
+	$(CC) $(CFLAGS) -o $(EXECDIR)Fastboltz_ $(sources_fast) $(pref_objects_fast) $(FFTFLAGS)
+	codesign -f -s haack-boltz $(EXECDIR)Fastboltz_
 
 weights: $(weight_sources)
 	@echo "Building Anisotropic weight generator"
@@ -52,6 +63,13 @@ $(OBJDIR)MPIcollisionroutines.o : $(SRCDIR)MPIcollisionroutines.c
 	$(WEIGHTCC)  -c $(WEIGHTCFLAGS)  $< -o $@ 2>&1 ;
 
 $(OBJDIR)collisions.o: $(SRCDIR)collisions.c 
+	@echo "Compiling  $< ... " ; \
+	if [ -f  $@ ] ; then \
+		rm $@ ;\
+	fi ; \
+	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
+
+$(OBJDIR)collisions_fast.o: $(SRCDIR)collisions_fast.c 
 	@echo "Compiling  $< ... " ; \
 	if [ -f  $@ ] ; then \
 		rm $@ ;\
@@ -107,6 +125,19 @@ $(OBJDIR)transportroutines.o : $(SRCDIR)transportroutines.c
 	fi ; \
 	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
 
+$(OBJDIR)Flowadapt_transportroutines.o : $(SRCDIR)Flowadapt_transportroutines.c
+	@echo "Compiling  $< ... " ; \
+	if [ -f  $@ ] ; then \
+		rm $@ ;\
+	fi ; \
+	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
+
+$(OBJDIR)flowadapt.o : $(SRCDIR)flowadapt.c
+	@echo "Compiling  $< ... " ; \
+	if [ -f  $@ ] ; then \
+		rm $@ ;\
+	fi ; \
+	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
 
 $(OBJDIR)boundaryConditions.o : $(SRCDIR)boundaryConditions.c
 	@echo "Compiling  $< ... " ; \
@@ -129,12 +160,27 @@ $(OBJDIR)species.o : $(SRCDIR)species.c
 	fi ; \
 	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
 
+$(OBJDIR)pot_weights.o : $(SRCDIR)pot_weights.c
+	@echo "Compiling  $< ... " ; \
+	if [ -f  $@ ] ; then \
+		rm $@ ;\
+	fi ; \
+	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
+
 $(OBJDIR)aniso_weights.o : $(SRCDIR)aniso_weights.c
 	@echo "Compiling  $< ... " ; \
 	if [ -f  $@ ] ; then \
 		rm $@ ;\
 	fi ; \
 	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
+
+$(OBJDIR)poisson.o : $(SRCDIR)poisson.c
+	@echo "Compiling  $< ... " ; \
+	if [ -f  $@ ] ; then \
+		rm $@ ;\
+	fi ; \
+	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
+
 
 clean:
 	$(RM) $(OBJDIR)*.o 

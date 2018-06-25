@@ -21,13 +21,13 @@ pressure
 #-------------------------------
 # Marginal distribution
 marginal
-0
+1
 #-------------------------------
 # Slice of distribution
 slice
-0
+1
 #-------------------------------
 # Entropy
 entropy
-0
+1
 Stop

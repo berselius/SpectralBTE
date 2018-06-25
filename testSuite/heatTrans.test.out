@@ -1,0 +1,33 @@
+# OUTPUT FLAGS FILE FOR CONSERVATIVE SPECTRAL BOLTZMANN SOLVER
+#-------------------------------
+# For all output types, "1" means to save this data, "0" means to suppress it
+#-------------------------------
+#-------------------------------
+# Density
+density
+1
+#-------------------------------
+# Bulk Velocity
+velocity
+1
+#-------------------------------
+# Kinetic Temperature
+temperature
+1
+#-------------------------------
+# Pressure
+pressure
+0
+#-------------------------------
+# Marginal distribution
+marginal
+0
+#-------------------------------
+# Slice of distribution
+slice
+0
+#-------------------------------
+# Entropy
+entropy
+0
+Stop

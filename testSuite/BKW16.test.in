@@ -1,4 +1,8 @@
 # INPUT FILE FOR CONSERVATIVE SPECTRAL CODE
+#
+# This solves the 0D-3V Bobylev-Krook-Wu problem, which is 
+# a rare analytic solution to the Boltzmann equation
+#
 #----------------------------------------------------------
 # Number of nodes in each direction in velocity space
 N
@@ -14,7 +18,7 @@ Knudsen
 #----------------------------------------------------------
 # exponent of differential cross section (lambda)
 Lambda
-1.0
+0.0
 #----------------------------------------------------------
 # Timestep
 Time_step
@@ -22,31 +26,27 @@ Time_step
 #----------------------------------------------------------
 # Number of steps
 Number_of_time_steps
-10000
+100
 #----------------------------------------------------------
-# Spatial order of accuracy
+# Order of accuracy
 Space_order
-1
+2
 #----------------------------------------------------------
 # Data writing frequency - number of timesteps between output snaphot
 Data_writing_frequency
-50
+1
 #----------------------------------------------------------
 # Flag telling whether this is restarting from a previous code
 Restart
 0
 #----------------------------------------------------------
-# If storing for a restart, this is the amount of time (in seconds) until the code shuts things down
-Restart_time
-0
-#----------------------------------------------------------
 # Initial Data flag
 Init_field
-3
+2
 #----------------------------------------------------------
 # Flag for space homogensous problem (default value is 0 - space homogeneous problem
 SpaceInhom
-1
+0
 #----------------------------------------------------------
 # Flag for forcing recomputation of stored weights, if they are detected
 Recompute_weights
@@ -58,10 +58,7 @@ Recompute_weights
 Anisotropic
 0
 #----------------------------------------------------------
-# Location of the mesh file - note this is stored in "meshes" directory
-mesh_file
-heatTrans.mesh
-# Number of species
+# Species info
 num_species
 1
 default

@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <mpi.h>
 #include "species.h"
-#include "poisson.h"
+//#include "poisson.h"
 
 //Computes the transport term 
 
@@ -178,8 +178,10 @@ void upwindOne(double **f, double **f_conv, int id) {
     Ma = 1.0;
   }
 
+  /*
   double *dens, *PoisPot;
 
+  
   if(ICChoice == 6) { //find densities
     if(numNodes != 1) {
       printf("multi-node Poisson not implemented\n");
@@ -196,6 +198,7 @@ void upwindOne(double **f, double **f_conv, int id) {
     }
       
   }
+  */
 
   for(l=1;l<nX+1;l++)  {
     for(i=0;i<N;i++)
@@ -220,7 +223,7 @@ void upwindOne(double **f, double **f_conv, int id) {
 	  else
 	    f_conv[l][k + N*(j + N*i)] = f_conv[l][k + N*(j + N*i)] - Ma*dt/(2*dx[l]) * (f[l][k + N*((j+1) + N*i)] - f[l][k + N*((j-1) + N*i)]);
 	}
-	//Add poisson terms
+	/*	//Add poisson terms
 	if(ICChoice == 6) {
 	  if(k == 0) 
 	    f_conv[l][k + N*(j + N*i)] = f_conv[l][k + N*(j + N*i)] - dt*PoisPot[l]*(f[l][k+1 + N*(j + N*i)])/(2*h_v);
@@ -229,6 +232,7 @@ void upwindOne(double **f, double **f_conv, int id) {
 	  else
 	    f_conv[l][k + N*(j + N*i)] = f_conv[l][k + N*(j + N*i)] - dt*PoisPot[l]*(f[l][k+1 + N*(j + N*i)] - f[l][k-1 + N*(j + N*i)])/(2*h_v);
 	}
+	*/
       }
   }
 }

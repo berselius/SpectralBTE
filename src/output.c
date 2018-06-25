@@ -190,7 +190,7 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
 //This version is for homogeneous case
 void write_streams(double **f, double time, double *v) {
   int i,l;
-  double density, kinTemp, bulkV[3], half, three, energy[2];
+  double density, kinTemp, bulkV[3], energy[2];
 
   for(i=0;i<Ns;i++) {
     density = getDensity(f[i],0);
