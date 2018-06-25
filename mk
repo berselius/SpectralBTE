@@ -8,7 +8,7 @@ FFTW_DIR=/project/projectdirs/m3118/fftw3_3.3.3_gcc/
 MAPLIB =$(DIR)allinea-profiler.ld
 
 # GNU C compiler 
-CC=cc
+CC=mpicc
 MPICC=mpicc
 WEIGHTCC=mpicc
 
