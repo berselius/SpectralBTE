@@ -36,12 +36,13 @@ void initialize_transport(int numV, int numX, double lv, double *xnodes, double 
 
   h_v = 2*L_v/(N-1);
 
-  f_l = malloc(N*N*N*sizeof(double));
-  f_r = malloc(N*N*N*sizeof(double));
+  int N3 = N * N * N;
+  f_l = malloc(N3 * sizeof(double));
+  f_r = malloc(N3 * sizeof(double));
   f_tmp = malloc((nX+4)*sizeof(double *));
   int i;
   for(i=0;i<nX+4;i++)
-    f_tmp[i] = malloc(N*N*N*sizeof(double));
+    f_tmp[i] = malloc(N3 * sizeof(double));
 
   T0 = 1.;
   T1 = 2.;
@@ -97,6 +98,8 @@ void upwindOne(double **f, double **f_conv, int id) {
   double Ma;
 
   int rank, numNodes;
+  int N3 = N * N * N;
+
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   MPI_Comm_size(MPI_COMM_WORLD,&numNodes);
   MPI_Status status;
@@ -106,10 +109,10 @@ void upwindOne(double **f, double **f_conv, int id) {
   //FILL GHOST CELLS
   if((rank % 2) == 0) { //EVEN NODES SEND FIRST
     if(rank != (numNodes-1))  //SEND TO RIGHT FIRST
-      MPI_Send(f[nX],N*N*N,MPI_DOUBLE,rank+1,0,MPI_COMM_WORLD);
+      MPI_Send(f[nX], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD);
 
     if(rank != 0) {//RECIEVE FROM LEFT 
-      MPI_Recv(f[0],N*N*N,MPI_DOUBLE,rank-1,0,MPI_COMM_WORLD, &status);
+      MPI_Recv(f[0], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status);
       //MPI_Get_count(&status, MPI_DOUBLE, &numamt);
       //printf("%d got %d\n",rank,numamt);
     }
@@ -125,10 +128,10 @@ void upwindOne(double **f, double **f_conv, int id) {
     }
 
     if(rank != 0)
-      MPI_Send(f[1],N*N*N,MPI_DOUBLE,rank-1,1,MPI_COMM_WORLD); //SEND TO LEFT
+      MPI_Send(f[1], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD); //SEND TO LEFT
 
     if(rank != (numNodes-1))
-      MPI_Recv(f[nX+1],N*N*N,MPI_DOUBLE,rank+1,1,MPI_COMM_WORLD, &status); //RECEIVE FROM RIGHT
+      MPI_Recv(f[nX+1], N3, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &status); //RECEIVE FROM RIGHT
     else {
       if(ICChoice == 3 || ICChoice == 5) // Heat Transfer or Poisseuille
 	setDiffuseReflectionBC(f[nX], f[nX+1], T1, V1, 1, id); //sets incoming velocities of f_conv
@@ -137,13 +140,13 @@ void upwindOne(double **f, double **f_conv, int id) {
     }    
   }
   else { //ODD NODES RECEIVE FIRST
-    MPI_Recv(f[0],N*N*N,MPI_DOUBLE,rank-1,0,MPI_COMM_WORLD, &status); //all odd nodes will always have stuff from the left
+    MPI_Recv(f[0], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status); //all odd nodes will always have stuff from the left
     
     if(rank != (numNodes-1))
-      MPI_Send(f[nX],N*N*N,MPI_DOUBLE,rank+1,0,MPI_COMM_WORLD); //send to right
+      MPI_Send(f[nX], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD); //send to right
     
     if(rank != (numNodes-1))
-      MPI_Recv(f[nX+1],N*N*N,MPI_DOUBLE,rank+1,1,MPI_COMM_WORLD, &status); //recieve from right
+      MPI_Recv(f[nX+1], N3, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &status); //recieve from right
     else {
       if(ICChoice == 3 || ICChoice == 5) // Heat Transfer or Poisseuille
 	setDiffuseReflectionBC(f[nX], f[nX+1], T1, V1, 1, id); //sets incoming velocities of f_conv
@@ -151,7 +154,7 @@ void upwindOne(double **f, double **f_conv, int id) {
 	f[nX+1] = f[nX]; //assume that the flow repeats outside the domain.. //come back to fix this for periodic
     }
       
-    MPI_Send(f[1],N*N*N,MPI_DOUBLE,rank-1,1,MPI_COMM_WORLD); //all odd nodes can always send to the left
+    MPI_Send(f[1], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD); //all odd nodes can always send to the left
   }
   if(ICChoice == 6) {
     if(numNodes != 1) {
@@ -199,29 +202,32 @@ void upwindOne(double **f, double **f_conv, int id) {
       
   }
   */
-
+  int index;
+  #pragma omp parallel for
   for(l=1;l<nX+1;l++)  {
     for(i=0;i<N;i++)
       for(j=0;j<N;j++) {
+        #pragma omp simd
 	for(k=0;k<N;k++) {	
 	  CFL_NUM = dt*v[i]/dx[l];
+          index = k + N * (j + N * i);
 	  //the upwinding
 	  if(i < N/2) {
-	    f_conv[l][k + N*(j + N*i)] = (1.0 + CFL_NUM)*f[l][k + N*(j + N*i)] - CFL_NUM*f[l+1][k + N*(j + N*i)];
+	    f_conv[l][index] = (1.0 + CFL_NUM)*f[l][index] - CFL_NUM*f[l+1][index];
 	    //printf("%g %g %g %d %d %d \n", f_r[k + N*(j + N*i)], f[l][k + N*(j + N*i)], f_r[k + N*(j + N*i)] - f[l][k + N*(j + N*i)], i, j, k);
 	  }
 	  else {
-	    f_conv[l][k + N*(j + N*i)] = (1.0 - CFL_NUM)*f[l][k + N*(j + N*i)] + CFL_NUM*f[l-1][k + N*(j + N*i)];
+	    f_conv[l][index] = (1.0 - CFL_NUM)*f[l][index] + CFL_NUM*f[l-1][index];
 	  }
 	}
 	//Add forcing terms if Poiseuille
 	if(ICChoice == 5) {
 	  if(j == 0) 
-	    f_conv[l][k + N*(j + N*i)] = f_conv[l][k + N*(j + N*i)] - Ma*dt/(2*dx[l]) * f[l][k + N*((j+1) + N*i)];
+	    f_conv[l][index] = f_conv[l][index] - Ma*dt/(2*dx[l]) * f[l][index + N];
 	  else if(j == N-1) 
-	    f_conv[l][k + N*(j + N*i)] = f_conv[l][k + N*(j + N*i)] - Ma*dt/(2*dx[l]) * f[l][k + N*((j-1) + N*i)];
+	    f_conv[l][index] = f_conv[l][index] - Ma*dt/(2*dx[l]) * f[l][index - N];
 	  else
-	    f_conv[l][k + N*(j + N*i)] = f_conv[l][k + N*(j + N*i)] - Ma*dt/(2*dx[l]) * (f[l][k + N*((j+1) + N*i)] - f[l][k + N*((j-1) + N*i)]);
+	    f_conv[l][index] = f_conv[l][index] - Ma*dt/(2*dx[l]) * (f[l][index + N] - f[l][index - N]);
 	}
 	/*	//Add poisson terms
 	if(ICChoice == 6) {
@@ -239,9 +245,10 @@ void upwindOne(double **f, double **f_conv, int id) {
 
 //Computes second order upwind solution, with minmod
 void upwindTwo(double **f, double **f_conv, int id) {
-  int i,j,k,l;
+  int i,j,k,l, index;
   double slope[3];
   double CFL_NUM;
+  int N3 = N * N * N;
 
   double Ma;
 
@@ -262,29 +269,33 @@ void upwindTwo(double **f, double **f_conv, int id) {
     fflush(stdout);
     //send to right
     if(rank != (numNodes-1))
-      MPI_Send(f[nX+1],N*N*N,MPI_DOUBLE,rank+1,0,MPI_COMM_WORLD);
+      MPI_Send(f[nX+1], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD);
 
     //receive from left, or use extrapolation
     if(rank != 0)
-      MPI_Recv(f[1],N*N*N,MPI_DOUBLE,rank-1,0,MPI_COMM_WORLD, &status);
+      MPI_Recv(f[1], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status);
     else {
+      #pragma omp parallel for
       for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
-	  for(k=0;k<N;k++)
-	    f[1][k + N*(j + N*i)] = 2*f[2][k + N*(j + N*i)] - f[3][k + N*(j + N*i)];
+          #pragma omp simd
+	  for(k=0;k<N;k++) {
+            index = k + N * (j + N * i);
+	    f[1][index] = 2*f[2][index] - f[3][index];
+          }
     }
 
     //send second cell to right
     if(rank != (numNodes-1))
-      MPI_Send(f[nX],N*N*N,MPI_DOUBLE,rank+1,0,MPI_COMM_WORLD);
+      MPI_Send(f[nX], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD);
 
     //receive second from left, or ignore
     if(rank != 0)
-      MPI_Recv(f[0],N*N*N,MPI_DOUBLE,rank-1,0,MPI_COMM_WORLD, &status);
+      MPI_Recv(f[0], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status);
 
     //send to left
     if(rank != 0)
-      MPI_Send(f[2],N*N*N,MPI_DOUBLE,rank-1,1,MPI_COMM_WORLD);
+      MPI_Send(f[2], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD);
 
     //receive from right, or use extrapolation
     if(rank != (numNodes-1))
@@ -482,13 +493,17 @@ void advectTwo(double **f, double **f_conv, int id) {
   
   //second RK step (calculates u(2) = u(1) + dt f(u(1)) )
   upwindTwo(f_tmp,f_conv,id);
-  
+  int index;
   //average the two steps
+  #pragma omp parallel for
   for(l=2;l<(nX+2);l++)
     for(k=0;k<N;k++)
       for(j=0;j<N;j++)
-	for(i=0;i<N;i++)
-	  f_conv[l][k + N*(j + N*i)] = 0.5*(f[l][k + N*(j + N*i)] + f_conv[l][k + N*(j + N*i)]);
+	#pragma omp simd
+	for(i=0;i<N;i++) {
+	  index = k + N * (j + N * i);
+	  f_conv[l][index] = 0.5*(f[l][index] + f_conv[l][index]);
+	}
 }
 
 void dealloc_trans() {
