@@ -76,7 +76,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
     }
 
     //Set up Fourier space grid
-    deta = (2 * M_PI / N) / dv;
+    deta = 2 * M_PI / (N * dv);
     if((N % 2) == 0) {
         L_eta = 0.5 * N * deta;
     }
@@ -94,8 +94,9 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 
     //Initialize the moment routines
     initialize_moments(N, L_v, v, mixture);
-
+    #pragma omp parallel for
     for(spec=0;spec<numspec;spec++) {
+
         switch(initFlag) {
         
             //Shifted isotropic problem
@@ -105,8 +106,10 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
                 S = 10.0;
                 for(j=0;j<N;j++) {
                     for(k=0;k<N;k++) {
+                        #pragma omp simd
                         for(i=0;i<N;i++) {
-                            f[spec][k + N*(j + N*i)] = exp(-1*S*(sqrt(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]) - sigma)*(sqrt(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]) - sigma)/(sigma*sigma))/(S*S);
+                            double modulus = sqrt(v[i] * v[i] + v[j] * v[j] + v[k] * v[k]);
+                            f[spec][k + N*(j + N*i)] = exp(-1*S*(modulus - sigma)*(modulus - sigma)/(sigma*sigma))/(S*S);
                         }
                     }
                 }
@@ -119,9 +122,11 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
                 printf("Discont problem\n");
                 for(j=0;j<N;j++) {
                     for(k=0;k<N;k++) {
+                        #pragma omp simd
                         for(i=0;i<N/2;i++) {
                             f[spec][k + N*(j + N*i)] = exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]))/ (M_PI*sqrt(M_PI));
                         }
+                        #pragma omp simd
                         for(i=N/2;i<N;i++) {
                             f[spec][k + N*(j + N*i)] = exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]))/ (M_PI*sqrt(M_PI))/2;
                         }
@@ -139,6 +144,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
                 Temp = 1.0;
                 for(i=0;i<N;i++) {
                     for(j=0;j<N;j++) {
+                        #pragma omp simd
                         for(k=0;k<N;k++) {
                             f[spec][k + N*(j + N*i)] = (exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/(2*K*Temp*Temp)))/(2.0*pow(2*M_PI*K*Temp*Temp,1.5)) * ( (5*K - 3)/K + (1-K)*(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/(K*K*Temp*Temp));
                         }
@@ -155,6 +161,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
                 pre = 0.5 / pow(2.0 * M_PI * sigma*sigma, 1.5); 
                 for(j=0;j<N;j++) {
                     for(k=0;k<N;k++) {
+                        #pragma omp simd
                         for(i=0;i<N;i++) {
                             f[spec][k + N*(j + N*i)] = pre*(exp(-((v[i] - 2.0*sigma)*(v[i]-2.0*sigma) + v[j]*v[j] + v[k]*v[k])/(2.0*sigma*sigma)) + exp(-((v[i] + 2*sigma)*(v[i] + 2*sigma) + v[j]*v[j] + v[k]*v[k])/(2.0*sigma*sigma)));
                         }
@@ -191,7 +198,8 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
             case 5:
                 printf("Perturb\n");
                 for(j=0;j<N;j++) {
-                    for(k=0;k<N;k++) { 
+                    for(k=0;k<N;k++) {
+                        #pragma omp simd
                         for(i=0;i<N;i++) {
                             f[spec][k + N*(j + N*i)] = ( 1 + 0.1*sin(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]) )*exp(-((v[i])*(v[i]) + v[j]*v[j] + v[k]*v[k]))/(M_PI*sqrt(M_PI));
                         }
@@ -209,6 +217,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
                 double T2 = 1.e-4;
                 for(j=0;j<N;j++) {
                     for(k=0;k<N;k++) {
+                        #pragma omp simd
                         for(i=0;i<N;i++) {
                             f[spec][k + N*(j + N*i)] = 
                         }
