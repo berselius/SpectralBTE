@@ -66,8 +66,9 @@ void make_mesh(int *nX, int *nX_node, double *dx_min, double **x, double **dx, i
         fscanf(meshFile,"%d\n", &NZone[i]);
         fscanf(meshFile,"%lf\n", &LZone);
         dx_zone[i] = LZone / (double) NZone[i];
-        if ( dx_zone[i] < *dx_min)
+        if ( dx_zone[i] < *dx_min) {
             *dx_min = dx_zone[i];
+        }
     }
 
     
@@ -80,89 +81,51 @@ void make_mesh(int *nX, int *nX_node, double *dx_min, double **x, double **dx, i
     *dx = malloc(sizeof(double)*((*nX_node)+(2*ORDER)));
 
     //now start filling in the x,dx
-
+    if (rank == 0) {
+        dxCount = ORDER;
+    }
+    else {
+        dxCount = 0;
+    }
     storeCount = 0;
-    if(rank == 0) {
-        if(numNodes == 0) {
-            dxCount = ORDER;
-            for (i=0;i<numZones;i++) {
-                for (j=0;j<NZone[i];j++) {
-                    //only store it if we're in our current window, plus or minus one for the ghost cells
-                    (*dx)[dxCount] = dx_zone[i];
-                    (*x)[dxCount] = x_edge + 0.5*dx_zone[i];
-                    //printf("%d %d %g %g\n", rank, dxCount, (*dx)[dxCount], (*x)[dxCount]);
-                    x_edge += dx_zone[i];
-                    //printf("index: %d    x:%lf\n",dxCount,x[dxCount]);
-                    dxCount++;
-                }
+    int execute = 0;
+    if (rank == 0 && ((numNodes == 0) || (dxCount < *nX_node + 2 * ORDER))) {
+        execute = 1;
+    }
+    else if (rank == numNodes - 1 && dxCount >= ((*nX) - (*nX_node) - ORDER)) {
+        execute = 1;
+    }
+    else if ((dxCount >= (rank*(*nX_node)-ORDER)) && (dxCount < (rank+1)*(*nX_node)+ORDER)) {
+        execute = 1;
+    }
+    #pragma omp parallel for 
+    for (i=0;i<numZones;i++) {
+        #pragma omp simd
+        for (j=0;j<NZone[i];j++) {
+            //only store it if we're in our current window, plus or minus one for the ghost cells
+            if (execute == 1) {
+                (*dx)[dxCount] = dx_zone[i];
+                (*x)[dxCount] = x_edge + 0.5*dx_zone[i];
+                //printf("%d %d %g %g\n", rank, dxCount, (*dx)[dxCount], (*x)[dxCount]);
             }
-            if(ORDER == 1) {
-                (*dx)[0] = (*dx)[1];
-                (*x)[0] = (*x)[1]-(*dx)[1];
-            }
-            else {
-                (*dx)[1] = (*dx)[2];
-                (*x)[1] = (*x)[2]-(*dx)[2];
-                (*dx)[0] = (*dx)[1];
-                (*x)[0] = (*x)[1]-(*dx)[1];
-            }
-            if(ORDER == 1) {
-                (*dx)[(*nX_node)+1] = (*dx)[(*nX_node)];
-                (*x)[(*nX_node)+1] = (*x)[*nX_node]+(*dx)[(*nX_node)];
-            }
-            else {
-                (*dx)[(*nX_node)+2] = (*dx)[(*nX_node)+1];
-                (*x)[(*nX_node)+2] = (*x)[(*nX_node)+1]+(*dx)[(*nX_node)+1];
-                storeCount++;
-                (*dx)[(*nX_node)+3] = (*dx)[(*nX_node)+2];
-                (*x)[(*nX_node)+3] = (*x)[(*nX_node)+2]+(*dx)[(*nX_node)+2];
-            }
-            
-        }
-        else {
-            dxCount = ORDER;
-            for (i=0;i<numZones;i++) {
-                for (j=0;j<NZone[i];j++) {
-                    //only store it if we're in our current window, plus or minus one for the ghost cells
-                    if(dxCount < (*nX_node+(2*ORDER))) {
-                        (*dx)[dxCount] = dx_zone[i];
-                        (*x)[dxCount] = x_edge + 0.5*dx_zone[i];
-                        //printf("%d %d %g %g\n", rank, dxCount, (*dx)[dxCount], (*x)[dxCount]);
-                    }
-                    x_edge += dx_zone[i];
-                    //printf("index: %d    x:%lf\n",dxCount,x[dxCount]);
-                    dxCount++;
-                }
-            }
-            if(ORDER == 1) {
-                (*dx)[0] = (*dx)[1];
-                (*x)[0] = (*x)[1]-(*dx)[1];
-            }
-            else {
-                (*dx)[1] = (*dx)[2];
-                (*x)[1] = (*x)[2]-(*dx)[2];
-                (*dx)[0] = (*dx)[1];
-                (*x)[0] = (*x)[1]-(*dx)[1];
-            }
+            x_edge += dx_zone[i];
+            //printf("index: %d    x:%lf\n",dxCount,x[dxCount]);
+            dxCount++;
         }
     }
-    else if(rank == numNodes-1) {
-        dxCount = 0;
-        storeCount = 0;
-        for (i=0;i<numZones;i++) {
-            for (j=0;j<NZone[i];j++) {
-                //only store it if we're in our current window, plus or minus one for the ghost cells
-                if(dxCount >= ((*nX) - (*nX_node) - ORDER)) {
-                    (*dx)[storeCount] = dx_zone[i];
-                    (*x)[storeCount] = x_edge + 0.5*dx_zone[i];
-                    //printf("%d %d %g %g\n", rank, dxCount, (*dx)[storeCount], (*x)[storeCount]);
-                    storeCount++;
-                }
-                x_edge += dx_zone[i];
-                //printf("index: %d    x:%lf\n",dxCount,x[dxCount]);
-                dxCount++;
-            }
+    if (rank == 0) {
+        if (ORDER == 1) {
+            (*dx)[0] = (*dx)[1];
+            (*x)[0] = (*x)[1] - (*dx)[1];
         }
+        else {
+            (*dx)[1] = (*dx)[2];
+            (*x)[1] = (*x)[2] - (*dx)[2];
+            (*dx)[0] = (*dx)[1];
+            (*x)[0] = (*x)[1] - (*dx)[1];
+        }
+    }
+    if ((rank == 0 && numNodes == 0) || (rank == numNodes - 1)) {
         if(ORDER == 1) {
             (*dx)[storeCount] = (*dx)[storeCount-1];
             (*x)[storeCount] = (*x)[storeCount-1]+(*dx)[storeCount-1];
@@ -173,23 +136,6 @@ void make_mesh(int *nX, int *nX_node, double *dx_min, double **x, double **dx, i
             storeCount++;
             (*dx)[storeCount] = (*dx)[storeCount-1];
             (*x)[storeCount] = (*x)[storeCount-1]+(*dx)[storeCount-1];
-        }
-    }
-    else {
-        dxCount=0;
-        storeCount=0;
-        for (i=0;i<numZones;i++) {
-            for (j=0;j<NZone[i];j++) {
-                //only store it if we're in our current window, plus or minus one for the ghost cells
-                if((dxCount >= (rank*(*nX_node)-ORDER)) && (dxCount < (rank+1)*(*nX_node)+ORDER) ) {
-                    (*dx)[storeCount] = dx_zone[i];
-                    (*x)[storeCount] = x_edge + 0.5*dx_zone[i];
-                    storeCount++;
-                }
-                x_edge += dx_zone[i];
-                //printf("index: %d    x:%lf\n",dxCount,x[dxCount]);
-                dxCount++;
-            }
         }
     }
 
