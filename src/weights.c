@@ -122,7 +122,7 @@ void initialize_weights(int nodes, double *eta, double Lv, double lam, int weigh
  *      1 if successful, 0 if file not found (exits if error reading a file that exists, might change later)
  */
 int load(double **conv_weights, char buffer_weights[100], int N) {
-    FILE* fidWeights;
+   FILE* fidWeights;
     int readFlag;
 
     if ((fidWeights = fopen(buffer_weights, "r"))) {
