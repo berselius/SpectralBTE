@@ -15,7 +15,7 @@ static const double KB_true = 1.380658e-23; //Boltzmann constant
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
-void initialize_moments(int nodes, double L_v, double *vel, species *mix) {
+void initialize_moments(int nodes, double L_v, double *vel, species *mix, int fast) {
   int i;
 
   N = nodes;
@@ -23,11 +23,20 @@ void initialize_moments(int nodes, double L_v, double *vel, species *mix) {
   dv = v[1] - v[0];
   dv3 = dv*dv*dv;
 
-  mixture = mix;
-  if(mixture[0].mass == 1)
+  if (fast == 0) {
+    mixture = mix;
+  }
+  else {
+    mixture = malloc(sizeof(species));
+    mixture[0].mass = 1.0;
+  }
+
+  if(mixture[0].mass == 1) {
     KB = 1;
-  else
+  }
+  else {
     KB = KB_true;
+  }
   
   wtN = malloc(N*sizeof(double));
   wtN[0] = 0.5;
@@ -35,26 +44,6 @@ void initialize_moments(int nodes, double L_v, double *vel, species *mix) {
     wtN[i] = 1.0;
   wtN[N-1] = 0.5;
 }
-
-void initialize_moments_fast(int nodes, double L_v, double *vel) {
-  int i;
-
-  N = nodes;
-  v = vel;
-  dv = v[1] - v[0];
-  dv3 = dv*dv*dv;
-
-  mixture = malloc(sizeof(species));
-  KB = 1;
-  mixture[0].mass = 1.0;
-  
-  wtN = malloc(N*sizeof(double));
-  wtN[0] = 0.5;
-  for(i=1;i<(N-1);i++)
-    wtN[i] = 1.0;
-  wtN[N-1] = 0.5;
-}
-
 
 double getDensity(double *in, int spec_id)
 {
