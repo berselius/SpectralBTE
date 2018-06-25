@@ -15,3 +15,4 @@ Eventually I will have a script that does this and/or cmake will do it. But unti
 
 `diff Data/rho_BKW16.in_BKW16.out_default.plt testSuite/rho_BKW16.base`
 
+NOTE: if you also want to test newly generated weights, remove the stored weights corresponding to these test cases in the `Weights/` directory or modify the input file to set `recompute_weights` to 1
