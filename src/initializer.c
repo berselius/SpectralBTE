@@ -93,7 +93,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
     initialize_coll(N,L_v,v,zeta);
 
     //Initialize the moment routines
-    initialize_moments(N, L_v, v, mixture);
+    initialize_moments(N, L_v, v, mixture, 0);
     #pragma omp parallel for
     for(spec=0;spec<numspec;spec++) {
 
@@ -305,7 +305,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
     initialize_coll(N,L_v,v,zeta);
 
     //Initialize the moment routines
-    initialize_moments(N, L_v, v, mixture);
+    initialize_moments(N, L_v, v, mixture, 0); // fast = 0, i.e. not fast initialization
   
     //Initialize transport routines
     initialize_transport(N, nX, L_v, xnodes, dxnodes, v, initFlag, dt, 1.0, mixture);
@@ -391,7 +391,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
         }
 
         double maxTemp = T_r;
-
+        #pragma omp parallel for
         for(m=0;m<Ns;m++) {
             printf("%d %s %g\n",m, mixture[m].name, mixture[m].mass);
 
@@ -401,6 +401,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
                         if(l < nX/2)  {
                             for(i=0;i<N;i++) {
                                 for(j=0;j<N;j++) {
+                                    #pragma omp simd
                                     for(k=0;k<N;k++) {
                                         f[m][l][k + N*(j + N*i)] = rho_l*exp(-((v[i])*(v[i]) + v[j]*v[j] + v[k]*v[k])/T_l)/((T_l*M_PI)*sqrt(T_l*M_PI));
                                     }
@@ -410,6 +411,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
                         else {
                             for(i=0;i<N;i++) {
                                 for(j=0;j<N;j++) {
+                                    #pragma omp simd
                                     for(k=0;k<N;k++) {
                                         f[m][l][k + N*(j + N*i)] = rho_r*exp(-((v[i])*(v[i]) + v[j]*v[j] + v[k]*v[k])/T_r)/((T_r*M_PI)*sqrt(T_r*M_PI));
                                     }
@@ -420,6 +422,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
                     case 1:   
                         for(i=0;i<N;i++) {
                             for(j=0;j<N;j++) {
+                                #pragma omp simd
                                 for(k=0;k<N;k++) {
                                     f[m][l][k + N*(j + N*i)] = (rho_r/mixture[m].mass) * pow(0.5*mixture[m].mass/(M_PI*KB*maxTemp),1.5)*exp(-(0.5*mixture[m].mass/(KB*maxTemp)) *((v[i])*(v[i]) + v[j]*v[j] + v[k]*v[k]));
                                 }
@@ -429,6 +432,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
                     case 2:
                         for(i=0;i<N;i++) {
                             for(j=0;j<N;j++) {
+                                #pragma omp simd
                                 for(k=0;k<N;k++) {
                                     f[m][l][k + N*(j + N*i)] = rho_l*exp(-((v[i] - ux_l)*(v[i] - ux_l) + v[j]*v[j] + v[k]*v[k])/T_l)/((T_l*M_PI)*sqrt(T_l*M_PI));
                                 }
@@ -438,6 +442,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
                     case 3:           
                         for(i=0;i<N;i++)
                             for(j=0;j<N;j++)
+                                #pragma omp simd
                                 for(k=0;k<N;k++) { 
                                     f[m][l][k + N*(j + N*i)] = rho_r*exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/T_r)/((T_r*M_PI)*sqrt(T_r*M_PI));
                                 }    
@@ -445,6 +450,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
                     case 5:  //Poiseuille
                         for(i=0;i<N;i++)
                           for(j=0;j<N;j++)
+                            #pragma omp simd
                             for(k=0;k<N;k++) {
                               f[m][l][k + N*(j + N*i)] = rho_l*exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/T_l)/((T_l*M_PI)*sqrt(T_l*M_PI));
                             }                 
@@ -453,6 +459,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
                         if(l < nX/2)  {   
                             for(i=0;i<N;i++) {
                                 for(j=0;j<N;j++) {
+                                    #pragma omp simd
                                     for(k=0;k<N;k++) {
                                         f[m][l][k + N*(j + N*i)] = rho_l*exp(-((v[i] - ux_l)*(v[i]-ux_l) + v[j]*v[j] + v[k]*v[k])/T_l)/((T_l*M_PI)*sqrt(T_l*M_PI));
                                     }
@@ -462,6 +469,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
                         else {
                             for(i=0;i<N;i++) {
                                 for(j=0;j<N;j++) {
+                                    #pragma omp simd
                                     for(k=0;k<N;k++) {
                                         f[m][l][k + N*(j + N*i)] = rho_r*exp(-((v[i]-ux_r)*(v[i]-ux_r) + v[j]*v[j] + v[k]*v[k])/T_r)/((T_r*M_PI)*sqrt(T_r*M_PI));
                                     }
