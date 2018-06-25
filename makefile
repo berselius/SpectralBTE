@@ -31,18 +31,6 @@ weight_sources = $(SRCDIR)MPIWeightGenerator.c $(SRCDIR)MPIcollisionroutines.c $
 
 pref_objects = $(addprefix $(OBJDIR), $(objects))
 
-cori: CFLAGS += -I${FFTW_DIR}/include -L${FFTW_DIR}/lib ${GSL} -g -dynamic -L${PWD}
-cori: FFTFLAGS += -dynamic -L${PWD}
-cori: WEIGHTFLAGS += -dynamic -L${PWD}
-cori: WEIGHTFFTFLAGS += -dynamic -L${PWD}
-cori: boltz
-
-cori_prof: CFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
-cori_prof: FFTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
-cori_prof: WEIGHTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
-cori_prof: WEIGHTFFTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
-cori_prof: cori
-
 # linking step
 boltz: $(pref_objects) $(sources)
 	@echo "Building Boltzmann deterministic solver"
@@ -154,3 +142,16 @@ $(OBJDIR)aniso_weights.o : $(SRCDIR)aniso_weights.c
 clean:
 	$(RM) $(OBJDIR)*.o 
 	$(RM) $(EXECDIR)*_
+
+
+cori: CFLAGS += -I${FFTW_DIR}/include -L${FFTW_DIR}/lib ${GSL} -g -dynamic -L${PWD}
+cori: FFTFLAGS += -dynamic -L${PWD}
+cori: WEIGHTFLAGS += -dynamic -L${PWD}
+cori: WEIGHTFFTFLAGS += -dynamic -L${PWD}
+cori: boltz
+
+cori_prof: CFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_prof: FFTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_prof: WEIGHTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_prof: WEIGHTFFTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_prof: cori
