@@ -15,23 +15,26 @@ static double KB;
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 void initializeBC(int nv, double *vel, species *mix) {
-  int i;
-  
-  N = nv;
-  v = vel;
-  h_v = v[1]-v[0];
+    int i;
+    
+    N = nv;
+    v = vel;
+    h_v = v[1]-v[0];
 
-  wtN = malloc(N*sizeof(double));
-  wtN[0] = 0.5;
-  for(i=1;i<(N-1);i++)
-    wtN[i] = 1.0;
-  wtN[N-1] = 0.5;
+    wtN = malloc(N*sizeof(double));
+    wtN[0] = 0.5;
+    for(i=1;i<(N-1);i++) {
+        wtN[i] = 1.0;
+    }
+    wtN[N-1] = 0.5;
 
-  mixture = mix;
-  if(mixture[0].mass == 1.0)
-    KB = 1.0;
-  else
-    KB = KB_TRUE;
+    mixture = mix;
+    if(mixture[0].mass == 1.0) {
+        KB = 1.0;
+    }
+    else {
+        KB = KB_TRUE;
+    }
 
 }
 
@@ -58,20 +61,24 @@ void setDiffuseReflectionBC(double *in, double *out, double TW, double vW, int b
 
 	#pragma omp parallel for reduction(+:sigmaW) private(i, j, k)
 	for (i = 0; i < N/2; i++) {
-	for (j = 0; j < N; j++) {
-	for (k = 0; k < N; k++) {
-		sigmaW += v[i] * wtN[i] * wtN[j] * wtN[k] * hv3 * in[k + N * (j + N * i)];
-	}}}
+		for (j = 0; j < N; j++) {
+			for (k = 0; k < N; k++) {
+				sigmaW += v[i] * wtN[i] * wtN[j] * wtN[k] * hv3 * in[k + N * (j + N * i)];
+			}
+		}
+	}
 
 	sigmaW *= sign * factor;
 
 	#pragma omp parallel for private(i, j, k)
 	for (i = N/2; i < N; i++) {
-	for (j = 0; j < N; j++) {
-	#pragma omp simd
-	for (k = 0; k < N; k++) {
-		out[k + N * (j + N * i)] = sigmaW * exp(-0.5 * ratio * (v[i] * v[i] + v[j] * v[j] + v[k] * v[k]));
-	}}}
+		for (j = 0; j < N; j++) {
+			#pragma omp simd
+			for (k = 0; k < N; k++) {
+				out[k + N * (j + N * i)] = sigmaW * exp(-0.5 * ratio * (v[i] * v[i] + v[j] * v[j] + v[k] * v[k]));
+			}
+		}
+	}
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
