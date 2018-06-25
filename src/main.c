@@ -118,28 +118,33 @@ int main(int argc, char **argv) {
 
   if(rank == 0)
     printf("Initializing variables %d\n",homogFlag);
-
+    fflush(stdout);
   if(homogFlag == 0) {  //homogeneous case
     allocate_hom(N, &v, &zeta, &f_hom, &f_hom1, &Q, num_species);
     initialize_hom(N, L_v, v, zeta, f_hom, initFlag, lambda, mixture);
     t = 0;
   }
   else { //inhomogeneous case
+printf("inhomogenous case\n");
+fflush(stdout);
     allocate_inhom(N, nX_Node + (2*order), &v, &zeta, &f_inhom, &f_conv, &f_1, &Q, num_species);
     initialize_inhom(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, lambda, nX_Node, x, dx, dt, &t, order, restart, restart_time, inputFilename);
   }
-
+printf("finished inhomogenous case\n");
+fflush(stdout);
 
   //Setup output
 
+printf("initialize output\n");
+fflush(stdout);
   if(rank == 0)
     printf("Initializing output %s\n",outputChoices);
   if(homogFlag == 0)
     initialize_output_hom(N, L_v, restart, inputFilename, outputChoices, mixture, num_species);
   else 
     initialize_output_inhom(N, L_v, nX, nX_Node, x, dx, restart, inputFilename, outputChoices, mixture, num_species);
-  
-
+printf("finished initialize output\n");
+fflush(stdout);
   //Setup weights
 
   if(rank == 0)
@@ -155,6 +160,9 @@ int main(int argc, char **argv) {
       for(j=0;j<num_species;j++)
 	initialize_weights(N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j*num_species + i], mixture[i], mixture[j]);
   
+printf("initialize weigths\n");
+fflush(stdout);
+
   outputCount = 0;
 
   //Set up conservation routines
