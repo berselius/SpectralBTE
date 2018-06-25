@@ -13,11 +13,11 @@ MPICC=mpicc
 WEIGHTCC=mpicc
 
 # Compiler flags
-CFLAGS= -O2 -fopenmp -Wall -g
-FFTFLAGS = -lgsl -lgslcblas -lfftw3_omp -lfftw3 -lm -g
+CFLAGS= -O2 -fopenmp -Wall -std=c99
+FFTFLAGS = -lgsl -lgslcblas -lfftw3_omp -lfftw3 -lm
 
-WEIGHTCFLAGS = -O2 -fopenmp -Wall -g 
-WEIGHTFFTFLAGS = -lgsl -lgslcblas -lfftw3 -lm -g
+WEIGHTCFLAGS = -O2 -fopenmp -Wall 
+WEIGHTFFTFLAGS = -lgsl -lgslcblas -lfftw3 -lm 
 
 # Command definition
 RM=rm -f
@@ -42,6 +42,12 @@ cori_prof: FFTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
 cori_prof: WEIGHTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
 cori_prof: WEIGHTFFTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
 cori_prof: cori
+
+profile: CFLAGS += -g
+profile: FFTFLAGS += -g
+profile: WEIGHTFLAGS += -g
+profile: WEIGHTFFTFLAGS += -g
+profile: boltz
 
 # linking step
 boltz: $(pref_objects) $(sources)
