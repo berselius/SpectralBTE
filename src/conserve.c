@@ -195,7 +195,7 @@ void conserveAllMoments(double **Q)
 {
     int i, j, k, l, m, n, index;
     double prefactor, vi, vj, vk;
-    double dv3m = dv * dv * dv * mixture[m].mass;
+    double dv3 = dv * dv * dv;
 
     //lambda from before is now the sum_i sum_j C_i*Q_ij term
     #pragma omp parallel
@@ -204,14 +204,14 @@ void conserveAllMoments(double **Q)
     }
 
     //computes sum_i sum_j C_i * Qij
-    #pragma omp parallel
+    #pragma omp parallel for
     for(m=0;m<Ns;m++) {
         for(i=0;i<N;i++) {
             for(j=0;j<N;j++) {
                 for(k=0;k<N;k++) {
         
                     //entries of C_i
-                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3m;
+                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3 * mixture[m].mass;
                     vi = v[i];
                     vj = v[j];
                     vk = v[k];
@@ -241,13 +241,13 @@ void conserveAllMoments(double **Q)
 
     solveWithCCt(Ns+4, masterQ);
     //masterQ now has the multipliers lambda = (sum_i C_i C_i^T)^(-1) * sum_i sum_j C_i Q_ij
-    
+    #pragma omp parallel for
     for(m=0;m<Ns;m++) {
         //entries of C_i^T
         for(i=0;i<N;i++) {
             for(j=0;j<N;j++) {
                 for(k=0;k<N;k++) {
-                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3m / Ns;
+                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3 * mixture[m].mass / Ns;
                     vi = v[i];
                     vj = v[j];
                     vk = v[k];
@@ -261,6 +261,7 @@ void conserveAllMoments(double **Q)
                     index = k + N * (j + N * i);
 
                     //Computes Q_ij = Q_ij - C_i^T lambda
+                    #pragma omp simd
                     for(n=0;n<Ns;n++) {
                         Q[n*Ns + m][index] -= (temp_cons[m]*masterQ[m] + temp_cons[Ns]*masterQ[Ns] + temp_cons[Ns+1]*masterQ[Ns+1] + temp_cons[Ns+2]*masterQ[Ns+2] + temp_cons[Ns+3]*masterQ[Ns+3]);
                     }
@@ -276,7 +277,7 @@ void createCCtAndPivot()
 {
     double ***C, det = 1, prefactor;
     int i, j, k, m, n, index, iError = 0;
-    double dv3m = dv * dv * dv * mixture[m].mass;
+    double dv3 = dv * dv * dv;
     double vi, vj, vk;
     
     //array of integration matrices
@@ -295,7 +296,7 @@ void createCCtAndPivot()
             for(j=0;j<N;j++) {
                 #pragma omp simd
                 for(k=0;k<N;k++) {        
-                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3m;
+                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3 * mixture[m].mass;
 
                     index = k + N * (j + N * i);
                     vi = v[i];
