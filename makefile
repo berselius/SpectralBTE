@@ -13,11 +13,11 @@ MPICC=mpicc
 WEIGHTCC=mpicc
 
 # Compiler flags
-CFLAGS= -O2 -fopenmp -Wall -g
-FFTFLAGS = -lgsl -lgslcblas -lfftw3_omp -lfftw3 -lm -g
+CFLAGS= -O2 -fopenmp -Wall -std=c99
+FFTFLAGS = -lgsl -lgslcblas -lfftw3_omp -lfftw3 -lm
 
-WEIGHTCFLAGS = -O2 -fopenmp -Wall -g 
-WEIGHTFFTFLAGS = -lgsl -lgslcblas -lfftw3 -lm -g
+WEIGHTCFLAGS = -O2 -fopenmp -Wall 
+WEIGHTFFTFLAGS = -lgsl -lgslcblas -lfftw3 -lm 
 
 # Command definition
 RM=rm -f
@@ -30,6 +30,12 @@ objects = weights.o collisions.o output.o input.o gauss_legendre.o momentRoutine
 weight_sources = $(SRCDIR)MPIWeightGenerator.c $(SRCDIR)MPIcollisionroutines.c $(SRCDIR)gauss_legendre.c
 
 pref_objects = $(addprefix $(OBJDIR), $(objects))
+
+profile: CFLAGS += -g
+profile: FFTFLAGS += -g
+profile: WEIGHTFLAGS += -g
+profile: WEIGHTFFTFLAGS += -g
+profile: boltz
 
 # linking step
 boltz: $(pref_objects) $(sources)
@@ -144,14 +150,14 @@ clean:
 	$(RM) $(EXECDIR)*_
 
 
-cori: CFLAGS += -I${FFTW_DIR}/include -L${FFTW_DIR}/lib ${GSL} -g -dynamic -L${PWD}
+cori: CFLAGS += -I${FFTW_DIR}/include -L${FFTW_DIR}/lib ${GSL} -dynamic -L${PWD}
 cori: FFTFLAGS += -dynamic -L${PWD}
 cori: WEIGHTFLAGS += -dynamic -L${PWD}
 cori: WEIGHTFFTFLAGS += -dynamic -L${PWD}
 cori: boltz
 
-cori_prof: CFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
-cori_prof: FFTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
-cori_prof: WEIGHTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
-cori_prof: WEIGHTFFTFLAGS += -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
-cori_prof: cori
+cori_map: CFLAGS += -g -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_map: FFTFLAGS += -g -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_map: WEIGHTFLAGS += -g -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_map: WEIGHTFFTFLAGS += -g -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
+cori_map: cori
