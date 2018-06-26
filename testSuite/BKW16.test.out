@@ -17,11 +17,11 @@ temperature
 #-------------------------------
 # Pressure
 pressure
-1
+0
 #-------------------------------
 # Marginal distribution
 marginal
-1
+0
 #-------------------------------
 # Slice of distribution
 slice
@@ -29,5 +29,5 @@ slice
 #-------------------------------
 # Entropy
 entropy
-1
+0
 Stop
