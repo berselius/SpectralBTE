@@ -24,6 +24,10 @@ static double *x, *dx, *v;
 static double *f_l, *f_r, **f_tmp;
 static species *mixture;
 
+static void take_upwind(int j, int k, int dir, int l, double Ma, int rank, int numNodes, double *slope, double **f,  double **f_conv);
+static void poiseuille_forcing_term(double **f, double **f_conv, double prefactor, int j, int l, int index);
+static void no_flux(int start_i, int end_i, int f_index, double *slope, double **f, double *f_type);
+
 void initialize_transport(int numV, int numX, double lv, double *xnodes, double *dxnodes, double *vel, int IC, double timestep, double TWall_in, species *mix) {
     N = numV;
     nX = numX; //really NX NODE
@@ -216,6 +220,7 @@ void upwindOne(double **f, double **f_conv, int id) {
     }
     */
     int index;
+    double prefactor;
     #pragma omp parallel for
     for(l=1;l<nX+1;l++) {
         for(i=0;i<N;i++) {
@@ -234,17 +239,8 @@ void upwindOne(double **f, double **f_conv, int id) {
                     }
                 }
                 //Add forcing terms if Poiseuille
-                if(ICChoice == 5) {
-                    if(j == 0) {
-                        f_conv[l][index] = f_conv[l][index] - Ma*dt/(2*dx[l]) * f[l][index + N];
-                    }
-                    else if(j == N-1) {
-                        f_conv[l][index] = f_conv[l][index] - Ma*dt/(2*dx[l]) * f[l][index - N];
-                    }
-                    else {
-                        f_conv[l][index] = f_conv[l][index] - Ma*dt/(2*dx[l]) * (f[l][index + N] - f[l][index - N]);
-                    }
-                }
+                prefactor = -0.5 * Ma * dt / dx[l];
+                poiseuille_forcing_term(f, f_conv, prefactor, j, l, index);
                 /*    //Add poisson terms
                 if(ICChoice == 6) {
                     if(k == 0) 
@@ -264,7 +260,6 @@ void upwindOne(double **f, double **f_conv, int id) {
 void upwindTwo(double **f, double **f_conv, int id) {
     int i,j,k,l, index;
     double slope[3];
-    double CFL_NUM;
     int N3 = N * N * N;
 
     double Ma;
@@ -390,21 +385,11 @@ void upwindTwo(double **f, double **f_conv, int id) {
 
     //ghost cells filled
 
-    for(l=2;l<nX+2;l++) {
+    for(l = 2; l < nX+2; l++) {
 
         //generate wall values - need the slopes at the wall to get 'em 
         if((l == 2) && (rank == 0)) {
-            for(i = 0; i < N/2; i++) {
-                for(j = 0; j < N; j++) {
-                    for(k = 0; k < N; k++) {
-                        index = k + N * (j + N * i);
-                        slope[1] = minmod((f[2][index] - f[1][index])/(x[2] - x[1]),
-                                            (f[3][index] - f[2][index])/(x[3] - x[2]), 
-                                            (f[3][index] - f[1][index])/(x[3] - x[1]));
-                        f_l[index] = f[2][index] - 0.5 * dx[2] * slope[1];
-                    }
-                }
-            }
+            no_flux(0, N/2, 2, slope, f, f_l);
             if(ICChoice == 3 || ICChoice == 5) { // Heat Transfer or Poiseuille
                 setDiffuseReflectionBC(f_l, f_l, T0, V0, 0, id);
             }
@@ -412,120 +397,100 @@ void upwindTwo(double **f, double **f_conv, int id) {
                 setDiffuseReflectionBC(f_l, f_l, 2.0*TWall, VWall, 0, id); //only sets the INCOMING velocities of f_conv
             }
             else { //ensure no flux
-                for(j = 0; j < N; j++) {
-                    for(k = 0; k < N; k++) {
-                        for(i = N/2; i < N; i++) {
-                            index = k + N * (j + N * i);
-                            slope[1] = minmod((f[2][index] - f[1][index])/(x[2] - x[1]),
-                                            (f[3][index] - f[2][index])/(x[3] - x[2]), 
-                                            (f[3][index] - f[1][index])/(x[3] - x[1]));
-                            f_l[index] = f[2][index] + 0.5 * dx[2] * slope[1]; //matches the flux leaving cell 0
-                        }
-                    }
-                }
+                no_flux(N/2, N, 2, slope, f, f_l);
             }
         }
-        
-        if((l == nX+1) && (rank == numNodes-1)) {//on right wall
-            for(i = N/2; i < N; i++) {
-                for(j = 0; j < N; j++) {
-                    for(k = 0; k < N; k++) {
-                        index = k + N * (j + N * i);
-                        slope[1] = minmod((f[nX+1][index] - f[nX][index])/(x[nX+1] - x[nX]),
-                                            (f[nX+2][index] - f[nX+1][index])/(x[nX+2] - x[nX+1]), 
-                                            (f[nX+2][index] - f[nX][index]) /(x[nX+2] - x[nX]));
-                        f_r[index] = f[nX+1][index] + 0.5*dx[nX+1]*slope[1];                    
-                    }
-                }
-            }
+        else if((l == nX+1) && (rank == numNodes-1)) {//on right wall
+            no_flux(N/2, N, nX, slope, f, f_r);
             if(ICChoice == 3 || ICChoice == 5) {  // Heat Transfer or Poiseuille 
                 setDiffuseReflectionBC(f_r, f_r, T1, V1, l, id); //sets incoming velocities of f_conv
             }
             else { //ensure no flux
-                for(i=0;i<N/2;i++) {
-                    for(j=0;j<N;j++) {
-                        for(k=0;k<N;k++) {
-                            index = k + N * (j + N * i);
-                            slope[1] = minmod((f[nX+1][index] - f[nX][index])/(x[nX+1] - x[nX]),
-                                        (f[nX+2][index] - f[nX+1][index])/(x[nX+2] - x[nX+1]), 
-                                        (f[nX+2][index] - f[nX][index]) /(x[nX+2] - x[nX]));
-                            f_r[index] = f[nX+1][index] - 0.5 * dx[nX+1] * slope[1]; //matches the flux leaving cell 0
-                        }
-                    }
-                }
+                no_flux(0, N/2, nX, slope, f, f_r);
             }
         }
-        
+        #pragma omp parallel for
         for(j = 0; j < N; j++) {
             for(k = 0; k < N; k++) { 
-                for(i = N/2; i < N; i++) {
-                    index = k + N * (j + N * i);
-                    //upwind coming from the left
-                    //generate the local slopes
-                    slope[1] = minmod((f[l][index] - f[l-1][index])/(x[l] - x[l-1]),
-                                        (f[l+1][index] - f[l][index])/(x[l+1] - x[l]), 
-                                        (f[l+1][index] - f[l-1][index])/(x[l+1] - x[l-1]));
-                    slope[0] = minmod((f[l-1][index] - f[l-2][index])/(x[l-1] - x[l-2]),
-                                        (f[l][index] - f[l-1][index])/(x[l] - x[l-1]), 
-                                        (f[l][index] - f[l-2][index])/(x[l] - x[l-2]));
-                    
-                    CFL_NUM = 0.5 * dt * v[i] / dx[l];
-                    
-                    f_conv[l][index] = f[l][index] - CFL_NUM * (f[l][index] + 0.5 * dx[l] * slope[1]);
-                    if((l == 2) && (rank == 0)) {  //f_l is the INCOMING distribution from the left wall
-                        f_conv[l][index] += CLF_NUM * f_l[index];
-                    }
-                    else {  //the upwinding
-                        f_conv[l][index] += CFL_NUM*(f[l-1][index] - 0.5 * dx[l-1] * slope[0]);
-                    }
-
-                    //Add forcing terms if Poiseuille
-                    if(ICChoice == 5) {
-                        if(j == 0) {
-                            f_conv[l][index] -= Ma * 0.25 * dt / h_v * f[l][index + N];
-                        }
-                        else if(j == N-1) {
-                            f_conv[l][index] -= Ma * 0.25 * dt / h_v * f[l][index - N];
-                        }
-                        else {
-                            f_conv[l][index] -= Ma * 0.25 * dt / h_v * (f[l][index + N] - f[l][index - N]);
-                        }
-                    }     
-                }
-                for(i=0;i<N/2;i++) {
-                    index = k + N * (j + N * i);
-                    //upwind coming from the right
-                    //generate the local slopes
-                    slope[2] = minmod((f[l+1][index] - f[l][index])/(x[l+1] - x[l]),
-                                        (f[l+2][index] - f[l+1][index])/(x[l+2] - x[l+1]), 
-                                        (f[l+2][index] - f[l][index])/(x[l+2] - x[l]));
-                    slope[1] = minmod((f[l][index]     - f[l-1][index])/(x[l] - x[l-1]),
-                                        (f[l+1][index] - f[l][index])/(x[l+1] - x[l]), 
-                                        (f[l+1][index] - f[l-1][index])/(x[l+1] - x[l-1]));
-                    
-                    CFL_NUM = 0.5 * dt * v[i] / dx[l];
-                    if( (l == nX+1) && (rank == numNodes-1) ) {
-                        //f_r is the INCOMING distribution from the right wall
-                        f_conv[l][index] = f[l][index] - CFL_NUM * (f_r[index] - (f[l][index] - 0.5 * dx[l] * slope[1]));
-                    }    
-                    else {
-                        //the upwinding
-                        f_conv[l][index] = f[l][index] - CFL_NUM * (f[l+1][index] - 0.5 * dx[l+1] * slope[2] - (f[l][index] - 0.5 * dx[l] * slope[1]));                     
-                    }                 
-                    //Add forcing terms if Poiseuille
-                    if(ICChoice == 5) {
-                        if(j == 0) {
-                            f_conv[l][index] -= Ma * 0.25 * dt / h_v * f[l][index + N];
-                        }
-                        else if(j == N-1) {
-                            f_conv[l][index] -= Ma * 0.25 * dt / h_v * f[l][index - N];
-                        }
-                        else{
-                            f_conv[l][index] -= Ma * 0.25 * dt / h_v * (f[l][index + N] - f[l][index - N]);
-                        }
-                    }
-                }
+                take_upwind(j, k, 0, l, Ma, rank, numNodes, slope, f, f_conv);
+                take_upwind(j, k, 1, l, Ma, rank, numNodes, slope, f, f_conv);
             }
+        }
+    }
+}
+
+static void no_flux(int start_i, int end_i, int f_index, double *slope, double **f, double *f_type) {
+    int i, j, k, index;
+    #pragma omp parallel for
+    for(i = start_i; i < end_i; i++) {
+        for(j = 0; j < N; j++) {
+            #pragma omp simd
+            for(k = 0; k < N; k++) {
+                index = k + N * (j + N * i);
+                slope[1] = minmod((f[f_index+1][index] - f[f_index][index])/(x[f_index+1] - x[f_index]),
+                                    (f[f_index+2][index] - f[f_index+1][index])/(x[f_index+2] - x[f_index+1]),
+                                    (f[f_index+2][index] - f[nX][index]) /(x[f_index+2] - x[f_index]));
+                f_type[index] = f[f_index+1][index] + 0.5 * dx[f_index+1] * slope[1];
+            }
+        }
+    }
+}
+
+static void take_upwind(int j, int k, int dir, int l, double Ma, int rank, int numNodes, double *slope, double **f,  double **f_conv) {
+    int i, index;
+    double prefactor = -0.25 * Ma * dt / h_v;
+    double inside = 0.5 * dx[l] * slope[1];
+    double CFL_NUM;
+
+    int start, end;
+    if (dir == 0) {
+        start = N/2;
+        end = N;
+    }
+    else {
+        start = 0;
+        end = N/2;
+    }
+
+    #pragma omp simd
+    for (i = start; i < end; i++) {
+        index = k + N * (j + N * i);;
+        slope[1+dir] = minmod((f[l+dir][index] - f[l-1+dir][index])/(x[l+dir] - x[l-1+dir]),
+                                (f[l+1+dir][index] - f[l+dir][index])/(x[l+1+dir] - x[l+dir]), 
+                                (f[l+1+dir][index] - f[l-1+dir][index])/(x[l+1+dir] - x[l-1+dir]));
+        slope[dir] = minmod((f[l-1+dir][index] - f[l-2+dir][index])/(x[l-1+dir] - x[l-2+dir]),
+                                (f[l+dir][index] - f[l-1+dir][index])/(x[l+dir] - x[l-1+dir]), 
+                                (f[l+dir][index] - f[l-2+dir][index])/(x[l+dir] - x[l-2+dir]));
+
+        CFL_NUM = 0.5 * dt * v[i] / dx[l];
+                    
+        f_conv[l][index] = f[l][index] - CFL_NUM * (f[l][index] + 0.5 * dx[l] * slope[1]);
+
+        if(l == 2 && rank == 0 && dir == 0)  { //f_l is the INCOMING distribution from the left wall
+            inside += f[l][index] - f_l[index];
+        }
+        else if (l == nX+1 && rank == numNodes-1) { //f_r is the INCOMING distribution from the right wall
+            inside += f_r[index] - f[l][index];
+        }
+        else {  //the upwinding
+            inside += f[l+dir][index] - f[l-1+dir][index] - 0.5*dx[l-1+dir]*slope[2*dir];
+        } 
+
+        f_conv[l][index] = f[l][index] - CFL_NUM * inside;
+        poiseuille_forcing_term(f, f_conv, prefactor, j, l, index);
+    }
+}
+
+static void poiseuille_forcing_term(double **f, double **f_conv, double prefactor, int j, int l, int index) {
+    if (ICChoice == 5) {
+        if (j == 0) {
+            f_conv[l][index] += prefactor * f[l][index + N];
+        }
+        else if(j == N-1) {
+            f_conv[l][index] += prefactor * f[l][index - N];
+        }
+        else {
+            f_conv[l][index] += prefactor * (f[l][index + N] - f[l][index - N]);
         }
     }
 }
