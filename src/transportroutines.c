@@ -275,7 +275,45 @@ void upwindTwo(double **f, double **f_conv, int id) {
     }
 
     //Fill ghost cells
+    fill_ghost_cells();
 
+    //ghost cells filled
+
+    for(l = 2; l < nX+2; l++) {
+
+        //generate wall values - need the slopes at the wall to get 'em 
+        if((l == 2) && (rank == 0)) {
+            no_flux(0, N/2, 2, slope, f, f_l);
+            if(ICChoice == 3 || ICChoice == 5) { // Heat Transfer or Poiseuille
+                setDiffuseReflectionBC(f_l, f_l, T0, V0, 0, id);
+            }
+            else if(ICChoice == 1) {// Sudden change in wall temperature
+                setDiffuseReflectionBC(f_l, f_l, 2.0*TWall, VWall, 0, id); //only sets the INCOMING velocities of f_conv
+            }
+            else { //ensure no flux
+                no_flux(N/2, N, 2, slope, f, f_l);
+            }
+        }
+        else if((l == nX+1) && (rank == numNodes-1)) {//on right wall
+            no_flux(N/2, N, nX, slope, f, f_r);
+            if(ICChoice == 3 || ICChoice == 5) {  // Heat Transfer or Poiseuille 
+                setDiffuseReflectionBC(f_r, f_r, T1, V1, l, id); //sets incoming velocities of f_conv
+            }
+            else { //ensure no flux
+                no_flux(0, N/2, nX, slope, f, f_r);
+            }
+        }
+        #pragma omp parallel for
+        for(j = 0; j < N; j++) {
+            for(k = 0; k < N; k++) { 
+                take_upwind(j, k, 0, l, Ma, rank, numNodes, slope, f, f_conv);
+                take_upwind(j, k, 1, l, Ma, rank, numNodes, slope, f, f_conv);
+            }
+        }
+    }
+}
+
+static void fill_ghost_cells() {
     //EVEN NODES SEND FIRST
     if((rank % 2) == 0) {
         fflush(stdout);
@@ -381,41 +419,6 @@ void upwindTwo(double **f, double **f_conv, int id) {
             
         //send second to left
         MPI_Send(f[3], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD); //all odd nodes can always send to the left
-    }
-
-    //ghost cells filled
-
-    for(l = 2; l < nX+2; l++) {
-
-        //generate wall values - need the slopes at the wall to get 'em 
-        if((l == 2) && (rank == 0)) {
-            no_flux(0, N/2, 2, slope, f, f_l);
-            if(ICChoice == 3 || ICChoice == 5) { // Heat Transfer or Poiseuille
-                setDiffuseReflectionBC(f_l, f_l, T0, V0, 0, id);
-            }
-            else if(ICChoice == 1) {// Sudden change in wall temperature
-                setDiffuseReflectionBC(f_l, f_l, 2.0*TWall, VWall, 0, id); //only sets the INCOMING velocities of f_conv
-            }
-            else { //ensure no flux
-                no_flux(N/2, N, 2, slope, f, f_l);
-            }
-        }
-        else if((l == nX+1) && (rank == numNodes-1)) {//on right wall
-            no_flux(N/2, N, nX, slope, f, f_r);
-            if(ICChoice == 3 || ICChoice == 5) {  // Heat Transfer or Poiseuille 
-                setDiffuseReflectionBC(f_r, f_r, T1, V1, l, id); //sets incoming velocities of f_conv
-            }
-            else { //ensure no flux
-                no_flux(0, N/2, nX, slope, f, f_r);
-            }
-        }
-        #pragma omp parallel for
-        for(j = 0; j < N; j++) {
-            for(k = 0; k < N; k++) { 
-                take_upwind(j, k, 0, l, Ma, rank, numNodes, slope, f, f_conv);
-                take_upwind(j, k, 1, l, Ma, rank, numNodes, slope, f, f_conv);
-            }
-        }
     }
 }
 
