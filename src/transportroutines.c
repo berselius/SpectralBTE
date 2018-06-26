@@ -26,7 +26,8 @@ static species *mixture;
 
 static void take_upwind(int j, int k, int dir, int l, double Ma, int rank, int numNodes, double *slope, double **f,  double **f_conv);
 static void poiseuille_forcing_term(double **f, double **f_conv, double prefactor, int j, int l, int index);
-static void no_flux(int start_i, int end_i, int f_index, double *slope, double **f, double *f_type);
+static void no_flux(int sart_i, int end_i, int f_index, double *slope, double **f, double *f_type);
+static void fill_ghost_cells(int *rank_address, int *numNodes_address, double **f);
 
 void initialize_transport(int numV, int numX, double lv, double *xnodes, double *dxnodes, double *vel, int IC, double timestep, double TWall_in, species *mix) {
     N = numV;
@@ -258,16 +259,11 @@ void upwindOne(double **f, double **f_conv, int id) {
 
 //Computes second order upwind solution, with minmod
 void upwindTwo(double **f, double **f_conv, int id) {
-    int i,j,k,l, index;
+    int j,k,l;
     double slope[3];
-    int N3 = N * N * N;
-
     double Ma;
 
     int rank, numNodes;
-    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-    MPI_Comm_size(MPI_COMM_WORLD,&numNodes);
-    MPI_Status status;
 
     if(ICChoice == 5) {
         printf("Using default value of 1.0 for forcing parameter\n");
@@ -275,7 +271,7 @@ void upwindTwo(double **f, double **f_conv, int id) {
     }
 
     //Fill ghost cells
-    fill_ghost_cells();
+    fill_ghost_cells(&rank, &numNodes, f);
 
     //ghost cells filled
 
@@ -313,7 +309,16 @@ void upwindTwo(double **f, double **f_conv, int id) {
     }
 }
 
-static void fill_ghost_cells() {
+static void fill_ghost_cells(int *rank_address, int *numNodes_address, double **f) {
+    MPI_Comm_rank(MPI_COMM_WORLD, rank_address);
+    MPI_Comm_size(MPI_COMM_WORLD, numNodes_address);
+    MPI_Status status;
+
+    int i, j, k, index;
+    int N3 = N * N * N;
+    int rank = *rank_address;
+    int numNodes = *numNodes_address;
+
     //EVEN NODES SEND FIRST
     if((rank % 2) == 0) {
         fflush(stdout);
