@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "species.h"
+#include "constants.h"
 
 static int N;
 static double dv, dv3;
@@ -10,8 +11,6 @@ static double *v;
 static double *wtN;
 static species *mixture;
 static double KB;
-static const double KB_true = 1.380658e-23; //Boltzmann constant
-
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
@@ -27,8 +26,8 @@ void initialize_moments(int nodes, double L_v, double *vel, species *mix) {
   if(mixture[0].mass == 1)
     KB = 1;
   else
-    KB = KB_true;
-  
+    KB = KB_in_Joules_per_Kelvin;
+
   wtN = malloc(N*sizeof(double));
   wtN[0] = 0.5;
   for(i=1;i<(N-1);i++)
@@ -47,7 +46,7 @@ void initialize_moments_fast(int nodes, double L_v, double *vel) {
   mixture = malloc(sizeof(species));
   KB = 1;
   mixture[0].mass = 1.0;
-  
+
   wtN = malloc(N*sizeof(double));
   wtN[0] = 0.5;
   for(i=1;i<(N-1);i++)
@@ -62,14 +61,12 @@ double getDensity(double *in, int spec_id)
 	int i, j, k;
 
 	//printf("in get dens %p %p\n", wtN, in);
-	
 	for(i=0;i<N;i++) {
 	  for(j=0;j<N;j++)
 	    for(k=0;k<N;k++)
 	      {
 		result += dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)];
 	      }
-	  
 	}
 	  return mixture[spec_id].mass*result;
 }
@@ -80,7 +77,7 @@ double getEntropy(double *in)
 {
 	double result = 0.0;
 	int i, j, k;
-	
+
 	//Original
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
@@ -89,9 +86,9 @@ double getEntropy(double *in)
 	  if(in[k + N*(j + N*i)] > 0)
 	    result += dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)]*log(in[k + N*(j + N*i)]);
 	}
-		
 
-	return result;  
+
+	return result;
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
@@ -108,9 +105,9 @@ double Kullback(double *in, double rho, double T) {
 	  if(in[k + N*(j + N*i)] > 0)
 	    result += dv3*wtN[i]*wtN[j]*wtN[k]*(in[k + N*(j + N*i)]*log(in[k + N*(j + N*i)]/max) - in[k + N*(j + N*i)] + max);
 	}
-  
-  
-	return result;  
+
+
+	return result;
 
 }
 
@@ -120,13 +117,12 @@ void getBulkVelocity(double *in, double *out, double rho, int spec_id)
 {
 	double temp1, temp2, temp3;
 	int i, j, k;
-	
+
 	double mass = mixture[spec_id].mass;
 
 	out[0] = 0.0;
 	out[1] = 0.0;
 	out[2] = 0.0;
-	
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
 	for(k=0;k<N;k++)
@@ -134,12 +130,12 @@ void getBulkVelocity(double *in, double *out, double rho, int spec_id)
 		temp1 = v[i]*dv3*wtN[i]*wtN[j]*wtN[k]/rho;
 		temp2 = v[j]*dv3*wtN[i]*wtN[j]*wtN[k]/rho;
 		temp3 = v[k]*dv3*wtN[i]*wtN[j]*wtN[k]/rho;
-		
+
 		out[0] += temp1*in[k + N*(j + N*i)];
 		out[1] += temp2*in[k + N*(j + N*i)];
 		out[2] += temp3*in[k + N*(j + N*i)];
 	}
-	
+
 	out[0] = mass*out[0];
 	out[1] = mass*out[1];
 	out[2] = mass*out[2];
@@ -182,7 +178,7 @@ double getTemperature(double *in, double *bulkV, double rho, int spec_id)
 	{
 		temp = (v[i] - bulkV[0])*(v[i] - bulkV[0]) + (v[j] - bulkV[1])*(v[j] - bulkV[1]) + (v[k] - bulkV[2])*(v[k] - bulkV[2]);
 		result += temp*dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)]/(3.0*rho);
-	}	
+	}
 	return (mass*mass/KB)*result;
 }
 
@@ -199,27 +195,27 @@ void getStressTensor(double *in, double *bulkV, double **out)
 {
 	int i, j, k;
 	double temp = 0.0;
-	
+
 	for(i=0;i<3;i++)
 	for(j=0;j<3;j++)
 	out[i][j] = 0.0;
-	
+
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
 	for(k=0;k<N;k++)
 	{
 		temp = 2.0*dv*dv*dv*wtN[i]*wtN[j]*wtN[k];
-		
+
 		out[0][0] += (v[i] - bulkV[0])*(v[i] - bulkV[0])*temp*in[k + N*(j + N*i)];
 		out[0][1] += (v[i] - bulkV[0])*(v[j] - bulkV[1])*temp*in[k + N*(j + N*i)];
 		out[0][2] += (v[i] - bulkV[0])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
-		
+
 		out[1][1] += (v[j] - bulkV[1])*(v[j] - bulkV[1])*temp*in[k + N*(j + N*i)];
 		out[1][2] += (v[j] - bulkV[1])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
-		
+
 		out[2][2] += (v[k] - bulkV[2])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
 	}
-	
+
 	out[1][0] = out[0][1];
 	out[2][0] = out[0][2];
 	out[2][1] = out[1][2];
@@ -231,15 +227,15 @@ void getHeatFlowVector(double *in, double *bulkV, double *out)
 {
 	int i, j, k;
 	double temp = 0.0;
-	
+
 	for(i=0;i<3;i++) out[i] = 0.0;
-	
+
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
 	for(k=0;k<N;k++)
 	{
 		temp = 2.0*( (v[i] - bulkV[0])*(v[i] - bulkV[0]) + (v[j] - bulkV[1])*(v[j] - bulkV[1]) + (v[k] - bulkV[2])*(v[k] - bulkV[2]) )*dv*dv*dv*wtN[i]*wtN[j]*wtN[k];
-		
+
 		out[0] += temp*(v[i] - bulkV[0])*in[k + N*(j + N*i)];
 		out[1] += temp*(v[j] - bulkV[1])*in[k + N*(j + N*i)];
 		out[2] += temp*(v[k] - bulkV[2])*in[k + N*(j + N*i)];

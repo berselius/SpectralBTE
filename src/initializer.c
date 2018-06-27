@@ -10,8 +10,8 @@
 #include <mpi.h>
 #include "species.h"
 #include <string.h>
+#include "constants.h"
 
-static const double KB_true = 1.380658e-23; //Boltzmann constant
 static double KB;
 static int numspec;
 
@@ -21,7 +21,7 @@ void allocate_hom(int N, double **v, double **zeta, double ***f, double ***f1, d
   int i;
 
   numspec = num_species;
-  
+
   *v = (double *)malloc(N*sizeof(double));
   *zeta = (double *)malloc(N*sizeof(double));
 
@@ -42,11 +42,11 @@ void allocate_hom(int N, double **v, double **zeta, double ***f, double ***f1, d
 /*Initializer for space homogeneous problem*/
 
 void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int initFlag, double lambda, species *mixture) {
-  int i, j, k;	
+  int i, j, k;
   double BKWt, Temp, K;
   double dv, deta, L_eta;
 
-  double sigma;	
+  double sigma;
   double S;
   double pre;
 
@@ -54,7 +54,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 
 
   if(strcmp(mixture[0].name,"default") != 0)
-    KB = KB_true;
+    KB = KB_in_Joules_per_Kelvin;
   else
     KB = 1.;
 
@@ -89,19 +89,19 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 
   for(spec=0;spec<numspec;spec++) {
   switch(initFlag) {
-    
+
     //Shifted isotropic problem
-  case 0: 
+  case 0:
     printf("Isotropic problem\n");
-    sigma = 0.3*L_v;	
+    sigma = 0.3*L_v;
     S = 10.0;
-    for(j=0;j<N;j++) 
-      for(k=0;k<N;k++) 
-	for(i=0;i<N;i++) 
+    for(j=0;j<N;j++)
+      for(k=0;k<N;k++)
+	for(i=0;i<N;i++)
 	  f[spec][k + N*(j + N*i)] = exp(-1*S*(sqrt(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]) - sigma)*(sqrt(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]) - sigma)/(sigma*sigma))/(S*S);
-    
+
     break;
-    
+
 
     //Discontinuous Maxwellian problem
   case 1:
@@ -117,7 +117,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
       }
 
     break;
-    
+
 
     //BKW type problem
   case 2:
@@ -131,22 +131,22 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 	  {
 	    f[spec][k + N*(j + N*i)] = (exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/(2*K*Temp*Temp)))/(2.0*pow(2*M_PI*K*Temp*Temp,1.5)) * ( (5*K - 3)/K + 																  (1-K)*(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/(K*K*Temp*Temp));
 	  }
-    
+
     break;
-    
+
 
     //Two Maxwellians
   case 3:
     printf("TwoMax\n");
-    sigma = M_PI*L_v/10.0;	
-    pre = 0.5 / pow(2.0 * M_PI * sigma*sigma, 1.5);	
+    sigma = M_PI*L_v/10.0;
+    pre = 0.5 / pow(2.0 * M_PI * sigma*sigma, 1.5);
     for(j=0;j<N;j++)
-      for(k=0;k<N;k++) 
-	for(i=0;i<N;i++) 
+      for(k=0;k<N;k++)
+	for(i=0;i<N;i++)
 	  f[spec][k + N*(j + N*i)] = pre*(exp(-((v[i] - 2.0*sigma)*(v[i]-2.0*sigma) + v[j]*v[j] + v[k]*v[k])/(2.0*sigma*sigma)) + exp(-((v[i] + 2*sigma)*(v[i] + 2*sigma) + v[j]*v[j] + v[k]*v[k])/(2.0*sigma*sigma)));
-      
+
     break;
-    
+
 
     //Simple maxwellian
   case 4:
@@ -162,8 +162,8 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
     maxTemp = 1.0;
     printf("SimpleMax, rho=%g, T=%g, mass=%g KB=%g \n",rho,maxTemp,mixture[spec].mass, KB);
     for(j=0;j<N;j++)
-      for(k=0;k<N;k++) 
-	for(i=0;i<N;i++) 
+      for(k=0;k<N;k++)
+	for(i=0;i<N;i++)
 	  f[spec][k + N*(j + N*i)] = (rho/mixture[spec].mass) * pow(0.5*mixture[spec].mass/(M_PI*KB*maxTemp),1.5)*exp(-(0.5*mixture[spec].mass/(KB*maxTemp)) *((v[i])*(v[i]) + v[j]*v[j] + v[k]*v[k]));
 	  //f[spec][k + N*(j + N*i)] = pow(1.0/M_PI,1.5)*exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]));
     break;
@@ -172,11 +172,11 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
   case 5:
     printf("Perturb\n");
     for(j=0;j<N;j++)
-      for(k=0;k<N;k++) 
+      for(k=0;k<N;k++)
 	for(i=0;i<N;i++) {
 	  f[spec][k + N*(j + N*i)] = ( 1 + 0.1*sin(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]) )*exp(-((v[i])*(v[i]) + v[j]*v[j] + v[k]*v[k]))/(M_PI*sqrt(M_PI));
 	}
-	  
+
     break;
 
     /*
@@ -188,11 +188,11 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
     double T2 = 1.e-4;
 
     for(j=0;j<N;j++)
-      for(k=0;k<N;k++) 
+      for(k=0;k<N;k++)
 	for(i=0;i<N;i++) {
-	  f[spec][k + N*(j + N*i)] = 
+	  f[spec][k + N*(j + N*i)] =
 	}
-	  
+
     break;
     */
   }
@@ -205,7 +205,7 @@ void dealloc_hom(double *v, double *zeta, double **f, double **Q) {
   free(zeta);
   for(i=0;i<numspec;i++) {
     free(f[i]);
-    for(j=0;j<numspec;j++) 
+    for(j=0;j<numspec;j++)
       free(Q[i*numspec + j]);
   }
   free(f);
@@ -246,7 +246,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 
 
   if(strcmp(mixture[0].name,"default") != 0)
-    KB = KB_true;
+    KB = KB_in_Joules_per_Kelvin;
   else
     KB = 1.;
 
@@ -270,10 +270,10 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 
   //Initialize the moment routines
   initialize_moments(N, L_v, v, mixture);
-  
+
   //Initialize transport routines
   initialize_transport(N, nX, L_v, xnodes, dxnodes, v, initFlag, dt, 1.0, mixture);
-  
+
   for(i=0;i<Ns;i++)
     for(l=0;l<(nX+2*order);l++) {
       f[i][l]      = malloc(N*N*N*sizeof(double));
@@ -284,7 +284,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
   //Initialize F based on initial conditions...
 
   init_restart(nX, order, N, Ns, mixture);
-  
+
   if(restart == 1) {
     if(rank == 0) {
       printf("Loading from previously generated data\n");
@@ -293,25 +293,25 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
   }
   else {
     *t = 0;
-    
+
     //set some defaults
     rho_l = 1.0;
     ux_l = 0.0;
     T_l = 1.0;
-    
+
     rho_r = 1.0;
     ux_r = 0.0;
     T_r = 1.0;
 
     switch(initFlag) {
-    case 0: 
+    case 0:
       rho_l = 4.0*Ma*Ma/(Ma*Ma + 3.0);
       T_l = (5.0*Ma*Ma - 1.0)*(Ma*Ma + 3.0)/(16.0*Ma*Ma);
       ux_l = -sqrt(5.0/3.0)*(Ma*Ma + 3.0)/(4.0*Ma);
-      
+
       rho_r = 1.0;
       T_r = 1.0;
-      ux_r = -Ma*sqrt(5.0/3.0);    
+      ux_r = -Ma*sqrt(5.0/3.0);
       printf("Shock problem: left rho:%g ux:%g T:%g, right rho:%g ux:%g T:%g\n",rho_l,ux_l,T_l,rho_r,ux_r,T_r);
       break;
     case 1:
@@ -349,7 +349,6 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 
       printf("Shock problem: left rho:%g ux:%g T:%g, right rho:%g ux:%g T:%g\n",rho_l,ux_l,T_l,rho_r,ux_r,T_r);
       break;
-
     }
 
     double maxTemp = T_r;
@@ -360,7 +359,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
     for(l=order;l<(nX+order);l++) {
       switch (initFlag) {
       case 0:
-	if(l < nX/2)  {	  
+	if(l < nX/2)  {
 	  for(i=0;i<N;i++)
 	    for(j=0;j<N;j++)
 	      for(k=0;k<N;k++) {
@@ -375,7 +374,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 	      }
 	}
 	break;
-      case 1:	
+      case 1:
 	for(i=0;i<N;i++)
 	  for(j=0;j<N;j++)
 	    for(k=0;k<N;k++) {
@@ -389,22 +388,22 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 	      f[m][l][k + N*(j + N*i)] = rho_l*exp(-((v[i] - ux_l)*(v[i] - ux_l) + v[j]*v[j] + v[k]*v[k])/T_l)/((T_l*M_PI)*sqrt(T_l*M_PI));
 	    }
 	break;
-      case 3:			
+      case 3:
 	for(i=0;i<N;i++)
 	  for(j=0;j<N;j++)
-	    for(k=0;k<N;k++) { 
+	    for(k=0;k<N;k++) {
 	      f[m][l][k + N*(j + N*i)] = rho_r*exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/T_r)/((T_r*M_PI)*sqrt(T_r*M_PI));
-	    }    
+	    }
 	break;
       case 5:  //Poiseuille
 	for(i=0;i<N;i++)
 	  for(j=0;j<N;j++)
 	    for(k=0;k<N;k++) {
 	      f[m][l][k + N*(j + N*i)] = rho_l*exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/T_l)/((T_l*M_PI)*sqrt(T_l*M_PI));
-	    }		  		  
-	break;	
+	    }
+	break;
       case 6: //Mach 1.2 shock
-	if(l < nX/2)  {	  
+	if(l < nX/2)  {
 	  for(i=0;i<N;i++)
 	    for(j=0;j<N;j++)
 	      for(k=0;k<N;k++) {
@@ -421,10 +420,10 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 	break;
       }
     }
-    
+
     }
   }
-  
+
 }
 
 void dealloc_inhom(int nX, int order, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, double **Q) {
