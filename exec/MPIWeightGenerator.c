@@ -19,6 +19,7 @@ L_v: Semi-length of velocity domain [-L_v,L_v]
 #include <omp.h>
 #include "MPIcollisionRoutines.h"
 #include <mpi.h>
+#include "constants.h"
 
 int N;
 int GL = 64;
@@ -67,7 +68,7 @@ int main(int argc, char *argv[])
   h_eta = (2.0*M_PI/N) / h_v;
   L_eta = 0.5*N*h_eta;
 
-    
+
   for(i=0;i<N;i++)    {
     eta[i] = -L_eta + (double)i*h_eta;
     v[i] = -L_v + (double)i*h_v;
@@ -83,19 +84,19 @@ int main(int argc, char *argv[])
   //generate convolution weights - only do an even chunk of them
   conv_weights = malloc((N*N*N/numNodes)*sizeof(double *));
   for (i=0;i<(N*N*N/numNodes);i++) conv_weights[i] = malloc(N*N*N*sizeof(double));
- 
-  FILE *fidWeights; 
+
+  FILE *fidWeights;
     //check to see if these convolution weights have already been pre-computed
   if( (fidWeights = fopen(buffer_weights,"r")) ) { //checks if we've already stored a file
     printf("Stored weights already computed! \n");
     fclose(fidWeights);
-  }      
+  }
   else {
-    if(rank == 0) 
+    if(rank == 0)
       printf("Stored weights not found, generating...\n");
- 
-    generate_conv_weights(conv_weights); 
-    
+
+    generate_conv_weights(conv_weights);
+
     MPI_Barrier(MPI_COMM_WORLD);
     //get weights from everyone else...
 
@@ -104,7 +105,7 @@ int main(int argc, char *argv[])
       fidWeights = fopen(buffer_weights,"w");
       for(i=0;i<(N*N*N/numNodes);i++) {
 	fwrite(conv_weights[i],sizeof(double),N*N*N,fidWeights);
-      } 
+      }
       //receive from all other processes
       for(i=1;i<numNodes;i++) {
 	for(j=0;j<(N*N*N/numNodes);j++) {
@@ -115,7 +116,7 @@ int main(int argc, char *argv[])
       if(fflush(fidWeights) != 0) {
 	printf("Something is wrong with storing the weights");
 	exit(0);
-      } 
+      }
       fclose(fidWeights);
     }
     else {
@@ -123,7 +124,7 @@ int main(int argc, char *argv[])
 	MPI_Send(conv_weights[i],N*N*N,MPI_DOUBLE,0,rank*(N*N*N/numNodes)+i,MPI_COMM_WORLD);
     }
   }
-    
+
   MPI_Finalize();
 
   return 0;

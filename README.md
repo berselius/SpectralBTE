@@ -8,7 +8,7 @@ This code was originally developed at the University of Texas at Austin by Jeff 
 
 ## Dependencies
 
-The following C Libraries required to build this code 
+The following C Libraries required to build this code
 
 * fftw3
 * GSL (Gnu Scientific Library)
@@ -18,13 +18,25 @@ The following C Libraries required to build this code
 
 ## Building the code
 
-Before building the code, create a `obj` directory 
+The code uses CMake. First create a build directory and change into it
+`mkdir build`
+`cd build`
 
-Simply type `make` and it will compile the code and create the program `boltz_`
+Now run CMake
+`cmake ..`
 
-To build an experimental faster (but less accurate) version of the code, type `make fast`. This will create the executable `Fastboltz_`
+This assumes the build directory is immediately below the root direction,
+otherwise run `cmake /path/to/root`.
 
-To build a standalone program that precomputes weights for anisotropic cross sections (and the Landau collision operator), type `make weights`. This will create the executable `WeightGen_`
+Now build with
+`make -j4`
+
+And run tests with
+`make test`
+
+Note that the executables are located in the `exec` directory inside the build
+directory.
+
 
 ## Running the code
 
@@ -50,7 +62,7 @@ Use `mpirun` to run the code, as
 `mpirun -n <num_tasks> boltz_ input_file output_flags`
 
 * The code will look for the specified `input_file` in `input/`. See below and in the examples firectory for details on writing input files.
-* The code will look for the specified output flag directions in the specified `output_flags` in `input/`. This tells the code what variables you want to dump. See below for more details. 
+* The code will look for the specified output flag directions in the specified `output_flags` in `input/`. This tells the code what variables you want to dump. See below for more details.
 * If the restart flag is set in the input file, it will look for information in the `restart` folder.
 
 #### How many MPI ranks, OMP threads should/can I use?
@@ -58,7 +70,7 @@ Use `mpirun` to run the code, as
 * If running a 0D/homogeneous problem, run with one MPI rank (`-n 1`).
 * Set `OMP_NUM_THREADS` to the number of cores on one node
 * For 1D/inhomogenous problems, the number of MPI ranks must evenly divide the number of spatial grid cells.
-  * Past computational studies suggest that the most efficient way to set up the problem is to run with *one MPI rank per socket* and to set `OMP_NUM_THREADS` to be the number of cores per socket. 
+  * Past computational studies suggest that the most efficient way to set up the problem is to run with *one MPI rank per socket* and to set `OMP_NUM_THREADS` to be the number of cores per socket.
 
 ### Input file setup
 
@@ -76,7 +88,7 @@ The input file parser reads the file line by line looking for keywords that set 
 * `Data_writing_frequency` - the code will dump data at this rate (in timesteps) (default: 10)
 * `Restart` - 0 or 1. If set to 1, this will restart the code from a previous dump. More info below. (default: 0)
 * `Restart_time` - Amount of wall clock time (in seconds) until the code halts, generates restart info, then exits. This can then be restarted by running the code with the same input file but with a `Restart` value of 1. (default: 85500, i.e. 23 hours, 45 minutes). Set this to `-1` if you want the code to exit without creating a restart dump.
-* `Init_field` - Flag for different initial data cases. See `src/initializer.c` for specifics...you may wish to change some of the parameters. 
+* `Init_field` - Flag for different initial data cases. See `src/initializer.c` for specifics...you may wish to change some of the parameters.
   * For 0D/space homogenous problems:
      * 0: Shifted isotropic problem
      * 1: Discontinous Maxwellian
@@ -93,7 +105,7 @@ The input file parser reads the file line by line looking for keywords that set 
 * `Recompute_weights` - 0 or 1. If set to 1, this tells the code to recompute the convolution weights even if they already exist in the Weights directory. (default: 0)
 * `Anisotropic` - 0 or 1. If set to 1, this means that we are solving with an anisotropic cross section (e.g. for plasmas). The code checks to see if the weights exist, if they do not the code exits and reminds you that you need to use the separate `WeightGen_` program to precompute these as it is very intensive calculation. (default: 0)
 * `mesh_file` - for 1D problems, this points to the file in `input/` that has information about the physical mesh. See below for specifications for this file. (default: not_set)
-* `num_species` - sets the number of species, then species names are listed in order in each line afterwords. For generic nondimensional single species runs, set 
+* `num_species` - sets the number of species, then species names are listed in order in each line afterwords. For generic nondimensional single species runs, set
 
 num_species <br />
 1 <br />
@@ -103,7 +115,7 @@ If you want to do more, contact me. Mass ratio issues can cause multispecies Bol
 
 #### Mesh file setup
 
-This expects values in a certain order to set up the 1D / physical space mesh. This sets up blocks/regions, each with a specified uniform spatial grid. The spatial grid is assumed to start with x=0 as its leftmost point. 
+This expects values in a certain order to set up the 1D / physical space mesh. This sets up blocks/regions, each with a specified uniform spatial grid. The spatial grid is assumed to start with x=0 as its leftmost point.
 
 * first line - comment that is ignored
 * second line - total number of points in the mesh
@@ -111,7 +123,7 @@ This expects values in a certain order to set up the 1D / physical space mesh. T
 
 Next, you define the regions as two lines each
 * first line - number of points in the region
-* second line - size of the region in (nondimensional) physical space. 
+* second line - size of the region in (nondimensional) physical space.
 
 For example, a mesh that has a spacing of 0.01 for the first 0.1 of the region and 0.1 for the remaining 0.9 would be
 
@@ -122,7 +134,7 @@ For example, a mesh that has a spacing of 0.01 for the first 0.1 of the region a
 10 <br />
 0.1 <br />
 9 <br />
-0.9 
+0.9
 
 
 #### Ouptut flag file setup
@@ -139,7 +151,7 @@ This reads the specified file looking for the following keywords. A 1 in the lin
 
 ## Instructions for `WeightGen_`
 
-This generates the precomputed weights for anisotropic cross sections (e.g. Coulomb interactions). 
+This generates the precomputed weights for anisotropic cross sections (e.g. Coulomb interactions).
 
 ### Setup and run
 
@@ -150,7 +162,7 @@ This is run using
 where
 
 * `N` - the number of grid points in one direction in velocity space / Fourier modes in one direction. The total size of the weights array will be N^6
-* `glance` - the angular cutoff for the Coulomb cross section. 
+* `glance` - the angular cutoff for the Coulomb cross section.
   * Set this to 0 to generate weights for the Landau collision operator
 * `beta` - parameter for inelastic collisions. Set to 1 for the usual/elastic case
 * `lambda` - exponent on the relative velocity in the scattering kernel. Set to `-3` for Coulomb.

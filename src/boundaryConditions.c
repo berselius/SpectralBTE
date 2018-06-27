@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "boundaryConditions.h"
 #include "species.h"
+#include "constants.h"
 
 #define PI M_PI
 
@@ -10,13 +11,12 @@ static double *v;
 static double *wtN;
 static double h_v;
 static species *mixture;
-static const double KB_TRUE = 1.380658e-23; //Boltzmann constant
 static double KB;
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 void initializeBC(int nv, double *vel, species *mix) {
     int i;
-    
+
     N = nv;
     v = vel;
     h_v = v[1]-v[0];
@@ -33,7 +33,7 @@ void initializeBC(int nv, double *vel, species *mix) {
         KB = 1.0;
     }
     else {
-        KB = KB_TRUE;
+        KB = KB_in_Joules_per_Kelvin;
     }
 
 }
@@ -44,7 +44,7 @@ void setDiffuseReflectionBC(double *in, double *out, double TW, double vW, int b
 {
 	double sigmaW, sign, factor;
 	int i, j, k;
-	
+
 	sigmaW = 0.0;
 
 	if (bdry == 0) {
@@ -53,7 +53,7 @@ void setDiffuseReflectionBC(double *in, double *out, double TW, double vW, int b
 	else {
 		sign = -1.0;
 	}
-	
+
 	double ratio = mixture[id].mass / (KB * TW);
 	factor = sign * 0.5 * ratio * ratio / PI;
 
