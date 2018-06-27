@@ -87,7 +87,7 @@ add_library(SpectralBTE SHARED
 )
 
 add_subdirectory(exec)
-#add_subdirectory(tests)
+add_subdirectory(tests)
 
 # the compiler flags
 message(STATUS "")

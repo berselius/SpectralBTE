@@ -1,0 +1,2 @@
+add_subdirectory(example_cpp)
+add_subdirectory(example_bash)
