@@ -27,7 +27,9 @@ static species *mixture;
 static void take_upwind(int j, int k, int dir, int l, double Ma, int rank, int numNodes, double *slope, double **f,  double **f_conv);
 static void poiseuille_forcing_term(double **f, double **f_conv, double prefactor, int j, int l, int index);
 static void no_flux(int sart_i, int end_i, int f_index, double *slope, double **f, double *f_type);
-static void fill_ghost_cells(int *rank_address, int *numNodes_address, double **f);
+static void fill_ghost_cells(int rank, int numNodes, double **f, int order_num, int id);
+static void fill_ghost_cells_first_order(int rank, int numNodes, double **f, int id);
+static void fill_ghost_cells_second_order(int rank, int numNodes, double **f);
 
 void initialize_transport(int numV, int numX, double lv, double *xnodes, double *dxnodes, double *vel, int IC, double timestep, double TWall_in, species *mix) {
     N = numV;
@@ -65,8 +67,7 @@ void initialize_transport(int numV, int numX, double lv, double *xnodes, double 
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
-double min(double in1, double in2)
-{
+double min(double in1, double in2) {
     if(in1 > in2) {
         return in2;
     }
@@ -108,91 +109,14 @@ void upwindOne(double **f, double **f_conv, int id) {
     double Ma;
 
     int rank, numNodes;
-    int N3 = N * N * N;
 
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
     MPI_Comm_size(MPI_COMM_WORLD,&numNodes);
-    MPI_Status status;
     //int numamt;
 
 
     //FILL GHOST CELLS
-    if((rank % 2) == 0) { //EVEN NODES SEND FIRST
-        if(rank != (numNodes-1))    //SEND TO RIGHT FIRST
-            MPI_Send(f[nX], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD);
-
-        if(rank != 0) {//RECIEVE FROM LEFT 
-            MPI_Recv(f[0], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status);
-            //MPI_Get_count(&status, MPI_DOUBLE, &numamt);
-            //printf("%d got %d\n",rank,numamt);
-        }
-        else {
-            if(ICChoice == 3 || ICChoice == 5) { // Heat Transfer or Poiseuille
-                setDiffuseReflectionBC(f[1], f[0], T0, V0, 0, id);
-            }
-            else if(ICChoice == 1) { // Sudden change in wall temperature 
-                setDiffuseReflectionBC(f[1], f[0], 2.0*TWall, VWall, 0, id); //only sets the INCOMING velocities of f_conv
-            }
-            else if (ICChoice != 6) { //assume that the flow repeats outside the domain... (NOTE: SHOULD I EXPLICITLY COPY THIS?)
-                f[0] = f[1]; //come back to fix for periodic later
-            }
-        }
-
-        if(rank != 0) {
-            MPI_Send(f[1], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD); //SEND TO LEFT
-        }
-
-        if(rank != (numNodes-1)) {
-            MPI_Recv(f[nX+1], N3, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &status); //RECEIVE FROM RIGHT
-        }
-        else {
-            if(ICChoice == 3 || ICChoice == 5) { // Heat Transfer or Poisseuille
-                setDiffuseReflectionBC(f[nX], f[nX+1], T1, V1, 1, id); //sets incoming velocities of f_conv
-            }
-            else if(ICChoice != 6) {
-                f[nX+1] = f[nX]; //assume that the flow repeats outside the domain.. - come back to fix this for periodic
-            }
-        }        
-    }
-    else { //ODD NODES RECEIVE FIRST
-        MPI_Recv(f[0], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status); //all odd nodes will always have stuff from the left
-        
-        if(rank != (numNodes-1)) {
-            MPI_Send(f[nX], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD); //send to right
-        }
-        
-        if(rank != (numNodes-1)) {
-            MPI_Recv(f[nX+1], N3, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &status); //recieve from right
-        }
-        else {
-            if(ICChoice == 3 || ICChoice == 5) { // Heat Transfer or Poisseuille
-                setDiffuseReflectionBC(f[nX], f[nX+1], T1, V1, 1, id); //sets incoming velocities of f_conv
-            }
-            else if(ICChoice != 6) {
-                f[nX+1] = f[nX]; //assume that the flow repeats outside the domain.. //come back to fix this for periodic
-            }
-        }
-            
-        MPI_Send(f[1], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD); //all odd nodes can always send to the left
-    }
-    if(ICChoice == 6) {
-        if(numNodes != 1) {
-            if(rank == 0) {
-                MPI_Send(f[1], N3, MPI_DOUBLE, numNodes-1, 0, MPI_COMM_WORLD);
-                MPI_Recv(f[0], N3, MPI_DOUBLE, numNodes-1, 1, MPI_COMM_WORLD,&status);
-            }
-            if(rank == numNodes-1) {
-                MPI_Recv(f[nX+1], N3, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &status);
-                MPI_Send(f[nX], N3, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
-            }
-        }
-        else {
-            f[0] = f[nX];
-            f[nX+1] = f[1];
-        }
-            
-    }
-
+    fill_ghost_cells(rank, numNodes, f, 1, id);
     //ALL GHOST CELLS SET, COMMUNICATION COMPLETE
 
     if(ICChoice == 5) {
@@ -259,11 +183,13 @@ void upwindOne(double **f, double **f_conv, int id) {
 
 //Computes second order upwind solution, with minmod
 void upwindTwo(double **f, double **f_conv, int id) {
+    int rank, numNodes;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &numNodes);
+
     int j,k,l;
     double slope[3];
     double Ma;
-
-    int rank, numNodes;
 
     if(ICChoice == 5) {
         printf("Using default value of 1.0 for forcing parameter\n");
@@ -271,7 +197,7 @@ void upwindTwo(double **f, double **f_conv, int id) {
     }
 
     //Fill ghost cells
-    fill_ghost_cells(&rank, &numNodes, f);
+    fill_ghost_cells(rank, numNodes, f, 2, id);
 
     //ghost cells filled
 
@@ -309,24 +235,107 @@ void upwindTwo(double **f, double **f_conv, int id) {
     }
 }
 
-static void fill_ghost_cells(int *rank_address, int *numNodes_address, double **f) {
-    MPI_Comm_rank(MPI_COMM_WORLD, rank_address);
-    MPI_Comm_size(MPI_COMM_WORLD, numNodes_address);
+static void fill_ghost_cells(int rank, int numNodes, double **f, int order_num, int id) {
+    if (order_num == 1) {
+        fill_ghost_cells_first_order(rank, numNodes, f, id);
+    }
+    else {
+        fill_ghost_cells_second_order(rank, numNodes, f);
+    }
+}
+
+static void fill_ghost_cells_first_order(int rank, int numNodes, double **f, int id) {
+    MPI_Status status;
+;
+    int N3 = N * N * N;
+
+    int evenodd = rank % 2;
+
+    if (evenodd == 1) {
+        MPI_Recv(f[0], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status);
+    }
+
+    if (rank != numNodes - 1) {
+        MPI_Send(f[nX], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD);
+    }
+
+    if (evenodd == 0) {
+        if (rank != 0) {
+            // receive from left
+            MPI_Recv(f[0], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status);
+        }
+        else {
+            if(ICChoice == 3 || ICChoice == 5) {
+                setDiffuseReflectionBC(f[1], f[0], T0, V0, 0, id);
+            }
+            else if(ICChoice == 1) {
+                setDiffuseReflectionBC(f[1], f[0], 2.0*TWall, VWall, 0, id);
+            }
+            else if (ICChoice != 6) {
+                f[0] = f[1];
+            }
+        }
+
+        if(rank != 0) {
+            MPI_Send(f[1], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD);
+        }
+    }
+
+    if(rank != (numNodes-1)) {
+        MPI_Recv(f[nX+1], N3, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &status);
+    }
+    else {
+        if(ICChoice == 3 || ICChoice == 5) {
+            setDiffuseReflectionBC(f[nX], f[nX+1], T1, V1, 1, id);
+        }
+        else if(ICChoice != 6) {
+            f[nX+1] = f[nX];
+        }
+    }
+
+    if (evenodd == 1) {
+        MPI_Send(f[1], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD);
+    }
+
+    if(ICChoice == 6) {
+        if(numNodes != 1) {
+            if(rank == 0) {
+                MPI_Send(f[1], N3, MPI_DOUBLE, numNodes-1, 0, MPI_COMM_WORLD);
+                MPI_Recv(f[0], N3, MPI_DOUBLE, numNodes-1, 1, MPI_COMM_WORLD,&status);
+            }
+            if(rank == numNodes-1) {
+                MPI_Recv(f[nX+1], N3, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &status);
+                MPI_Send(f[nX], N3, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+            }
+        }
+        else {
+            f[0] = f[nX];
+            f[nX+1] = f[1];
+        }
+    }
+}
+
+
+static void fill_ghost_cells_second_order(int rank, int numNodes, double **f) {
     MPI_Status status;
 
     int i, j, k, index;
     int N3 = N * N * N;
-    int rank = *rank_address;
-    int numNodes = *numNodes_address;
 
-    //EVEN NODES SEND FIRST
-    if((rank % 2) == 0) {
-        fflush(stdout);
-        //send to right
-        if(rank != (numNodes-1))
-            MPI_Send(f[nX+1], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD);
+    int evenodd = rank % 2;
 
-        //receive from left, or use extrapolation
+    if (evenodd == 1) {
+        // receive from left
+        // all odd nodes will always have stuff to receive from the left
+        MPI_Recv(f[1], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status);
+    }
+
+    if (rank != numNodes - 1) {  // send to right
+        MPI_Send(f[nX + 1], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD);
+    }
+
+    if (evenodd == 0) {
+        // receive from left, or use extrapolation
         if(rank != 0)
             MPI_Recv(f[1], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status);
         else {
@@ -339,89 +348,64 @@ static void fill_ghost_cells(int *rank_address, int *numNodes_address, double **
                         f[1][index] = 2*f[2][index] - f[3][index];
                     }
         }
+    }
+    else {
+        //receive second from left
+        //all odd nodes will always have stuff from the left
+        MPI_Recv(f[0], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status);
+    }
 
-        //send second cell to right
-        if(rank != (numNodes-1)) {
-            MPI_Send(f[nX], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD);
-        }
+    // send second cell to right
+    if(rank != (numNodes-1)) {
+        MPI_Send(f[nX], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD);
+    }
 
-        //receive second from left, or ignore
+    if (evenodd == 0) {
+        // receive second from left, or ignore
         if(rank != 0) {
             MPI_Recv(f[0], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status);
         }
-
-        //send to left
+        // send to left
         if(rank != 0) {
             MPI_Send(f[2], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD);
         }
-
-        //receive from right, or use extrapolation
-        if(rank != (numNodes-1)) {
-            MPI_Recv(f[nX+2], N3, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &status);
-        }
-        else {
-            for(i=0;i<N;i++) {
-                for(j=0;j<N;j++) {
-                    for(k=0;k<N;k++) {
-                        index = k + N * (j + N * i);
-                        f[nX+2][index] = 2 * f[nX+1][index] - f[nX][index];
-                    }
-                }
-            }
-        }
-
-        //send second to left
-        if(rank != 0) {
-            MPI_Send(f[3], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD);
-        }
-
-        //receive second from right, or ignore
-        if(rank != (numNodes-1)) {
-            MPI_Recv(f[nX+3], N3, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &status);
-        }
-
     }
-    else { //ODD NODES RECEIVE FIRST
-        //receive from left
-        MPI_Recv(f[1], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status); //all odd nodes will always have stuff from the left
 
-
-        //send to right
-        if(rank != (numNodes-1)) {
-            MPI_Send(f[nX+1], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD);
-        }
-
-        //receive second from left
-        MPI_Recv(f[0], N3, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status); //all odd nodes will always have stuff from the left
-
-        //send second to right
-        if(rank != (numNodes-1)) {
-            MPI_Send(f[nX], N3, MPI_DOUBLE, rank+1, 0, MPI_COMM_WORLD);
-        }
-
-        //receive from right, or use extrapolation
-        if(rank != (numNodes-1)) {
-            MPI_Recv(f[nX+2], N3, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &status);
-        }
-        else {
-            for(i=0;i<N;i++) {
-                for(j=0;j<N;j++) {
-                    for(k=0;k<N;k++) {
-                        index = k + N * (j + N * i);
-                        f[nX+2][index] = 2 * f[nX+1][index] - f[nX][index];
-                    }
+    // receive from right, or use extrapolation
+    if(rank != (numNodes-1)) {
+        MPI_Recv(f[nX+2], N3, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &status);
+    }
+    else {
+        #pragma omp parallel for
+        for(i=0;i<N;i++) {
+            for(j=0;j<N;j++) {
+                #pragma omp simd
+                for(k=0;k<N;k++) {
+                    index = k + N * (j + N * i);
+                    f[nX+2][index] = 2 * f[nX+1][index] - f[nX][index];
                 }
             }
         }
-            
-        //send to left
-        MPI_Send(f[2], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD); //all odd nodes can always send to the left
+    }
 
-        //receive second from right, or ignore
-        if(rank != (numNodes-1)) {
-            MPI_Recv(f[nX+3], N3, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &status);
+    if (evenodd == 0) {
+        // send second to left
+        if (rank != 0) {
+             MPI_Send(f[3], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD);
         }
-            
+    }
+    else {
+        // send to left
+        // all odd nodes can always send to the left
+        MPI_Send(f[2], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD);
+    }
+
+    // recieve second from right, or ignore
+    if(rank != (numNodes-1)) {
+        MPI_Recv(f[nX+3], N3, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &status);
+    }
+    
+    if (evenodd == 1) {        
         //send second to left
         MPI_Send(f[3], N3, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD); //all odd nodes can always send to the left
     }
