@@ -6,6 +6,7 @@
 #include <math.h>
 #include <omp.h>
 #include <mpi.h>
+#include <time.h>
 
 #include "initializer.h"
 #include "input.h"
@@ -25,6 +26,8 @@
 
 
 int main(int argc, char **argv) {
+  clock_t timer = clock();
+
   //**********************
   //MPI stuff
   //**********************
@@ -140,10 +143,15 @@ printf("output choices: %s\n", outputChoices);
 fflush(stdout);
   if(rank == 0)
     printf("Initializing output %s\n",outputChoices);
-  if(homogFlag == 0)
+  if(homogFlag == 0) {
+    printf("homogFlag = 0\n");
+    fflush(stdout);
     initialize_output_hom(N, L_v, restart, inputFilename, outputChoices, mixture, num_species);
-  else 
+  }
+  else {
+    printf("homogFlag != 0\n");
     initialize_output_inhom(N, L_v, nX, nX_Node, x, dx, restart, inputFilename, outputChoices, mixture, num_species);
+  }
 printf("finished initialize output\n");
 fflush(stdout);
   //Setup weights
@@ -418,6 +426,8 @@ fflush(stdout);
   dealloc_coll();
   dealloc_conservation();
   MPI_Finalize();
+
+  printf("Program runtime is %f seconds.\n", ((double)(clock() - timer)) / CLOCKS_PER_SEC);
   
   return 0;
 }

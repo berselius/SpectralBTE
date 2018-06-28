@@ -21,6 +21,7 @@ static double deta;
 static int N;
 static double *wtN;
 static double scale3;
+static int N3;
 
 static int inverse = 1;
 static int noinverse = 0;
@@ -32,6 +33,7 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
     int i;
 
     N = nodes;
+    N3 = N * N * N;
     L_v = length;
     v = vel;
     dv = v[1] - v[0];
@@ -41,9 +43,9 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
     L_eta = -zeta[0];
     //L_eta = 0.0;
 
-    scale3 = pow(1.0/sqrt(2.0*M_PI), 3.0);
+    scale3 = pow(1.0 / sqrt(2.0 * M_PI), 3.0);
     
-    wtN = malloc(N*sizeof(double));
+    wtN = malloc(N * sizeof(double));
     wtN[0] = 0.5;
     for(i=1;i<(N-1);i++){
         wtN[i] = 1.0;
@@ -53,22 +55,21 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
     //SETTING UP FFTW
 
     //allocate bins for ffts
-    int N3 = N * N * N;
-    fftIn_f = fftw_malloc(N3*sizeof(fftw_complex));
-    fftOut_f = fftw_malloc(N3*sizeof(fftw_complex));
-    fftIn_g = fftw_malloc(N3*sizeof(fftw_complex));
-    fftOut_g = fftw_malloc(N3*sizeof(fftw_complex));
-    qHat = fftw_malloc(N3*sizeof(fftw_complex));
-    temp = fftw_malloc(N3*sizeof(fftw_complex));
+    fftIn_f = fftw_malloc(N3 * sizeof(fftw_complex));
+    fftOut_f = fftw_malloc(N3 * sizeof(fftw_complex));
+    fftIn_g = fftw_malloc(N3 * sizeof(fftw_complex));
+    fftOut_g = fftw_malloc(N3 * sizeof(fftw_complex));
+    qHat = fftw_malloc(N3 * sizeof(fftw_complex));
+    temp = fftw_malloc(N3 * sizeof(fftw_complex));
 
     //Set up plans for FFTs
     p_forward    = fftw_plan_dft_3d (N, N, N, temp, temp, FFTW_FORWARD , FFTW_ESTIMATE);
     p_backward = fftw_plan_dft_3d (N, N, N, temp, temp, FFTW_BACKWARD, FFTW_ESTIMATE);
 
-    M_i = malloc(N3*sizeof(double));
-    M_j = malloc(N3*sizeof(double));
-    g_i = malloc(N3*sizeof(double));
-    g_j = malloc(N3*sizeof(double));
+    M_i = malloc(N3 * sizeof(double));
+    M_j = malloc(N3 * sizeof(double));
+    g_i = malloc(N3 * sizeof(double));
+    g_j = malloc(N3 * sizeof(double));
 }
 
 
@@ -117,21 +118,15 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
 void ComputeQ(double *f, double *g, double *Q, double **conv_weights)
 {
     int index, i, j, k, l, m, n, x, y, z, n2;
- 
-    #pragma omp parallel for collapse(2) private(i, j, k, index)
-    for(i=0;i<N;i++) {
-        for(j=0;j<N;j++) {
-            #pragma omp simd
-            for(k=0;k<N;k++) {
-                index = k + N * (j + N * i);
-			    qHat[index][0] = 0.0;
-			    qHat[index][1] = 0.0;
-			    fftIn_f[index][0] = f[index];
-			    fftIn_f[index][1] = 0.0;
-                fftIn_g[index][0] = g[index];
-     			fftIn_g[index][1] = 0.0;
-    		}
-     	}
+
+    #pragma omp parallel for 
+    for (index = 0; index < N3; index++) {
+        qHat[index][0] = 0.0;
+        qHat[index][1] = 0.0;
+        fftIn_f[index][0] = f[index];
+        fftIn_f[index][1] = 0.0;
+        fftIn_g[index][0] = g[index];
+     	fftIn_g[index][1] = 0.0;
     }
     
     //move to fourier space
@@ -145,54 +140,52 @@ void ComputeQ(double *f, double *g, double *Q, double **conv_weights)
     int index1, index2;
     double cweight, fftg0, fftg1, fftf0, fftf1;
 
-    #pragma omp parallel for private(i, j, k, index, index1, index2, l, m, n, x, y, z, conv_weight_chunk, cweight, fftg0, fftg1, fftf0, fftf1)
-    for(i=0;i<N;i++) {
-    	for(j=0;j<N;j++) {
-    		for(k=0;k<N;k++) {
-		        index = k + N * (j + N * i);        
-		        conv_weight_chunk = conv_weights[index];
-		        #pragma omp simd private(x, y, z, index1, index2, fftg0, fftg1, fftf0, fftf1, cweight, qHat)
-		        for(l=0;l<N;l++) {
-		            for(m=0;m<N;m++) {
-		    			for(n=0;n<N;n++) {
-		                    x = i + n2 - l; 
-		                    y = j + n2 - m;
-		        			z = k + n2 - n;
+    #pragma omp parallel for private(conv_weight_chunk)
+    for (index = 0; index < N3; index++) {
+        i = index / (N * N);
+        j = (index - i * N * N) / N;
+        k = index - i * N * N - j * N;
+
+        conv_weight_chunk = conv_weights[index];
+        #pragma omp simd private(x, y, z, index2, fftg0, fftg1, fftf0, fftf1, cweight, qHat)
+        for(index1 = 0; index1 < N3; index1++) {
+            l = index1 / (N * N);
+            m = (index1 - l * N * N) / N;
+            n = index1 - l * N * N - m * N;
+
+            x = i + n2 - l; 
+            y = j + n2 - m;
+            z = k + n2 - n;
 		        
-		                    if (x < 0) {
-		                        x += N;
-		                    }
-		                    else if (x > N - 1) {
-		                        x -= N;
-		                    }
-		                    if (y < 0) {
-		                        y += N;
-		                    }
-		                    else if (y > N - 1) {
-		                        y -= N;
-		                    }
-					        if (z < 0) {
-					            z += N;
-					        }
-					        else if (z > N-1) {
-					            z -= N;
-					        }
+            if (x < 0) {
+                x += N;
+            }
+            else if (x > N - 1) {
+                x -= N;
+            }
+            if (y < 0) {
+                y += N;
+            }
+            else if (y > N - 1) {
+                y -= N;
+            }
+            if (z < 0) {
+	        z += N;
+            }
+	    else if (z > N-1) {
+	        z -= N;
+	    }
 
-		                    index1 = n + N * (m + N * l);
-		                    index2 = z + N * (y + N * x);
-		                    fftg0 = fftOut_g[index1][0];
-		                    fftg1 = fftOut_g[index1][1];
-		                    fftf0 = fftOut_f[index2][0];
-		                    fftf1 = fftOut_f[index2][1];
-		                    cweight = conv_weight_chunk[index1];
+	    index2 = z + N * (y + N * x);
+	    fftg0 = fftOut_g[index1][0];
+	    fftg1 = fftOut_g[index1][1];
+	    fftf0 = fftOut_f[index2][0];
+	    fftf1 = fftOut_f[index2][1];
+	    cweight = conv_weight_chunk[index1];
 
-					        //multiply the weighted fourier coeff product        
-					        qHat[index][0] += cweight * (fftg0 * fftf0 - fftg1 * fftf1);
-					        qHat[index][1] += cweight * (fftg0 * fftf1 + fftg1 * fftf0);
-    					}
-            		}
-        		}
-    		}
+	    //multiply the weighted fourier coeff product        
+	    qHat[index][0] += cweight * (fftg0 * fftf0 - fftg1 * fftf1);
+	    qHat[index][1] += cweight * (fftg0 * fftf1 + fftg1 * fftf0);
     	}
     }
 
@@ -201,15 +194,9 @@ void ComputeQ(double *f, double *g, double *Q, double **conv_weights)
     fft3D(qHat, fftOut_f, inverse);
     
     //set Collision output
-    #pragma omp parallel for private(i, j, k, index)
-    for(i=0;i<N;i++) {
-        for(j=0;j<N;j++) {
-            #pragma omp simd
-            for(k=0;k<N;k++) {
-                index = k + N * (j + N * i);
-    			Q[index] = fftOut_f[index][0];
-            }
-        }
+    #pragma omp parallel for
+    for (index = 0; index < N3; index++) {
+        Q[index] = fftOut_f[index][0];
     }
 }
 
@@ -225,18 +212,16 @@ static void find_maxwellians(double *rho, double vel[3], double *T, double *mat,
     int index, i, j, k;
     double viv, vjv, vkv;
     #pragma omp parallel for private(i, j, k, index, viv, vjv, vkv)
-    for(i=0;i<N;i++) {
-        for(j=0;j<N;j++) {
-            #pragma omp simd
-            for(k=0;k<N;k++) {
-                viv = v[i] - vel[0];
-                vjv = v[j] - vel[1];
-                vkv = v[k] - vel[2];
-                index = k + N * (j + N * i);
-                M_mat[index] = factor * exp(invT * (viv * viv + vjv * vjv + vkv * vkv));
-                g_mat[index] = mat[index] - M_mat[index];
-            }
-        }
+    for (index = 0; index < N3; index++) {
+        i = index / (N * N);
+        j = (index - i * N * N) / N;
+        k = index - i * N * N - j * N;
+ 
+        viv = v[i] - vel[0];
+        vjv = v[j] - vel[1];
+        vkv = v[k] - vel[2];
+        M_mat[index] = factor * exp(invT * (viv * viv + vjv * vjv + vkv * vkv));
+        g_mat[index] = mat[index] - M_mat[index];
     }
 }
 
@@ -276,44 +261,41 @@ void fft3D(fftw_complex *in, fftw_complex *out, int invert)
     
     //shift the 'v' terms in the exponential to reflect our velocity domain
     #pragma omp parallel for private(i, j, k, index, sum, cosine, sine, factor, mult0, mult1)
-    for(i=0;i<N;i++) {
-        for(j=0;j<N;j++) {
-            #pragma omp simd
-            for(k=0;k<N;k++) {    
-		        index = k + N*(j + N*i);
-		        sum = (double)(i + j + k) * L * delta + offset;
+    for (index = 0; index < N3; index++) {
+        i = index / (N * N);
+        j = (index - i * N * N) / N;
+        k = index - i * N * N - j * N;
 
-                cosine = cos(sum);
-                sine = sin(sum);
-                factor = prefactor * wtN[i] * wtN[j] * wtN[k];
-                mult0 = in[index][0];
-                mult1 = in[index][1];
+        sum = (double)(i + j + k) * L * delta + offset;
+
+        cosine = cos(sum);
+        sine = sin(sum);
+        factor = prefactor * wtN[i] * wtN[j] * wtN[k];
+        mult0 = in[index][0];
+        mult1 = in[index][1];
         
-		        //dv correspond to the velocity space scaling - ensures that the FFT is properly scaled since fftw does no scaling at all
-		        temp[index][0] = factor * (cosine * mult0 - sine * mult1);
-		        temp[index][1] = factor * (cosine * mult1 - sine * mult0);
-            }
-        }
+        //dv correspond to the velocity space scaling - ensures that the FFT is properly scaled since fftw does no scaling at all
+        temp[index][0] = factor * (cosine * mult0 - sine * mult1);
+        temp[index][1] = factor * (cosine * mult1 - sine * mult0);
     }
     //computes fft
     fftw_execute(p);
 
     //shifts the 'eta' terms to reflect our fourier domain
-    #pragma omp parallel for private(i, j, k, index, sum, cosine, sine, mult0, mult1)
-    for(i=0;i<N;i++) {
-        for(j=0;j<N;j++) {
-            for(k=0;k<N;k++) {
-		        index = k + N*(j + N*i);
-		        sum = sign * L * (varr[i] + varr[j] + varr[k]);
+    #pragma omp parallel for private(i, j, k, sum, sine, cosine, mult0, mult1)
+    for (index = 0; index < N3; index++) {
+        i = index / (N * N);
+        j = (index - i * N * N) / N;
+        k = index - i * N * N - j * N;
 
-                sine = sin(sum);
-                cosine = cos(sum);
-                mult0 = temp[index][0];
-                mult1 = temp[index][1];
+        sum = sign * L * (varr[i] + varr[j] + varr[k]);
 
-    	    	out[index][0] = cosine * mult0 - sine * mult1;
-        		out[index][1] = cosine * mult1 + sine * mult0;;
-            }
-        }
+        sine = sin(sum);
+        cosine = cos(sum);
+        mult0 = temp[index][0];
+        mult1 = temp[index][1];
+
+        out[index][0] = cosine * mult0 - sine * mult1;
+    	out[index][1] = cosine * mult1 + sine * mult0;
     }
 }
