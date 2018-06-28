@@ -10,8 +10,8 @@
 #include <mpi.h>
 #include "species.h"
 #include <string.h>
+#include "constants.h"
 
-static const double KB_true = 1.380658e-23; //Boltzmann constant
 static double KB;
 static int numspec;
 
@@ -22,7 +22,7 @@ void allocate_hom(int N, double **v, double **zeta, double ***f, double ***f1, d
     int N3 = N * N * N;
 
     numspec = num_species;
-      
+
     *v = (double *)malloc(N * sizeof(double));
     *zeta = (double *)malloc(N * sizeof(double));
 
@@ -45,12 +45,12 @@ void allocate_hom(int N, double **v, double **zeta, double ***f, double ***f1, d
 
 /*Initializer for space homogeneous problem*/
 
-void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int initFlag, double lambda, species *mixture) {
-    int i, j, k;  
+void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int initFlag, species *mixture) {
+    int i, j, k;
     double BKWt, Temp, K;
     double dv, deta, L_eta;
 
-    double sigma; 
+    double sigma;
     double S;
     double pre;
 
@@ -58,7 +58,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 
 
     if(strcmp(mixture[0].name,"default") != 0) {
-        KB = KB_true;
+        KB = KB_in_Joules_per_Kelvin;
     }
     else {
         KB = 1.;
@@ -93,16 +93,16 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
     initialize_coll(N,L_v,v,zeta);
 
     //Initialize the moment routines
-    initialize_moments(N, L_v, v, mixture, 0);
+    initialize_moments(N, v, mixture, 0);
     #pragma omp parallel for
     for(spec=0;spec<numspec;spec++) {
 
         switch(initFlag) {
-        
+
             //Shifted isotropic problem
-            case 0: 
+            case 0:
                 printf("Isotropic problem\n");
-                sigma = 0.3*L_v;    
+                sigma = 0.3*L_v;
                 S = 10.0;
                 for(j=0;j<N;j++) {
                     for(k=0;k<N;k++) {
@@ -113,9 +113,9 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
                         }
                     }
                 }
-                
+
                 break;
-        
+
 
             //Discontinuous Maxwellian problem
             case 1:
@@ -134,7 +134,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
                 }
 
                 break;
-        
+
 
             //BKW type problem
             case 2:
@@ -150,15 +150,15 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
                         }
                     }
                 }
-                
+
                 break;
-        
+
 
                 //Two Maxwellians
             case 3:
                 printf("TwoMax\n");
-                sigma = M_PI*L_v/10.0;  
-                pre = 0.5 / pow(2.0 * M_PI * sigma*sigma, 1.5); 
+                sigma = M_PI*L_v/10.0;
+                pre = 0.5 / pow(2.0 * M_PI * sigma*sigma, 1.5);
                 for(j=0;j<N;j++) {
                     for(k=0;k<N;k++) {
                         #pragma omp simd
@@ -167,9 +167,9 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
                         }
                     }
                 }
-                      
+
                 break;
-        
+
 
             //Simple maxwellian
             case 4:
@@ -205,7 +205,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
                         }
                     }
                 }
-                  
+
                 break;
 
             /*
@@ -219,12 +219,12 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
                     for(k=0;k<N;k++) {
                         #pragma omp simd
                         for(i=0;i<N;i++) {
-                            f[spec][k + N*(j + N*i)] = 
+                            f[spec][k + N*(j + N*i)] =
                         }
                     }
 
                 }
-                  
+
                 break;
             */
         }
@@ -267,7 +267,7 @@ void allocate_inhom(int N, int nX, double **v, double **zeta, double ****f, doub
     }
 }
 
-void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, species *mixture, int initFlag, double lambda, int nX, double *xnodes, double *dxnodes, double dt, int *t, int order, int restart, int restart_time, char *inputfilename) {
+void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, species *mixture, int initFlag, int nX, double *xnodes, double *dxnodes, double dt, int *t, int order, int restart, char *inputfilename) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
     int i,j,k,l,m;
@@ -280,7 +280,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 
 
     if(strcmp(mixture[0].name,"default") != 0) {
-        KB = KB_true;
+        KB = KB_in_Joules_per_Kelvin;
     }
      else {
         KB = 1.;
@@ -305,11 +305,11 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
     initialize_coll(N,L_v,v,zeta);
 
     //Initialize the moment routines
-    initialize_moments(N, L_v, v, mixture, 0); // fast = 0, i.e. not fast initialization
-  
+    initialize_moments(N, v, mixture, 0); // fast = 0, i.e. not fast initialization
+
     //Initialize transport routines
     initialize_transport(N, nX, L_v, xnodes, dxnodes, v, initFlag, dt, 1.0, mixture);
-  
+
     int N3 = N * N * N;
     for(i=0;i<Ns;i++) {
         for(l = 0; l < (nX + 2 * order); l++) {
@@ -322,7 +322,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
     //Initialize F based on initial conditions...
 
     init_restart(nX, order, N, Ns, mixture);
-  
+
     if(restart == 1) {
         if(rank == 0) {
             printf("Loading from previously generated data\n");
@@ -331,25 +331,25 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
     }
     else {
         *t = 0;
-    
+
         //set some defaults
         rho_l = 1.0;
         ux_l = 0.0;
         T_l = 1.0;
-    
+
         rho_r = 1.0;
         ux_r = 0.0;
         T_r = 1.0;
 
         switch(initFlag) {
-            case 0: 
+            case 0:
                 rho_l = 4.0 * Ma * Ma / (Ma * Ma + 3.0);
                 T_l = (5.0 * Ma * Ma - 1.0) * (Ma * Ma + 3.0)/(16.0 * Ma * Ma);
                 ux_l = -sqrt(5.0/3.0) * (Ma * Ma + 3.0)/(4.0 * Ma);
-              
+
                 rho_r = 1.0;
                 T_r = 1.0;
-                ux_r = -Ma * sqrt(5.0/3.0);    
+                ux_r = -Ma * sqrt(5.0/3.0);
                 printf("Shock problem: left rho:%g ux:%g T:%g, right rho:%g ux:%g T:%g\n", rho_l, ux_l, T_l, rho_r, ux_r, T_r);
                 break;
             case 1:
@@ -419,7 +419,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
                             }
                         }
                         break;
-                    case 1:   
+                    case 1:
                         for(i=0;i<N;i++) {
                             for(j=0;j<N;j++) {
                                 #pragma omp simd
@@ -439,13 +439,13 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
                             }
                         }
                         break;
-                    case 3:           
+                    case 3:
                         for(i=0;i<N;i++)
                             for(j=0;j<N;j++)
                                 #pragma omp simd
-                                for(k=0;k<N;k++) { 
+                                for(k=0;k<N;k++) {
                                     f[m][l][k + N*(j + N*i)] = rho_r*exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/T_r)/((T_r*M_PI)*sqrt(T_r*M_PI));
-                                }    
+                                }
                         break;
                     case 5:  //Poiseuille
                         for(i=0;i<N;i++)
@@ -453,10 +453,10 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
                             #pragma omp simd
                             for(k=0;k<N;k++) {
                               f[m][l][k + N*(j + N*i)] = rho_l*exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/T_l)/((T_l*M_PI)*sqrt(T_l*M_PI));
-                            }                 
-                        break;  
+                            }
+                        break;
                     case 6: //Mach 1.2 shock
-                        if(l < nX/2)  {   
+                        if(l < nX/2)  {
                             for(i=0;i<N;i++) {
                                 for(j=0;j<N;j++) {
                                     #pragma omp simd

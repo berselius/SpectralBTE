@@ -72,7 +72,7 @@ void initialize_weights_AnIso(int nodes, double *zeta, double Lv, double lam, in
     if((fidWeights = fopen(buffer_weights,"r"))) {
       printf("Loading weights from file %s\n",buffer_weights);
       for(i=0;i<N*N*N;i++) { 
-	readFlag = fread(conv_weights[i],sizeof(double),N*N*N,fidWeights);
+	int readFlag = (int)fread(conv_weights[i],sizeof(double),N*N*N,fidWeights);
 	if(readFlag != N*N*N) {
 	  printf("Error reading weight file\n");
 	  exit(1);

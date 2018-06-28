@@ -124,14 +124,14 @@ int main(int argc, char **argv) {
     fflush(stdout);
   if(homogFlag == 0) {  //homogeneous case
     allocate_hom(N, &v, &zeta, &f_hom, &f_hom1, &Q, num_species);
-    initialize_hom(N, L_v, v, zeta, f_hom, initFlag, lambda, mixture);
+    initialize_hom(N, L_v, v, zeta, f_hom, initFlag, mixture);
     t = 0;
   }
   else { //inhomogeneous case
 printf("inhomogenous case\n");
 fflush(stdout);
     allocate_inhom(N, nX_Node + (2*order), &v, &zeta, &f_inhom, &f_conv, &f_1, &Q, num_species);
-    initialize_inhom(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, lambda, nX_Node, x, dx, dt, &t, order, restart, restart_time, inputFilename);
+    initialize_inhom(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, nX_Node, x, dx, dt, &t, order, restart, inputFilename);
   }
 printf("finished inhomogenous case\n");
 fflush(stdout);

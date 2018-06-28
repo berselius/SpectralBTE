@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <omp.h>
 
+#include "constants.h"
 #include "collisions.h"
 #include "conserve.h"
 #include "momentRoutines.h"
@@ -200,6 +201,23 @@ void ComputeQ(double *f, double *g, double *Q, double **conv_weights)
     }
 }
 
+void find_maxwellian_loop_cpu(int N, double vel[3], const double *v, double *M_mat, double *g_mat, const double *mat, const double factor, const double invT) {
+    int i, j, k, index;
+    double viv, vjv, vkv;
+    int N3 = N * N * N;
+    #pragma omp parallel for private(i, j, k, index, viv, vjv, vkv)
+    for (index = 0; index < N3; index++) {
+        i = index / (N * N);
+        j = (index - i * N * N) / N;
+        k = index - i * N * N - j * N;
+
+        viv = v[i] - vel[0];
+        vjv = v[j] - vel[1];
+        vkv = v[k] - vel[2];
+        M_mat[index] = factor * exp(invT * (viv * viv + vjv * vjv + vkv * vkv));
+        g_mat[index] = mat[index] - M_mat[index];
+    }
+}
 
 static void find_maxwellians(double *rho, double vel[3], double *T, double *mat, double *M_mat, double *g_mat) {
     *rho = getDensity(mat, 0);
@@ -208,21 +226,7 @@ static void find_maxwellians(double *rho, double vel[3], double *T, double *mat,
 
     double factor = pow(0.5 / M_PI * *T, 1.5) * *rho;
     double invT = -0.5 / *T;
-
-    int index, i, j, k;
-    double viv, vjv, vkv;
-    #pragma omp parallel for private(i, j, k, index, viv, vjv, vkv)
-    for (index = 0; index < N3; index++) {
-        i = index / (N * N);
-        j = (index - i * N * N) / N;
-        k = index - i * N * N - j * N;
- 
-        viv = v[i] - vel[0];
-        vjv = v[j] - vel[1];
-        vkv = v[k] - vel[2];
-        M_mat[index] = factor * exp(invT * (viv * viv + vjv * vjv + vkv * vkv));
-        g_mat[index] = mat[index] - M_mat[index];
-    }
+    find_maxwellian_loop_cpu(N, vel, v, M_mat, g_mat, mat, factor, invT);
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/

@@ -43,6 +43,7 @@ void initialize_conservation(int nodes, double h_v, double *vel, species *mix, i
 
     wtN = malloc(N*sizeof(double));
     wtN[0] = 0.5;
+    #pragma omp simd
     for(i=1;i<(N-1);i++) {
         wtN[i] = 1.0;
     }
@@ -66,8 +67,7 @@ void dealloc_conservation() {
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 /* From Kendall Atkinson - pg 520 */
 
-void factorMatrixIntoLU(int nElem, double det, int iError)
-{
+void factorMatrixIntoLU(int nElem, double det) {
     double *s, *c, *m, temp;
     int i, j, k, i0, ctr;
     
@@ -109,14 +109,12 @@ void factorMatrixIntoLU(int nElem, double det, int iError)
 
         if(c[k] == 0.0)
         {
-            iError = 1; 
             det = 0.0;
             puts("Exiting factorMatrixintoLU....");
             exit(0);
         }
         
-        if(i0 != k)
-        {
+        if(i0 != k) {
             det = -det;
             #pragma omp simd
             for(j=k;j<nElem;j++)
@@ -143,7 +141,6 @@ void factorMatrixIntoLU(int nElem, double det, int iError)
     }
     
     det *= CCt[nElem-1][nElem-1];
-    iError = 0;
     
     free(s);
     free(c);
@@ -198,42 +195,38 @@ void conserveAllMoments(double **Q)
     double dv3 = dv * dv * dv;
 
     //lambda from before is now the sum_i sum_j C_i*Q_ij term
-    #pragma omp parallel
+    #pragma omp simd
     for(l=0;l<(Ns+4);l++) {
         masterQ[l] = 0.0;
     }
 
     //computes sum_i sum_j C_i * Qij
     #pragma omp parallel for
-    for(m=0;m<Ns;m++) {
-        for(i=0;i<N;i++) {
-            for(j=0;j<N;j++) {
-                for(k=0;k<N;k++) {
-        
-                    //entries of C_i
-                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3 * mixture[m].mass;
-                    vi = v[i];
-                    vj = v[j];
-                    vk = v[k];
+    for (index = 0; index < N * N * N; index++) {
+        i = index / (N * N);
+        j = (index - i * N * N) / N;
+        k = index - i * N * N - j * N;
+        for(m=0;m<Ns;m++) {
+            //entries of C_i
+            prefactor = wtN[i] * wtN[j] * wtN[k] * dv3 * mixture[m].mass;
+            vi = v[i];
+            vj = v[j];
+            vk = v[k];
 
-                    temp_cons[m] = prefactor;
-                    temp_cons[Ns] = prefactor * vi;
-                    temp_cons[Ns+1] = prefactor * vj;
-                    temp_cons[Ns+2] = prefactor * vk;
-                    temp_cons[Ns+3] = prefactor * 0.5 * (vi * vi + vj * vj + vk * vk);
+            temp_cons[m] = prefactor;
+            temp_cons[Ns] = prefactor * vi;
+            temp_cons[Ns+1] = prefactor * vj;
+            temp_cons[Ns+2] = prefactor * vk;
+            temp_cons[Ns+3] = prefactor * 0.5 * (vi * vi + vj * vj + vk * vk);
 
-                    index = k + N * (j + N * i);
-
-                    //computes sum_j    C_i * Qij
-                    #pragma omp simd
-                    for(n=0;n<Ns;n++) {
-                        masterQ[m] += Q[n*Ns + m][index] * temp_cons[m];
-                        masterQ[Ns] += Q[n*Ns + m][index] * temp_cons[Ns];
-                        masterQ[Ns+1] += Q[n*Ns + m][index] * temp_cons[Ns+1];
-                        masterQ[Ns+2] += Q[n*Ns + m][index] * temp_cons[Ns+2];
-                        masterQ[Ns+3] += Q[n*Ns + m][index] * temp_cons[Ns+3];            
-                    }
-                }
+            //computes sum_j    C_i * Qij
+            #pragma omp simd
+            for(n=0;n<Ns;n++) {
+                masterQ[m] += Q[n*Ns + m][index] * temp_cons[m];
+                masterQ[Ns] += Q[n*Ns + m][index] * temp_cons[Ns];
+                masterQ[Ns+1] += Q[n*Ns + m][index] * temp_cons[Ns+1];
+                masterQ[Ns+2] += Q[n*Ns + m][index] * temp_cons[Ns+2];
+                masterQ[Ns+3] += Q[n*Ns + m][index] * temp_cons[Ns+3];            
             }
         }
     }
@@ -242,30 +235,27 @@ void conserveAllMoments(double **Q)
     solveWithCCt(Ns+4, masterQ);
     //masterQ now has the multipliers lambda = (sum_i C_i C_i^T)^(-1) * sum_i sum_j C_i Q_ij
     #pragma omp parallel for
-    for(m=0;m<Ns;m++) {
-        //entries of C_i^T
-        for(i=0;i<N;i++) {
-            for(j=0;j<N;j++) {
-                for(k=0;k<N;k++) {
-                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3 * mixture[m].mass / Ns;
-                    vi = v[i];
-                    vj = v[j];
-                    vk = v[k];
+    for (index = 0; index < N * N * N; index++) {
+        i = index / (N * N);
+        j = (index - i * N * N) / N;
+        k = index - i * N * N - j * N;
+        for(m=0;m<Ns;m++) {
+            //entries of C_i^T
+            prefactor = wtN[i] * wtN[j] * wtN[k] * dv3 * mixture[m].mass / Ns;
+            vi = v[i];
+            vj = v[j];
+            vk = v[k];
 
-                    temp_cons[m] = prefactor;
-                    temp_cons[Ns] = prefactor * vi;
-                    temp_cons[Ns+1] = prefactor * vj;
-                    temp_cons[Ns+2] = prefactor * vk;
-                    temp_cons[Ns+3] = prefactor * 0.5 * (vi * vi + vj * vj + vk * vk);
+            temp_cons[m] = prefactor;
+            temp_cons[Ns] = prefactor * vi;
+            temp_cons[Ns+1] = prefactor * vj;
+            temp_cons[Ns+2] = prefactor * vk;
+            temp_cons[Ns+3] = prefactor * 0.5 * (vi * vi + vj * vj + vk * vk);
 
-                    index = k + N * (j + N * i);
-
-                    //Computes Q_ij = Q_ij - C_i^T lambda
-                    #pragma omp simd
-                    for(n=0;n<Ns;n++) {
-                        Q[n*Ns + m][index] -= (temp_cons[m]*masterQ[m] + temp_cons[Ns]*masterQ[Ns] + temp_cons[Ns+1]*masterQ[Ns+1] + temp_cons[Ns+2]*masterQ[Ns+2] + temp_cons[Ns+3]*masterQ[Ns+3]);
-                    }
-                }
+            //Computes Q_ij = Q_ij - C_i^T lambda
+            #pragma omp simd
+            for(n=0;n<Ns;n++) {
+                Q[n*Ns + m][index] -= (temp_cons[m]*masterQ[m] + temp_cons[Ns]*masterQ[Ns] + temp_cons[Ns+1]*masterQ[Ns+1] + temp_cons[Ns+2]*masterQ[Ns+2] + temp_cons[Ns+3]*masterQ[Ns+3]);
             }
         }
     }
@@ -276,44 +266,43 @@ void conserveAllMoments(double **Q)
 void createCCtAndPivot()
 {
     double ***C, det = 1, prefactor;
-    int i, j, k, m, n, index, iError = 0;
+    int i, j, k, m, n, index;
     double dv3 = dv * dv * dv;
     double vi, vj, vk;
+    int N3 = N * N * N;
     
     //array of integration matrices
     C = malloc(Ns*sizeof(double **));
     for(i=0;i<Ns;i++) {
         C[i] = malloc((Ns+4)*sizeof(double *));
         for(j=0;j<(Ns+4);j++) {
-            C[i][j] = malloc(N*N*N*sizeof(double));
+            C[i][j] = malloc(N3 * sizeof(double));
         }
     }
 
     //Calculate each C_i
     #pragma omp parallel for
-    for(m=0;m<Ns;m++) {
-        for(i=0;i<N;i++) {
-            for(j=0;j<N;j++) {
-                #pragma omp simd
-                for(k=0;k<N;k++) {        
-                    prefactor = wtN[i] * wtN[j] * wtN[k] * dv3 * mixture[m].mass;
+    for (index = 0; index < N3; index++) {
+        i = index / (N * N);
+        j = (index - i * N * N) / N;
+        k = index - i * N * N - j * N;
+        for(m=0;m<Ns;m++) {
+            prefactor = wtN[i] * wtN[j] * wtN[k] * dv3 * mixture[m].mass;
 
-                    index = k + N * (j + N * i);
-                    vi = v[i];
-                    vj = v[j];
-                    vk = v[k];
+            vi = v[i];
+            vj = v[j];
+            vk = v[k];
 
-                    for(n=0;n<Ns;n++) {
-                        C[m][n][index] = 0;
-                    }
-                    
-                    C[m][m][index] = prefactor;            
-                    C[m][Ns][index] = prefactor * vi;
-                    C[m][Ns+1][index] = prefactor * vj;
-                    C[m][Ns+2][index] = prefactor * vk;
-                    C[m][Ns+3][index] = prefactor * 0.5 * (vi * vi + vj * vj + vk * vk);
-                }
+            #pragma omp simd
+            for(n=0;n<Ns;n++) {
+                C[m][n][index] = 0;
             }
+                    
+            C[m][m][index] = prefactor;            
+            C[m][Ns][index] = prefactor * vi;
+            C[m][Ns+1][index] = prefactor * vj;
+            C[m][Ns+2][index] = prefactor * vk;
+            C[m][Ns+3][index] = prefactor * 0.5 * (vi * vi + vj * vj + vk * vk);
         }
     }
     
@@ -324,7 +313,7 @@ void createCCtAndPivot()
             CCt[i][j] = 0.0;
             #pragma omp simd
             for(m=0;m<Ns;m++) {
-                for(k=0;k<N*N*N;k++) {
+                for(k=0;k<N3;k++) {
                     CCt[i][j] += C[m][i][k] * C[m][j][k];
                 }
             }
@@ -341,7 +330,5 @@ void createCCtAndPivot()
     free(C);    
 
     
-    factorMatrixIntoLU(Ns+4, det, iError);
+    factorMatrixIntoLU(Ns+4, det);
 }
-
-/*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/

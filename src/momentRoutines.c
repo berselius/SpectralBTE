@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "species.h"
+#include "constants.h"
 
 static int N;
 static double dv, dv3;
@@ -15,7 +16,7 @@ static const double KB_true = 1.380658e-23; //Boltzmann constant
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
-void initialize_moments(int nodes, double L_v, double *vel, species *mix, int fast) {
+void initialize_moments(int nodes, double *vel, species *mix, int fast) {
   int i;
 
   N = nodes;
