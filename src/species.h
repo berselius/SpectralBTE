@@ -22,7 +22,7 @@ typedef struct {
   double  E0;              /*!< formation energy [J]*/
   double *Ei;              /*!< vector storing internal energy levels [J]*/
   double *gi;              /*!< vector storing internal energy level degeneracies*/
-  char    name[80];        /*!< name*/
+  char    name[16];        /*!< name*/
 } species;
 
 void load_and_allocate_spec(species **mixture, int num_species, char **species_list);
