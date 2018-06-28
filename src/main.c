@@ -136,6 +136,7 @@ fflush(stdout);
   //Setup output
 
 printf("initialize output\n");
+printf("output choices: %s\n", outputChoices);
 fflush(stdout);
   if(rank == 0)
     printf("Initializing output %s\n",outputChoices);
@@ -183,7 +184,6 @@ fflush(stdout);
   //////////////////////////////////////////////
   if(homogFlag == 0) {
     write_streams(f_hom,0,v);
-
     while(t < nT) {
       printf("In step %d of %d\n",t+1,nT);
       t1 = omp_get_wtime();
