@@ -78,8 +78,8 @@ int main(int argc, char **argv) {
   char **species_names;
 
   //timing stuff for restart
-  double totTime, totTime_start;
-  double writeTime, writeTime_start;
+  //double totTime, totTime_start;
+  //double writeTime, writeTime_start;
   int restart_flag;
 
   //command line arguments
@@ -96,10 +96,10 @@ int main(int argc, char **argv) {
 
   double t1, t2;
 
-  if((restart_time > 0) && (rank == 0)) {
-    totTime_start = MPI_Wtime();
-    totTime = 0;
-  }
+  //if((restart_time > 0) && (rank == 0)) {
+  //  totTime_start = MPI_Wtime();
+  //  totTime = 0;
+ // }
 
   //load data from input file
   read_input(&N, &L_v, &Kn, &lambda, &dt, &nT, &order, &dataFreq, &restart, &restart_time, &initFlag, &bcFlag, &homogFlag, &weightFlag, &isoFlag, &meshFile, &num_species, &species_names, inputFilename);
@@ -119,9 +119,10 @@ int main(int argc, char **argv) {
     make_mesh(&nX, &nX_Node, &dx_min, &x, &dx, order,meshFile);
   }
 
-  if(rank == 0)
+  if(rank == 0) {
     printf("Initializing variables %d\n",homogFlag);
     fflush(stdout);
+  }
   if(homogFlag == 0) {  //homogeneous case
     allocate_hom(N, &v, &zeta, &f_hom, &f_hom1, &Q, num_species);
     initialize_hom(N, L_v, v, zeta, f_hom, initFlag, mixture);
@@ -262,8 +263,8 @@ fflush(stdout);
       write_streams_inhom(f_inhom,0,v,order);
 
     if((rank == 0) && (restart_time>0)) {
-      totTime = MPI_Wtime() - totTime_start;
-      writeTime_start = MPI_Wtime();
+      //totTime = MPI_Wtime() - totTime_start;
+      //writeTime_start = MPI_Wtime();
       //printf("%g\n",totTime);
     }
 
@@ -366,20 +367,20 @@ fflush(stdout);
       if(outputCount % dataFreq == 0) {
 	if(restart_time > 0) {
 	  if((rank == 0) && (restart_time > 0)) {
-	    writeTime = MPI_Wtime() - writeTime_start;
-	    totTime = MPI_Wtime() - totTime_start;
-	    writeTime_start = MPI_Wtime();
+	    //writeTime = MPI_Wtime() - writeTime_start;
+	    //totTime = MPI_Wtime() - totTime_start;
+	    //writeTime_start = MPI_Wtime();
 	    //printf("%g %g\n",totTime,writeTime);
-	    if((totTime + writeTime) > 0.95*(double)restart_time) {
-	      printf("RESTART TIME REACHED - STORING CURRENT DISTRIBUTION DATA\n");
-	      restart_flag = 1;
-	      MPI_Bcast(&restart_flag,1,MPI_INT,0,MPI_COMM_WORLD);
-	      store_restart(f_inhom, t, inputFilename);
-	    }
-	    else {
-	      restart_flag = 0;
-	      MPI_Bcast(&restart_flag,1,MPI_INT,0,MPI_COMM_WORLD);
-	    }
+	    //if((totTime + writeTime) > 0.95*(double)restart_time) {
+	     // printf("RESTART TIME REACHED - STORING CURRENT DISTRIBUTION DATA\n");
+	     // restart_flag = 1;
+	     // MPI_Bcast(&restart_flag,1,MPI_INT,0,MPI_COMM_WORLD);
+	     // store_restart(f_inhom, t, inputFilename);
+	    //}
+	    //else {
+	     // restart_flag = 0;
+	     // MPI_Bcast(&restart_flag,1,MPI_INT,0,MPI_COMM_WORLD);
+	   // }
 	  }
 	  else {
 	    MPI_Bcast(&restart_flag,1,MPI_INT,0,MPI_COMM_WORLD);

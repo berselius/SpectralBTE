@@ -9,6 +9,7 @@
 #include "input.h"
 #include <mpi.h>
 #include "species.h"
+#include "constants.h"
 
 /*********************
 MPI STUFF

@@ -76,10 +76,9 @@ static void first_loop(const int N, const int bdry, const double *v, const doubl
 
     #pragma omp parallel for reduction(+:sum) private(i, j, k)
     for (index = N * N * N * bdry / 2; index < N * N * N / (bdry + 1); index++) {
-        i = 2 * index / (N * N);
-        j = (index - i * N / 2) / N;
-        k = index - i * N * N / 2 - j * N;
-        printf("i = %d, j = %d, k = %d, index = %d\n", i, j, k, index);
+        k = index % N;
+        j = (index / N) % (N / 2);
+        i = (index / N - j) / (N / 2);
         sum += (v[i] - vW) * wtN[i] * wtN[j] * wtN[k] * h_v * h_v * h_v * in[index];
     }
     *sigmaW += sum;
@@ -90,10 +89,9 @@ static void second_loop(const int N, const int bdry, const double *v, const doub
 
     #pragma omp parallel for private(i, j, k)
     for (index = N * N * N * (1 - bdry) / 2; index < N * N * N / (1 + bdry); index++) {
-        i = 2 * index / (N * N);
-        j = (index - i * N / 2) / N;
-        k = index - i * N * N / 2 - j * N;
-        printf("i = %d, j = %d, k = %d, index = %d\n", i, j, k, index);
+        k = index % N;
+        j = (index / N) % (N / 2);
+        i = (index / N - j) / (N / 2);
         out[index] = sigmaW * exp(-0.5 * ratio * (v[i] * v[i] + v[j] * v[j] + v[k] * v[k]));
     }
 }

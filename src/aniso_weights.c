@@ -46,7 +46,7 @@ void initialize_weights_AnIso(int nodes, double *zeta, double Lv, double lam, in
   FILE *fidWeights;
   char buffer_weights[100];
   char output_buffer[100];
-  size_t readFlag;
+  //size_t readFlag;
 
   MPI_Comm_size(MPI_COMM_WORLD,&numNodes);
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
