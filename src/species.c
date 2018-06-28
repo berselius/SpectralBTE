@@ -43,7 +43,7 @@ void set_spec_default_values(species *mixture, int num_species) {
 }
 
 void load_and_allocate_spec(species **mixture, int num_species, char **species_list) {
-  size_t i;
+  int i;
   char   line[80] = {"dummy"};
   char   input_path[100] = {"./input/species/"};
   char   name[80] = {"dummy"};

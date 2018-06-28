@@ -67,8 +67,7 @@ void dealloc_conservation() {
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 /* From Kendall Atkinson - pg 520 */
 
-void factorMatrixIntoLU(int nElem, double det, int iError)
-{
+void factorMatrixIntoLU(int nElem, double det) {
     double *s, *c, *m, temp;
     int i, j, k, i0, ctr;
     
@@ -110,14 +109,12 @@ void factorMatrixIntoLU(int nElem, double det, int iError)
 
         if(c[k] == 0.0)
         {
-            iError = 1; 
             det = 0.0;
             puts("Exiting factorMatrixintoLU....");
             exit(0);
         }
         
-        if(i0 != k)
-        {
+        if(i0 != k) {
             det = -det;
             #pragma omp simd
             for(j=k;j<nElem;j++)
@@ -144,7 +141,6 @@ void factorMatrixIntoLU(int nElem, double det, int iError)
     }
     
     det *= CCt[nElem-1][nElem-1];
-    iError = 0;
     
     free(s);
     free(c);
@@ -270,7 +266,7 @@ void conserveAllMoments(double **Q)
 void createCCtAndPivot()
 {
     double ***C, det = 1, prefactor;
-    int i, j, k, m, n, index, iError = 0;
+    int i, j, k, m, n, index;
     double dv3 = dv * dv * dv;
     double vi, vj, vk;
     int N3 = N * N * N;
@@ -334,7 +330,5 @@ void createCCtAndPivot()
     free(C);    
 
     
-    factorMatrixIntoLU(Ns+4, det, iError);
+    factorMatrixIntoLU(Ns+4, det);
 }
-
-/*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/

@@ -7,7 +7,7 @@ void initialize_conservation(int nodes, double h_v, double *vel, species *mix, i
 
 void dealloc_conservation();
 
-void factorMatrixIntoLU(int nElem, double det, int iError);
+void factorMatrixIntoLU(int nElem, double det);
 
 void solveWithCCt(int nElem, double *b);
 

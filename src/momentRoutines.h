@@ -3,7 +3,7 @@
 
 #include "species.h"
 
-void initialize_moments(int nodes, double L_v, double *v, species *mix, int fast);
+void initialize_moments(int nodes, double *v, species *mix, int fast);
 
 double getDensity(double *in, int spec_id);
 
