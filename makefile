@@ -13,7 +13,7 @@ MPICC=mpicc
 WEIGHTCC=mpicc
 
 # Compiler flags
-CFLAGS= -O2 -fopenmp -Wall -std=c99
+CFLAGS= -O2 -fopenmp -Wall
 FFTFLAGS = -lgsl -lgslcblas -lfftw3_omp -lfftw3 -lm
 
 WEIGHTCFLAGS = -O2 -fopenmp -Wall 
@@ -30,12 +30,6 @@ objects = weights.o collisions.o output.o input.o gauss_legendre.o momentRoutine
 weight_sources = $(SRCDIR)MPIWeightGenerator.c $(SRCDIR)MPIcollisionroutines.c $(SRCDIR)gauss_legendre.c
 
 pref_objects = $(addprefix $(OBJDIR), $(objects))
-
-profile: CFLAGS += -g
-profile: FFTFLAGS += -g
-profile: WEIGHTFLAGS += -g
-profile: WEIGHTFFTFLAGS += -g
-profile: boltz
 
 # linking step
 boltz: $(pref_objects) $(sources)
@@ -161,3 +155,18 @@ cori_map: FFTFLAGS += -g -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
 cori_map: WEIGHTFLAGS += -g -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
 cori_map: WEIGHTFFTFLAGS += -g -lmap-sampler-pmpi -lmap-sampler -Wl,--eh-frame-hdr
 cori_map: cori
+
+
+profile: CFLAGS += -g
+profile: CFLAGS:=$(filter-out -O2,$(CFLAGS))
+profile: CFLAGS += -O0
+profile: FFTFLAGS += -g
+profile: FFTFLAGS:=$(filter-out -O2,$(FFTFLAGS))
+profile: FFTFLAGS += -O0
+profile: WEIGHTFLAGS += -g
+profile: WEIGHTFLAGS:=$(filter-out -O2,$(WEIGHTFLAGS))
+profile: WEIGHTFLAGS += -O0
+profile: WEIGHTFFTFLAGS += -g
+profile: WEIGHTFFTFLAGS:=$(filter-out -O2,$(WEIGHTFFTFLAGS))
+profile: WEIGHTFFTFLAGS += -O0
+profile: boltz
