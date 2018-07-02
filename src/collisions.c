@@ -106,7 +106,7 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
 }
 
 static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
-  int i, j, k, index, l, m, n, x, y, z;
+  int i, j, k, index, index1, index2, l, m, n, x, y, z;
   double *conv_weight_chunk;
 
   for (index = 0; index < N * N * N; index++) {
@@ -131,34 +131,40 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
 
     int n2 = N / 2;
 
-    for(l=0;l<N;l++) {
+//    for(index1 = 0; index1 < N * N * N; index1++) {
+//     l = index / (N * N);
+//     m = (index - i * N * N) / N;
+//     n = index - N * (j + i * N);
+    for (l = 0; l < N; l++)
+    for (m = 0; m < N; m++)
+    for (n = 0; n < N; n++) {
+      index1 = n + N * (m + N * l);
+
       x = i + n2 - l;
+      y = j + n2 - m;
+      z = k + n2 - n;
+
       if (x < 0)
         x = N + x;
       else if (x > N-1)
         x = x - N;
 
-      for(m=0;m<N;m++) {
-        y = j + n2 - m;
+      if (y < 0)
+        y = N + y;
+      else if (y > N-1)
+        y = y - N;
 
-        if (y < 0)
-          y = N + y;
-        else if (y > N-1)
-          y = y - N;
+      if (z < 0)
+        z = N + z;
+      else if (z > N-1)
+        z = z - N;
 
-        for(n=0;n<N;n++) {
-          z = k + n2 - n;
-
-          if (z < 0)
-            z = N + z;
-          else if (z > N-1)
-            z = z - N;
-
+      index2 = z + N * (y + N * x);
       //multiply the weighted fourier coeff product
-      qHat[k + N*(j + N*i)][0] += conv_weight_chunk[n + N*(m + N*l)]*(fftOut_g[n + N*(m + N*l)][0]*fftOut_f[z + N*(y + N*x)][0] - fftOut_g[n + N*(m + N*l)][1]*fftOut_f[z + N*(y + N*x)][1]);
-          qHat[k + N*(j + N*i)][1] += conv_weight_chunk[n + N*(m + N*l)]*(fftOut_g[n + N*(m + N*l)][0]*fftOut_f[z + N*(y + N*x)][1] + fftOut_g[n + N*(m + N*l)][1]*fftOut_f[z + N*(y + N*x)][0]);
+      qHat[index][0] += conv_weight_chunk[index1]*(fftOut_g[index1][0]*fftOut_f[index2][0] - fftOut_g[index1][1]*fftOut_f[index2][1]);
+      qHat[index][1] += conv_weight_chunk[index1]*(fftOut_g[index1][0]*fftOut_f[index2][1] + fftOut_g[index1][1]*fftOut_f[index2][0]);
     }
-  }}}
+  }
 
   //End of parallel section
   fft3D(qHat, fftOut_f, inverse);
