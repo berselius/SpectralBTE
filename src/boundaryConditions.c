@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "boundaryConditions.h"
 #include "species.h"
+#include "constants.h"
 
 #define PI M_PI
 
@@ -10,13 +11,12 @@ static double *v;
 static double *wtN;
 static double h_v;
 static species *mixture;
-static const double KB_TRUE = 1.380658e-23; //Boltzmann constant
 static double KB;
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 void initializeBC(int nv, double *vel, species *mix) {
   int i;
-  
+
   N = nv;
   v = vel;
   h_v = v[1]-v[0];
@@ -31,8 +31,7 @@ void initializeBC(int nv, double *vel, species *mix) {
   if(mixture[0].mass == 1.0)
     KB = 1.0;
   else
-    KB = KB_TRUE;
-
+    KB = KB_in_Joules_per_Kelvin;
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
@@ -41,7 +40,7 @@ void setDiffuseReflectionBC(double *in, double *out, double TW, double vW, int b
 {
 	double sigmaW;
 	int i, j, k;
-	
+
 //	TW = 2.0;
 	sigmaW = 0.0;
 /*	vW[0] = 0.0;
@@ -60,19 +59,19 @@ void setDiffuseReflectionBC(double *in, double *out, double TW, double vW, int b
 		}
 	}
 	*/
-	
+
 	if(bdry == 0) //left wall
 	{
 		sigmaW = 0.0;
-		
+
 		for(i=0;i<N/2;i++)
 		for(j=0;j<N;j++)
 		for(k=0;k<N;k++) {
 			sigmaW += v[i]*wtN[i]*wtN[j]*wtN[k]*h_v*h_v*h_v*in[k + N*(j + N*i)];
 		}
-		
+
 		sigmaW *= -sqrt(2.0*PI*mixture[id].mass/(KB*TW));
-		
+
 		for(i=N/2;i<N;i++)
 		for(j=0;j<N;j++)
 		for(k=0;k<N;k++)
@@ -83,16 +82,16 @@ void setDiffuseReflectionBC(double *in, double *out, double TW, double vW, int b
 	else //right wall
 	{
 		sigmaW = 0.0;
-		
+
 		for(i=N/2;i<N;i++)
 		for(j=0;j<N;j++)
 		for(k=0;k<N;k++)
 		{
 			sigmaW += v[i]*wtN[i]*wtN[j]*wtN[k]*h_v*h_v*h_v*in[k + N*(j + N*i)];
 		}
-		
+
 		sigmaW *= sqrt(2.0*PI*mixture[id].mass/(KB*TW));
-		
+
 		for(i=0;i<N/2;i++)
 		for(j=0;j<N;j++)
 		for(k=0;k<N;k++)

@@ -9,6 +9,7 @@
 #include "input.h"
 #include <mpi.h>
 #include "species.h"
+#include "constants.h"
 
 /*********************
 MPI STUFF
@@ -17,10 +18,10 @@ static int rank;
 static int numNodes;
 
 //File streams for output
-static FILE **fidRho; 
+static FILE **fidRho;
 static FILE **fidKinTemp;
 static FILE **fidPressure;
-static FILE **fidMarginal; 
+static FILE **fidMarginal;
 static FILE **fidSlice;
 static FILE **fidBulkV;
 static FILE **fidEntropy;
@@ -82,7 +83,7 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
   while (strcmp(line,"Stop") != 0) {
     read_line(outParams,line);
 
-    if(strcmp(line,"density") == 0) 
+    if(strcmp(line,"density") == 0)
       densFlag = read_int(outParams);
 
     if(strcmp(line,"velocity") == 0)
@@ -115,7 +116,7 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
   fidSlice = malloc(Ns*sizeof(FILE *));
   fidEntropy = malloc(Ns*sizeof(FILE *));
   fidBGK = malloc(Ns*sizeof(FILE *));
-  
+
   //set up dynamically generated filenames + initialize file handles
   char buffer_rho [100];
   char buffer_kintemp [100];
@@ -126,7 +127,7 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
   char buffer_BGK[100];
 
   for(i=0;i<Ns;i++) {
-      
+
     sprintf(buffer_rho,"Data/rho_%s_%s_%s.plt",inputFile, outputOptions, mixture[i].name);
     sprintf(buffer_kintemp,"Data/kintemp_%s_%s_%s.plt",inputFile, outputOptions, mixture[i].name);
     sprintf(buffer_pres,"Data/pres_%s_%s_%s.plt", inputFile, outputOptions, mixture[i].name);
@@ -134,7 +135,7 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
     sprintf(buffer_slice,"Data/slice_%s_%s_%s.plt", inputFile, outputOptions, mixture[i].name);
     sprintf(buffer_entropy,"Data/entropy_%s_%s_%s.plt", inputFile, outputOptions, mixture[i].name);
     sprintf(buffer_BGK,"Data/BGK_%s_%s_%s.plt", inputFile, outputOptions, mixture[i].name);
-    
+
 
     if(restart) {
       if(densFlag)
@@ -155,11 +156,11 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
 
       if(entFlag)
 	fidEntropy[i] = fopen(buffer_entropy,"a");
-    
+
       if(BGKFlag) {
 	fidBGK[i] = fopen(buffer_BGK,"a");
       }
-      
+
     }
     else {
       if(densFlag)
@@ -201,8 +202,8 @@ void write_streams(double **f, double time, double *v) {
     getBulkVelocity(f[i], bulkV, density, 0);
     kinTemp = getTemperature(f[i], bulkV, density, 0);
     getEnergy(f[i],energy);
-  
-    if(densFlag) 
+
+    if(densFlag)
       fprintf(fidRho[i], "%le %le\n", time, density);
     if(velFlag)
       fprintf(fidBulkV[i], "%le %le\n", time, bulkV[0]);
@@ -224,7 +225,7 @@ void write_streams(double **f, double time, double *v) {
       fprintf(fidBGK[i],"%g %g\n",time,);
       }*/
 
-    if(densFlag) 
+    if(densFlag)
       fflush(fidRho[i]);
     if(velFlag)
       fflush(fidBulkV[i]);
@@ -238,7 +239,7 @@ void write_streams(double **f, double time, double *v) {
       fflush(fidSlice[i]);
   }
 }
-  
+
 void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, double *xnodes, double *dxnodes, int restart, char *inputFile, char *outputOptions, species *mix, int num_species) {
   int i;
 
@@ -250,7 +251,7 @@ void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, doub
   dx = dxnodes;
   mixture = mix;
   Ns = num_species;
-  
+
   char line[80] = {"dummy"};
   char path[100] = {"./input/"};
 
@@ -263,7 +264,7 @@ void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, doub
   while (strcmp(line,"Stop") != 0) {
     read_line(outParams,line);
 
-    if(strcmp(line,"density") == 0) 
+    if(strcmp(line,"density") == 0)
       densFlag = read_int(outParams);
 
     if(strcmp(line,"velocity") == 0)
@@ -310,9 +311,9 @@ void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, doub
     char buffer_slice[100];
     char buffer_entropy[100];
     char buffer_marginal [100];
-    
+
     for(i=0;i<Ns;i++) {
-      
+
       sprintf(buffer_rho,"Data/rho_%s_%s_%s.plt",inputFile, outputOptions, mixture[i].name);
       sprintf(buffer_kintemp,"Data/kintemp_%s_%s_%s.plt",inputFile, outputOptions, mixture[i].name);
       sprintf(buffer_pres,"Data/pres_%s_%s_%s.plt", inputFile, outputOptions, mixture[i].name);
@@ -320,52 +321,52 @@ void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, doub
       sprintf(buffer_slice,"Data/slice_%s_%s_%s.plt", inputFile, outputOptions, mixture[i].name);
       sprintf(buffer_entropy,"Data/entropy_%s_%s_%s.plt", inputFile, outputOptions, mixture[i].name);
       sprintf(buffer_marginal,"Data/marginal_%s_%s_%s.plt", inputFile, outputOptions, mixture[i].name);
-      
-      
+
+
       if(restart) {
 	if(densFlag)
 	  fidRho[i] = fopen(buffer_rho, "a");
-	
+
 	if(tempFlag)
 	  fidKinTemp[i] = fopen(buffer_kintemp, "a");
-	
+
 	if(presFlag)
 	  fidPressure[i] = fopen(buffer_pres, "a");
-	
+
 	if(velFlag)
 	  fidBulkV[i] = fopen(buffer_bulkV, "a");
-	
-	
+
+
 	if(sliceFlag)
 	  fidSlice[i] = fopen(buffer_slice, "a");
-	
+
 	if(entFlag)
 	  fidEntropy[i] = fopen(buffer_entropy,"a");
-	
+
 	if(marginalFlag)
 	  fidMarginal[i] = fopen(buffer_marginal, "a");
 
-	
+
       }
       else {
 	if(densFlag)
 	  fidRho[i] = fopen(buffer_rho, "w");
-	
+
 	if(tempFlag)
 	  fidKinTemp[i] = fopen(buffer_kintemp, "w");
-	
+
 	if(presFlag)
 	  fidPressure[i] = fopen(buffer_pres, "w");
-	
+
 	if(velFlag)
 	  fidBulkV[i] = fopen(buffer_bulkV, "w");
-	
+
 	if(sliceFlag)
 	  fidSlice[i] = fopen(buffer_slice, "w");
-	
+
 	if(entFlag)
 	  fidEntropy[i] = fopen(buffer_entropy, "w");
-	
+
 	if(marginalFlag)
 	  fidMarginal[i] = fopen(buffer_entropy,"w");
       }
@@ -392,7 +393,7 @@ void write_streams_inhom(double ***f, double time, double *v, int order) {
 	fprintf(fidPressure[spec], "ZONE I=%d T=\"T=%g\"\n", nX,time);
       if(velFlag)
 	fprintf(fidBulkV[spec], "ZONE I=%d T=\"T=%g\"\n", nX,time);
-      
+
       for(l=order;l<(nX_node+order);l++) {
 	density = getDensity(f[spec][l],0);
 	if(isnan( density)) {
@@ -401,8 +402,8 @@ void write_streams_inhom(double ***f, double time, double *v, int order) {
 	}
 	getBulkVelocity(f[spec][l], bulkV, density,0);
 	kinTemp = getTemperature(f[spec][l], bulkV, density,0);
-	
-	if(densFlag) 
+
+	if(densFlag)
 	  fprintf(fidRho[spec], "%le %le\n", x[l], density);
 	if(velFlag)
 	  fprintf(fidBulkV[spec], "%le %le\n", x[l], bulkV[0]);
@@ -424,18 +425,18 @@ void write_streams_inhom(double ***f, double time, double *v, int order) {
 	      for(k=0;k<N;k++) {
 		marg += h_v*h_v*f[spec][l][k + N*(j + N*i)];
 	      }
-	    
+
 	    fprintf(fidMarginal[spec], "%le %le\n", v[i], marg);
 	  }
 	  fprintf(fidMarginal[spec],"\n");
 	}
       }
-    
+
       int nodeCounter;
       for(nodeCounter=1;nodeCounter < numNodes; nodeCounter++) {
 	for(l=order;l<nX_node+order;l++) {
-	  MPI_Recv(momentBuffer,6,MPI_DOUBLE,nodeCounter,l,MPI_COMM_WORLD,&status);  
-	  if(densFlag) 
+	  MPI_Recv(momentBuffer,6,MPI_DOUBLE,nodeCounter,l,MPI_COMM_WORLD,&status);
+	  if(densFlag)
 	    fprintf(fidRho[spec], "%le %le\n", momentBuffer[5], momentBuffer[0]);
 	  if(velFlag)
 	    fprintf(fidBulkV[spec], "%le %le\n", momentBuffer[5], momentBuffer[1]);
@@ -447,10 +448,10 @@ void write_streams_inhom(double ***f, double time, double *v, int order) {
 	  //fprintf(fidSlice, "ZONE I=%d T=\"T=%g X=%g\" \n", N, time, x[l]);
 	  //for(i=0;i<N;i++)
 	  //fprintf(fidSlice, "%le %le\n", v[i], f[l][N/2 + N*(N/2 + N*i)]);
-	  //fprintf(fidSlice,"\n");	
+	  //fprintf(fidSlice,"\n");
 	}
       }
-      if(densFlag) 
+      if(densFlag)
 	fflush(fidRho[spec]);
       if(velFlag)
 	fflush(fidBulkV[spec]);
@@ -480,7 +481,7 @@ void write_streams_inhom(double ***f, double time, double *v, int order) {
 	momentBuffer[3] = bulkV[2];
 	momentBuffer[4] = kinTemp;
 	momentBuffer[5] = x[l];
-	
+
 	MPI_Send(momentBuffer,6,MPI_DOUBLE,0,l,MPI_COMM_WORLD);
       }
     }
