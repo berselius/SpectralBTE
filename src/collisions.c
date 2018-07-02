@@ -119,8 +119,8 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
   }
 
   //move to foureir space
-  fft3D(fftIn_f, fftOut_f);
-  fft3D(fftIn_g, fftOut_g);
+  fft3D(fftIn_f, fftOut_f, noinverse);
+  fft3D(fftIn_g, fftOut_g, noinverse);
 
   #pragma omp parallel for private(i,j,k,l,m,n,x,y,z,conv_weight_chunk)
   for (index = 0; index < N * N * N; index++) {
@@ -161,7 +161,7 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
   }}}
 
   //End of parallel section
-  ifft3D(qHat, fftOut_f);
+  fft3D(qHat, fftOut_f, inverse);
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
@@ -225,18 +225,30 @@ function fft3D
 --------------
 Computes the fourier transform of in, and adjusts the coefficients based on our v, eta grids
 */
-void fft3D(fftw_complex *in, fftw_complex *out) {
+void fft3D(fftw_complex *in, fftw_complex *out, int invert) {
   int i, j, k, index;
   double sum, prefactor, factor;
   double delta, L_start, L_end, sign, *varr;
+  fftw_plan p;
 
-  delta = dv;
-  L_start = L_eta;
-  L_end = L_v;
-  varr = eta;
-  sign = 1.0;
-
-  prefactor = scale3 * delta * delta * delta;
+  if (invert == noinverse) {
+    delta = dv;
+    L_start = L_eta;
+    L_end = L_v;
+    varr = eta;
+    sign = 1.0;
+    prefactor = scale3 * delta * delta * delta;
+    p = p_forward;
+  }
+  else {
+    delta = deta;
+    L_start = L_v;
+    L_end = L_eta;
+    varr = v;
+    sign = -1.0;
+    prefactor = delta * delta * delta * scale3;
+    p = p_backward;
+  }
 
   //shift the 'v' terms in the exponential to reflect our velocity domain
   for (index = 0; index < N * N * N; index++) {
@@ -252,7 +264,7 @@ void fft3D(fftw_complex *in, fftw_complex *out) {
     temp[index][1] = factor * (cos(sum)*in[index][1] + sin(sum)*in[index][0]);
   }
   //computes fft
-  fftw_execute(p_forward);
+  fftw_execute(p);
 
   //shifts the 'eta' terms to reflect our fourier domain
   for (index = 0; index < N * N * N; index++) {
@@ -267,45 +279,3 @@ void fft3D(fftw_complex *in, fftw_complex *out) {
 
 }
 
-
-/*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
-
-/*
-function ifft3D
---------------
-Computes the inverse fourier transform of in, and adjusts the coefficients based on our v, eta grid
-*/
-
-void ifft3D(fftw_complex *in, fftw_complex *out)
-{
-  int i, j, k, index;
-  double sum, factor;
-  double prefactor = deta*deta*deta*scale3;
-
-  //shifts the 'eta' terms to reflect our fourier domain
-  for (index = 0; index < N * N * N; index++) {
-    i = index / (N * N);
-    j = (index - i * N * N) / N;
-    k = index - N * (j + i * N);
-    sum = (double)(i + j + k)*L_v*deta*-1.0;
-
-    factor = prefactor * wtN[i] * wtN[j] * wtN[k];
-
-    //deta ensures FFT is scaled correctly, since fftw does no scaling at all
-    temp[index][0] = factor * (cos(sum)*in[index][0] - sin(sum)*in[index][1]);
-    temp[index][1] = factor * (cos(sum)*in[index][1] + sin(sum)*in[index][0]);
-  }
-  //compute IFFT
-  fftw_execute(p_backward);
-
-  //shifts the 'v' terms to reflect our velocity domain
-  for (index = 0; index < N * N * N; index++) {
-    i = index / (N * N);
-    j = (index - i * N * N) / N;
-    k = index - N * (j + i * N);
-    sum = -L_eta*(v[i] + v[j] + v[k]);
-
-    out[index][0] = cos(sum)*temp[index][0] - sin(sum)*temp[index][1];
-    out[index][1] = cos(sum)*temp[index][1] + sin(sum)*temp[index][0];
-  }
-}
