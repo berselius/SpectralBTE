@@ -83,11 +83,11 @@ void load_restart(double ***f, int *t, char *inputFilename) {
     else
       printf("Opened file\n");
     
-    size_t readflag;
+    int readflag;
     
     for(l=order;l<(nX_Node+order);l++) {
       printf("Node %d loading object %d of %d\n", rank, l, nX_Node);
-      readflag = fread(f[spec][l],sizeof(double),N*N*N,fidRestart);
+      readflag = (int)fread(f[spec][l],sizeof(double),N*N*N,fidRestart);
       if(readflag != N*N*N) {
 	printf("Error reloading pdf file\n");
 	exit(1);

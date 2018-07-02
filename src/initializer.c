@@ -41,7 +41,7 @@ void allocate_hom(int N, double **v, double **zeta, double ***f, double ***f1, d
 
 /*Initializer for space homogeneous problem*/
 
-void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int initFlag, double lambda, species *mixture) {
+void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int initFlag, species *mixture) {
   int i, j, k;
   double BKWt, Temp, K;
   double dv, deta, L_eta;
@@ -233,7 +233,7 @@ void allocate_inhom(int N, int nX, double **v, double **zeta, double ****f, doub
   }
 }
 
-void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, species *mixture, int initFlag, double lambda, int nX, double *xnodes, double *dxnodes, double dt, int *t, int order, int restart, int restart_time, char *inputfilename) {
+void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, species *mixture, int initFlag, int nX, double *xnodes, double *dxnodes, double dt, int *t, int order, int restart, int restart_time, char *inputfilename) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   int i,j,k,l,m;

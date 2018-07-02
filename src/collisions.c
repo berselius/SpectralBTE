@@ -178,8 +178,6 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
   int i, j, k, l, m, n, x, y, z, index, index1;
   double *conv_weight_chunk;
 
-  double rho, vel[3], T, prefactor;
-
   find_maxwellians(M_i, g_i, f);
   find_maxwellians(M_j, g_j, g);
 
@@ -377,7 +375,6 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
 void ComputeQ(double *f, double *g, double *Q, double **conv_weights)
 {
   int i, j, k, l, m, n, x, y, z;
-  int start_i, start_j, start_k, end_i, end_j, end_k;
   double *conv_weight_chunk;
 
   for(i=0;i<N;i++)
@@ -397,7 +394,7 @@ void ComputeQ(double *f, double *g, double *Q, double **conv_weights)
   fft3D(fftIn_g, fftOut_g);
 
 
-  #pragma omp parallel for private(i,j,k,l,m,n,x,y,z,start_i,start_j,start_k,end_i,end_j,end_k,conv_weight_chunk)
+  #pragma omp parallel for private(i,j,k,l,m,n,x,y,z,conv_weight_chunk)
   for(i=0;i<N;i++)
   for(j=0;j<N;j++)
   for(k=0;k<N;k++) {
@@ -413,45 +410,6 @@ void ComputeQ(double *f, double *g, double *Q, double **conv_weights)
       n2 = (N-1)/2;
       n3 = 0;
     }
-
-    //figure out the windows for the convolutions (i.e. where xi(l) and eta(i)-xi(l) are in the domain)
-    if( i < N/2 ) {
-      start_i = 0;
-      end_i = i + n2 + 1;
-    }
-    else {
-      start_i = i - n2 + n3;
-      end_i = N;
-    }
-
-    if( j < N/2 ) {
-      start_j = 0;
-      end_j = j + n2 + 1;
-    }
-    else {
-      start_j = j - n2 + n3;
-      end_j = N;
-    }
-
-    if( k < N/2 ) {
-      start_k = 0;
-      end_k = k + n2 + 1;
-    }
-    else {
-      start_k = k - n2 + n3;
-      end_k = N;
-    }
-
-    //no aliasing
-    /*
-    for(l=start_i;l<end_i;l++) {
-      x = i + n2 - l;
-      for(m=start_j;m<end_j;m++) {
-	y = j + n2 - m;
-	for(n=start_k;n<end_k;n++) {
-	  z = k + n2 - n;
-    */
-    //aliasing
 
     for(l=0;l<N;l++) {
       x = i + n2 - l;

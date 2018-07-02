@@ -33,7 +33,7 @@ void alloc_weights(int N, double ****conv_weights, int total_species) {
 void initialize_weights(int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j) {
   FILE *fidWeights;
   char buffer_weights[100];
-  size_t readFlag;
+  int readFlag;
   int i;
 
   N = nodes;
@@ -79,7 +79,7 @@ void initialize_weights(int nodes, double *eta, double Lv, double lam, int weigh
     if((fidWeights = fopen(buffer_weights,"r"))) {
       printf("Loading weights from file %s\n",buffer_weights);
       for(i=0;i<N*N*N;i++) { 
-	readFlag = fread(conv_weights[i],sizeof(double),N*N*N,fidWeights);
+	readFlag = (int) fread(conv_weights[i],sizeof(double),N*N*N,fidWeights);
 	if(readFlag != N*N*N) {
 	  printf("Error reading weight file\n");
 	  exit(1);
