@@ -85,7 +85,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
   initialize_coll(N,L_v,v,zeta);
 
   //Initialize the moment routines
-  initialize_moments(N, L_v, v, mixture);
+  initialize_moments(N, v, mixture);
 
   for(spec=0;spec<numspec;spec++) {
   switch(initFlag) {
@@ -269,7 +269,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
   initialize_coll(N,L_v,v,zeta);
 
   //Initialize the moment routines
-  initialize_moments(N, L_v, v, mixture);
+  initialize_moments(N, v, mixture);
 
   //Initialize transport routines
   initialize_transport(N, nX, L_v, xnodes, dxnodes, v, initFlag, dt, 1.0, mixture);

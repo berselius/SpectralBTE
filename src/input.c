@@ -8,7 +8,7 @@
  */
 
 void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt, int *nT, int *order, int *dataFreq, int *restart, double *restart_time, int *initFlag, int *bcFlag, int *homogFlag, int *weightFlag, int *isoFlag, char **meshFile, int *num_species, char ***species_names, char *inputFilename) {
-  size_t i;
+  int i;
   char   line[80] = {"dummy"};
   char   input_path[100] = {"./input/"};
   FILE  *input_file;
