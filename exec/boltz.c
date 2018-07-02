@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
   }
   else { //inhomogeneous case
     allocate_inhom(N, nX_Node + (2*order), &v, &zeta, &f_inhom, &f_conv, &f_1, &Q, num_species);
-    initialize_inhom(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, nX_Node, x, dx, dt, &t, order, restart, restart_time, inputFilename);
+    initialize_inhom(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, nX_Node, x, dx, dt, &t, order, restart, inputFilename);
   }
 
 
@@ -169,6 +169,8 @@ int main(int argc, char **argv) {
 
   fflush(stdout);
 
+  writeTime_start = MPI_Wtime();
+  totTime_start = MPI_Wtime();
 
   //////////////////////////////////////////////
   //SPACE HOMOGENEOUS CASE                    //

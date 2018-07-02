@@ -11,7 +11,7 @@ void dealloc_hom(double *v, double *zeta, double **f, double **Q);
 
 void allocate_inhom(int N, int nX, double **v, double **zeta, double ****f, double ****f_conv, double ****f_1, double ***Q, int Ns);
 
-void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, species *mixture, int initFlag, int nX, double *xnodes, double *dxnodes, double dt, int *t, int order, int restart, int restart_time, char *inputfilename);
+void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, species *mixture, int initFlag, int nX, double *xnodes, double *dxnodes, double dt, int *t, int order, int restart, char *inputfilename);
 
 void dealloc_inhom(int nX, int order, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, double **Q);
 

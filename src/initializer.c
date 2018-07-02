@@ -233,7 +233,7 @@ void allocate_inhom(int N, int nX, double **v, double **zeta, double ****f, doub
   }
 }
 
-void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, species *mixture, int initFlag, int nX, double *xnodes, double *dxnodes, double dt, int *t, int order, int restart, int restart_time, char *inputfilename) {
+void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, species *mixture, int initFlag, int nX, double *xnodes, double *dxnodes, double dt, int *t, int order, int restart, char *inputfilename) {
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   int i,j,k,l,m;
