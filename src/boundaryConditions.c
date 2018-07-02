@@ -36,29 +36,12 @@ void initializeBC(int nv, double *vel, species *mix) {
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
-void setDiffuseReflectionBC(double *in, double *out, double TW, double vW, int bdry, int id)
+void setDiffuseReflectionBC(double *in, double *out, double TW, int bdry, int id)
 {
 	double sigmaW;
 	int i, j, k;
 
-//	TW = 2.0;
 	sigmaW = 0.0;
-/*	vW[0] = 0.0;
-	vW[1] = 0.0;
-	vW[2] = 0.0;*/
-	/*
-	for(i=0;i<N;i++)
-	{
-		if(v[i] - vW <= 0.0)
-		{
-			for(j=0;j<N;j++)
-			for(k=0;k<N;k++)
-			{
-				sigmaW += (v[i] - vW)*wtN[i]*wtN[j]*wtN[k]*h_v*h_v*h_v*in[k + N*(j + N*i)];
-			}
-		}
-	}
-	*/
 
 	if(bdry == 0) //left wall
 	{

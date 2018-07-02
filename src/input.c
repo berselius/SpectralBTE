@@ -14,7 +14,7 @@ void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt, int
   FILE  *input_file;
 
   /*Set input parameters to default values*/
-  set_default_values(N, L_v, Kn, lambda, dt, nT, order, dataFreq, restart, restart_time, initFlag, bcFlag, homogFlag, weightFlag, num_species, isoFlag, meshFile);
+  set_default_values(N, L_v, Kn, lambda, dt, nT, order, dataFreq, restart, restart_time, bcFlag, homogFlag, weightFlag, num_species, isoFlag, meshFile);
 
   strcat(input_path,inputFilename);
   printf("Opening input file %s\n",input_path);
@@ -105,7 +105,7 @@ void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt, int
       *num_species = read_int(input_file);
       //get the species names
       *species_names = malloc((*num_species)*sizeof(char *));			      
-      for(i=0;i<(*num_species);i++) {
+      for(i=0;i<(int)(*num_species);i++) {
 	read_line(input_file,line);
 	printf("%d %d %s\n",(int)i,*num_species,line);
 	fflush(stdout);
@@ -129,7 +129,7 @@ void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt, int
 /*!
  *  This function sets the input parameters to their defualt values, and sets up flags for a few if they are not set by the input file
  */ 
-void set_default_values(int *N, double *L_v, double *Kn, double *lambda, double *dt, int *nT, int *order, int *dataFreq, int *restart, double *restart_time, int *initFlag, int *bcFlag, int *homogFlag, int *weightFlag, int *num_species, int *isoFlag, char **meshFile)
+void set_default_values(int *N, double *L_v, double *Kn, double *lambda, double *dt, int *nT, int *order, int *dataFreq, int *restart, double *restart_time, int *bcFlag, int *homogFlag, int *weightFlag, int *num_species, int *isoFlag, char **meshFile)
 {
   /*Assumes space-homogeneous problem*/
   *homogFlag = 0;
