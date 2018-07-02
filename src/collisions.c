@@ -228,15 +228,22 @@ Computes the fourier transform of in, and adjusts the coefficients based on our 
 void fft3D(fftw_complex *in, fftw_complex *out) {
   int i, j, k, index;
   double sum, prefactor, factor;
+  double delta, L_start, L_end, sign, *varr;
 
-  prefactor = scale3 * dv * dv * dv;
+  delta = dv;
+  L_start = L_eta;
+  L_end = L_v;
+  varr = eta;
+  sign = 1.0;
+
+  prefactor = scale3 * delta * delta * delta;
 
   //shift the 'v' terms in the exponential to reflect our velocity domain
   for (index = 0; index < N * N * N; index++) {
     i = index / (N * N);
     j = (index - i * N * N) / N;
     k = index - N * (j + i * N);
-    sum = (double)(i + j + k) * L_eta * dv;
+    sum = sign * (double)(i + j + k) * L_start * delta;
 
     factor = prefactor * wtN[i] * wtN[j] * wtN[k];
 
@@ -252,7 +259,7 @@ void fft3D(fftw_complex *in, fftw_complex *out) {
     i = index / (N * N);
     j = (index - i * N * N) / N;
     k = index - N * (j + i * N);
-    sum = L_v * (eta[i] + eta[j] + eta[k]);
+    sum = sign * L_end * (varr[i] + varr[j] + varr[k]);
 
     out[index][0] = cos(sum)*temp[index][0] - sin(sum)*temp[index][1];
     out[index][1] = cos(sum)*temp[index][1] + sin(sum)*temp[index][0];
