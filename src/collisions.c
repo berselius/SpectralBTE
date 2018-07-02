@@ -41,8 +41,10 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
 
   wtN = malloc(N*sizeof(double));
   wtN[0] = 0.5;
-  for(i=1;i<(N-1);i++)
+  #pragma omp simd
+  for(i=1;i<(N-1);i++) {
     wtN[i] = 1.0;
+  }
   wtN[N-1] = 0.5;
 
   //SETTING UP FFTW
@@ -90,49 +92,46 @@ void dealloc_coll() {
 */
 void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights)
 {
-  int i, j, k, l, m, n, x, y, z;
+  int i, j, k, l, m, n, x, y, z, index, index1;
   int start_i, start_j, start_k, end_i, end_j, end_k;
   double *conv_weight_chunk;
 
-  double rho, vel[3], T;
+  double rho, vel[3], T, prefactor;
   //Find Maxwellians
 
   rho = getDensity(f,0);
   getBulkVelocity(f,vel,rho,0);
   T = getTemperature(f,vel,rho,0);
-  for(i=0;i<N;i++) {
-    for(j=0;j<N;j++) {
-      for(k=0;k<N;k++) {
-	M_i[k + N*(j + N*i)] = rho * pow(0.5/(M_PI*T),1.5)*exp(-(0.5/T) *((v[i]-vel[0])*(v[i]-vel[0]) + (v[j]-vel[1])*(v[j]-vel[1]) + (v[k]-vel[2])*(v[k]-vel[2])));
-	g_i[k + N*(j + N*i)] = f[k + N*(j + N*i)] - M_i[k + N*(j + N*i)];
-      }
-    }
+  prefactor = rho * pow(0.5 / (M_PI * T), 1.5);
+  for (index = 0; index < N * N * N; index++) {
+    i = index / (N * N);
+    j = (index - i * N * N) / N;
+    k = index - N * (j + N * i);
+    M_i[index] = prefactor * exp(-(0.5/T) *((v[i]-vel[0])*(v[i]-vel[0]) + (v[j]-vel[1])*(v[j]-vel[1]) + (v[k]-vel[2])*(v[k]-vel[2])));
+    g_i[index] = f[index] - M_i[index];
   }
 
   rho = getDensity(g,0);
   getBulkVelocity(g,vel,rho,0);
   T = getTemperature(g,vel,rho,0);
-  for(i=0;i<N;i++) {
-    for(j=0;j<N;j++) {
-      for(k=0;k<N;k++) {
-	M_j[k + N*(j + N*i)] = rho * pow(0.5/(M_PI*T),1.5)*exp(-(0.5/T) *((v[i]-vel[0])*(v[i]-vel[0]) + (v[j]-vel[1])*(v[j]-vel[1]) + (v[k]-vel[2])*(v[k]-vel[2])));
-	g_j[k + N*(j + N*i)] = g[k + N*(j + N*i)] - M_j[k + N*(j + N*i)];
-      }
-    }
+  prefactor = rho * pow(0.5 / (M_PI * T), 1.5);
+  for (index = 0; index < N * N * N; index++) {
+    i = index / (N * N);
+    j = (index - i * N * N) / N;
+    k = index - N * (j + N * i);
+    M_j[index] = prefactor * exp(-(0.5/T) *((v[i]-vel[0])*(v[i]-vel[0]) + (v[j]-vel[1])*(v[j]-vel[1]) + (v[k]-vel[2])*(v[k]-vel[2])));
+    g_j[index] = g[index] - M_j[index];
   }
 
 
-  for(i=0;i<N;i++)
-    for(j=0;j<N;j++)
-      for(k=0;k<N;k++)
-	{
-	     qHat[k + N*(j + N*i)][0] = 0.0;
-	     qHat[k + N*(j + N*i)][1] = 0.0;
-	  fftIn_f[k + N*(j + N*i)][0] = M_i[k + N*(j + N*i)];
-	  fftIn_f[k + N*(j + N*i)][1] = 0.0;
-	  fftIn_g[k + N*(j + N*i)][0] = g_j[k + N*(j + N*i)];
-	  fftIn_g[k + N*(j + N*i)][1] = 0.0;
-	}
+  for (index = 0; index < N * N * N; index++) {
+    qHat[index][0] = 0.0;
+    qHat[index][1] = 0.0;
+    fftIn_f[index][0] = M_i[index];
+    fftIn_f[index][1] = 0.0;
+    fftIn_g[index][0] = g_j[index];
+    fftIn_g[index][1] = 0.0;
+  }
 
   //move to fourier space
   fft3D(fftIn_f, fftOut_f);
@@ -140,11 +139,11 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
 
 
   #pragma omp parallel for private(i,j,k,l,m,n,x,y,z,start_i,start_j,start_k,end_i,end_j,end_k,conv_weight_chunk)
-  for(i=0;i<N;i++)
-  for(j=0;j<N;j++)
-  for(k=0;k<N;k++) {
-
-    conv_weight_chunk = conv_weights[k + N*(j + N*i)];
+  for (index = 0; index < N * N * N; index++) {
+    i = index / (N * N);
+    j = (index - i * N * N) / N;
+    k = index - N * (j + i * N);
+    conv_weight_chunk = conv_weights[index];
 
     int n2,n3;
     //account for even and odd values of N
@@ -156,47 +155,7 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
       n2 = (N-1)/2;
       n3 = 0;
     }
-
-    //figure out the windows for the convolutions (i.e. where xi(l) and eta(i)-xi(l) are in the domain)
-    if( i < N/2 ) {
-      start_i = 0;
-      end_i = i + n2 + 1;
-    }
-    else {
-      start_i = i - n2 + n3;
-      end_i = N;
-    }
-
-    if( j < N/2 ) {
-      start_j = 0;
-      end_j = j + n2 + 1;
-    }
-    else {
-      start_j = j - n2 + n3;
-      end_j = N;
-    }
-
-    if( k < N/2 ) {
-      start_k = 0;
-      end_k = k + n2 + 1;
-    }
-    else {
-      start_k = k - n2 + n3;
-      end_k = N;
-    }
-
-    //no aliasing
-    /*
-    for(l=start_i;l<end_i;l++) {
-      x = i + n2 - l;
-      for(m=start_j;m<end_j;m++) {
-    	y = j + n2 - m;
-	for(n=start_k;n<end_k;n++) {
-	  z = k + n2 - n;
-    */
-    //aliasing
-
-    for(l=0;l<N;l++) {
+        for(l=0;l<N;l++) {
       x = i + n2 - l;
       if (x < 0)
 	x = N + x;
@@ -219,17 +178,15 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
 	  else if (z > N-1)
 	    z = z - N;
 
-	  //multiply the weighted fourier coeff product
-	  qHat[k + N*(j + N*i)][0] += conv_weight_chunk[n + N*(m + N*l)]*(fftOut_g[n + N*(m + N*l)][0]*fftOut_f[z + N*(y + N*x)][0] - fftOut_g[n + N*(m + N*l)][1]*fftOut_f[z + N*(y + N*x)][1]);
+      //multiply the weighted fourier coeff product
+      qHat[k + N*(j + N*i)][0] += conv_weight_chunk[n + N*(m + N*l)]*(fftOut_g[n + N*(m + N*l)][0]*fftOut_f[z + N*(y + N*x)][0] - fftOut_g[n + N*(m + N*l)][1]*fftOut_f[z + N*(y + N*x)][1]);
 	  qHat[k + N*(j + N*i)][1] += conv_weight_chunk[n + N*(m + N*l)]*(fftOut_g[n + N*(m + N*l)][0]*fftOut_f[z + N*(y + N*x)][1] + fftOut_g[n + N*(m + N*l)][1]*fftOut_f[z + N*(y + N*x)][0]);
 
 	  //Timing purposes only
 	  //qHat[k + N*(j + N*i)][0] += 0.0*(fftOut_g[n + N*(m + N*l)][0]*fftOut_f[z + N*(y + N*x)][0] - fftOut_g[n + N*(m + N*l)][1]*fftOut_f[z + N*(y + N*x)][1]);
 	  //qHat[k + N*(j + N*i)][1] += 0.0*(fftOut_g[n + N*(m + N*l)][0]*fftOut_f[z + N*(y + N*x)][1] + fftOut_g[n + N*(m + N*l)][1]*fftOut_f[z + N*(y + N*x)][0]);
-	}
-      }
     }
-  }
+  }}}
 
   //End of parallel section
 
