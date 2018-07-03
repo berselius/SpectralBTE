@@ -9,7 +9,7 @@ void initialize_conservation_fast(int nodes, double h_v, double *vel);
 
 void dealloc_conservation();
 
-void factorMatrixIntoLU(int nElem, double det, int iError);
+void factorMatrixIntoLU(int nElem, double det);
 
 void solveWithCCt(int nElem, double *b);
 

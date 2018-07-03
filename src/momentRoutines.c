@@ -14,7 +14,7 @@ static double KB;
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
-void initialize_moments(int nodes, double L_v, double *vel, species *mix) {
+void initialize_moments(int nodes, double *vel, species *mix) {
   int i;
 
   N = nodes;
@@ -35,7 +35,7 @@ void initialize_moments(int nodes, double L_v, double *vel, species *mix) {
   wtN[N-1] = 0.5;
 }
 
-void initialize_moments_fast(int nodes, double L_v, double *vel) {
+void initialize_moments_fast(int nodes, double *vel) {
   int i;
 
   N = nodes;

@@ -4,4 +4,4 @@ void initializeBC(int nv, double *vel, species *mix);
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
-void setDiffuseReflectionBC(double *in, double *out, double TW, double vW, int bdry, int id);
+void setDiffuseReflectionBC(double *in, double *out, double TW, int bdry, int id);

@@ -115,10 +115,10 @@ void upwindOne(double **f, double **f_conv, int id) {
     }
     else {
       if(ICChoice == 3 || ICChoice == 5) { // Heat Transfer or Poiseuille
-	setDiffuseReflectionBC(f[1], f[0], T0, V0, 0, id);
+	setDiffuseReflectionBC(f[1], f[0], T0, 0, id);
       }
       else if(ICChoice == 1) { // Sudden change in wall temperature	
-	setDiffuseReflectionBC(f[1], f[0], 2.0*TWall, VWall, 0, id); //only sets the INCOMING velocities of f_conv
+	setDiffuseReflectionBC(f[1], f[0], 2.0*TWall, 0, id); //only sets the INCOMING velocities of f_conv
       }
       else if (ICChoice != 6) //assume that the flow repeats outside the domain... (NOTE: SHOULD I EXPLICITLY COPY THIS?)
 	f[0] = f[1]; //come back to fix for periodic later
@@ -131,7 +131,7 @@ void upwindOne(double **f, double **f_conv, int id) {
       MPI_Recv(f[nX+1],N*N*N,MPI_DOUBLE,rank+1,1,MPI_COMM_WORLD, &status); //RECEIVE FROM RIGHT
     else {
       if(ICChoice == 3 || ICChoice == 5) // Heat Transfer or Poisseuille
-	setDiffuseReflectionBC(f[nX], f[nX+1], T1, V1, 1, id); //sets incoming velocities of f_conv
+	setDiffuseReflectionBC(f[nX], f[nX+1], T1, 1, id); //sets incoming velocities of f_conv
       else if(ICChoice != 6)
 	f[nX+1] = f[nX]; //assume that the flow repeats outside the domain.. - come back to fix this for periodic
     }    
@@ -146,7 +146,7 @@ void upwindOne(double **f, double **f_conv, int id) {
       MPI_Recv(f[nX+1],N*N*N,MPI_DOUBLE,rank+1,1,MPI_COMM_WORLD, &status); //recieve from right
     else {
       if(ICChoice == 3 || ICChoice == 5) // Heat Transfer or Poisseuille
-	setDiffuseReflectionBC(f[nX], f[nX+1], T1, V1, 1, id); //sets incoming velocities of f_conv
+	setDiffuseReflectionBC(f[nX], f[nX+1], T1, 1, id); //sets incoming velocities of f_conv
       else if(ICChoice != 6)
 	f[nX+1] = f[nX]; //assume that the flow repeats outside the domain.. //come back to fix this for periodic
     }
@@ -358,10 +358,10 @@ void upwindTwo(double **f, double **f_conv, int id) {
 	    f_l[k + N*(j + N*i)] = f[2][k + N*(j + N*i)] - 0.5*dx[2]*slope[1];
 	  }
       if(ICChoice == 3 || ICChoice == 5) { // Heat Transfer or Poiseuille
-	setDiffuseReflectionBC(f_l, f_l, T0, V0, 0, id);
+	setDiffuseReflectionBC(f_l, f_l, T0, 0, id);
       }
       else if(ICChoice == 1) {// Sudden change in wall temperature
-	setDiffuseReflectionBC(f_l, f_l, 2.0*TWall, VWall, 0, id); //only sets the INCOMING velocities of f_conv
+	setDiffuseReflectionBC(f_l, f_l, 2.0*TWall, 0, id); //only sets the INCOMING velocities of f_conv
       }
       else { //ensure no flux
 	for(j=0;j<N;j++) 
@@ -388,7 +388,7 @@ void upwindTwo(double **f, double **f_conv, int id) {
 	    f_r[k + N*(j + N*i)] = f[nX+1][k + N*(j + N*i)] + 0.5*dx[nX+1]*slope[1];	      
 	  }
       if(ICChoice == 3 || ICChoice == 5) // Heat Transfer or Poiseuille	
-	setDiffuseReflectionBC(f_r, f_r, T1, V1, l, id); //sets incoming velocities of f_conv
+	setDiffuseReflectionBC(f_r, f_r, T1, l, id); //sets incoming velocities of f_conv
       else { //ensure no flux
 	for(i=0;i<N/2;i++) 
 	  for(j=0;j<N;j++) 
