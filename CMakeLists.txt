@@ -47,7 +47,15 @@ set(SPECTRALBTE_EXTERNAL_LIBS "m")
 
 # find MPI
 find_package(MPI REQUIRED)
-include_directories(${MPI_C_INCLUDE_DIRS})
+# the name of the variable containing the MPI include path has changed in the
+# most recent version of CMake
+if(NOT "${MPI_C_INCLUDE_DIRS}" STREQUAL "")
+  include_directories(${MPI_C_INCLUDE_DIRS})
+elseif(NOT "${MPI_C_INCLUDE_PATH}" STREQUAL "")
+  include_directories(${MPI_C_INCLUDE_PATH})
+else()
+  message(FATAL_ERROR "Could not find MPI include path")
+endif()
 set(SPECTRALBTE_EXTERNAL_LIBS "${SPECTRALBTE_EXTERNAL_LIBS};${MPI_C_LIBRARIES}")
 
 # find OpenMP
