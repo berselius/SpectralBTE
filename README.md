@@ -15,6 +15,11 @@ The following C Libraries required to build this code
 * OpenMP (should be standard in all gcc these days)
 * MPI of some flavor
 
+If running on Cori then load the following modules
+
+* gsl
+* cray-fftw
+* openmpi
 
 ## Building the code
 
