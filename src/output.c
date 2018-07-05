@@ -83,6 +83,8 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
     Ns = num_species;
 
     char path[100] = {"./input/"};
+    char topline[1028];
+    char tmpbuff[32];
 
     strcat(path, outputOptions);
 
@@ -106,6 +108,42 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
       option = "w";
 
     fopen_output_file(format, inputFile, mixture, option);    
+    
+
+    //Print headers
+    for(int i=0; i<Ns; i++) {
+      sprintf(topline,"#");
+      
+      sprintf(tmpbuff,"Time ");
+      strcat(topline,tmpbuff);
+
+      if(densFlag) {
+	sprintf(tmpbuff,"Density ");
+	strcat(topline,tmpbuff);
+      }
+      if(velFlag) {
+	sprintf(tmpbuff,"Velocity_x ");
+	strcat(topline,tmpbuff);
+      }
+      if(tempFlag) {
+	sprintf(tmpbuff,"Temperature ");
+	strcat(topline,tmpbuff);
+      }
+      if(presFlag) {
+	sprintf(tmpbuff,"Pressure ");
+	strcat(topline,tmpbuff);
+      }
+      if(entFlag) {
+	sprintf(tmpbuff,"Pos/neg_energy_ratio ");
+	strcat(topline,tmpbuff);
+      }
+      if(sliceFlag) {
+	for(int l=0;l<N;l++) {
+	  sprintf(tmpbuff,"vx ");
+	  strcat(topline,tmpbuff);
+	}
+      }	  
+    }
 }
 
 
