@@ -33,10 +33,6 @@ echo "EXEC = ${EXEC}"
 
 mpirun -np 1 -x OMP_NUM_THREADS=16 ${EXEC} heat_transport.test.in heat_transport.test.out
 
-#cd Data
-#ln -s ../Weights/* .
-
-#diff -r --brief ../target .
 cd
 cd SpectralBTE
 module load python

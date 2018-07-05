@@ -33,11 +33,6 @@ echo "EXEC = ${EXEC}"
 
 mpirun -np 1 -x OMP_NUM_THREADS=16 ${EXEC} BKW16.test.in BKW16.test.out
 
-#cd Data
-#ln -s ../Weights/* .
-
-#diff -r --brief ../target .
-
 cd
 cd SpectralBTE
 module load python
