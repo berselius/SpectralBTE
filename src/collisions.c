@@ -131,14 +131,10 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
 
     int n2 = N / 2;
 
-/*   for(index1 = 0; index1 < N * N * N; index1++) {
-     l = index / (N * N);
-     m = (index - i * N * N) / N;
-     n = index - N * (j + i * N);*/
-    for (l = 0; l < N; l++)
-    for (m = 0; m < N; m++)
-    for (n = 0; n < N; n++) {
-      index1 = n + N * (m + N * l);
+   for(index1 = 0; index1 < N * N * N; index1++) {
+     l = index1 / (N * N);
+     m = (index1 - l * N * N) / N;
+     n = index1 - N * (m + l * N);
 
       x = i + n2 - l;
       y = j + n2 - m;
@@ -244,8 +240,6 @@ void fft3D(fftw_complex *in, fftw_complex *out, int invert) {
     varr = eta;
     sign = 1.0;
     p = p_forward;
-    prefactor = scale3 * delta * delta * delta;
-    //printf("scale3*dv3 = %24.16f, dv3*scale3 = %24.16f\n", scale3 * delta * delta * delta, delta * delta * delta * scale3);
   }
   else {
     delta = deta;
@@ -254,9 +248,8 @@ void fft3D(fftw_complex *in, fftw_complex *out, int invert) {
     varr = v;
     sign = -1.0;
     p = p_backward;
-    prefactor = delta * delta * delta * scale3;
-    //printf("scale3*deta3 = %24.16f, deta3*scale3 = %24.16f\n", scale3 * delta * delta * delta, delta * delta * delta * scale3);
   }
+  prefactor = scale3 * delta * delta * delta;
 
   //shift the 'v' terms in the exponential to reflect our velocity domain
   for (index = 0; index < N * N * N; index++) {
