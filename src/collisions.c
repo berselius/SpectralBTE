@@ -107,10 +107,16 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
   }
 }
 
+<<<<<<< HEAD
 static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
   printf("In Compute Qhat...\n");
   int index, x, y, z;
   double **conv_weights, *conv_weight_chunk;
+=======
+static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
+  int index, x, y, z;
+  double *conv_weight_chunk;
+>>>>>>> 65c85cfea5a57320625f8377ef518eed9aa52a6c
 
   if (weightgenFlag == 0) {
      va_list args;
@@ -286,8 +292,6 @@ void fft3D(fftw_complex *in, fftw_complex *out, int invert) {
     varr = eta;
     sign = 1.0;
     p = p_forward;
-    prefactor = scale3 * delta * delta * delta;
-    //printf("scale3*dv3 = %24.16f, dv3*scale3 = %24.16f\n", scale3 * delta * delta * delta, delta * delta * delta * scale3);
   }
   else {
     delta = deta;
@@ -296,9 +300,8 @@ void fft3D(fftw_complex *in, fftw_complex *out, int invert) {
     varr = v;
     sign = -1.0;
     p = p_backward;
-    prefactor = delta * delta * delta * scale3;
-    //printf("scale3*deta3 = %24.16f, deta3*scale3 = %24.16f\n", scale3 * delta * delta * delta, delta * delta * delta * scale3);
   }
+  prefactor = scale3 * delta * delta * delta;
 
   //shift the 'v' terms in the exponential to reflect our velocity domain
   for (index = 0; index < N * N * N; index++) {

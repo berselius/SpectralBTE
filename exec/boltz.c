@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
   if(rank == 0)
     printf("Initializing output %s\n",outputChoices);
   if(homogFlag == 0)
-    initialize_output_hom(N, L_v, restart, inputFilename, outputChoices, mixture, num_species);
+    initialize_output_hom(N, L_v, restart, inputFilename, outputChoices, mixture, v, num_species);
   else 
     initialize_output_inhom(N, L_v, nX, nX_Node, x, dx, restart, inputFilename, outputChoices, mixture, num_species);
   
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
   //SPACE HOMOGENEOUS CASE                    //
   //////////////////////////////////////////////
   if(homogFlag == 0) {
-    write_streams(f_hom,0,v);
+    write_streams(f_hom,0);
 
     while(t < nT) {
       printf("In step %d of %d\n",t+1,nT);
@@ -252,7 +252,7 @@ int main(int argc, char **argv) {
 
       outputCount++;
       if(outputCount % dataFreq == 0) {
-	write_streams(f_hom,dt*(t+1),v);
+	write_streams(f_hom,dt*(t+1));
 	outputCount = 0;
       }
       t = t+1;
@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
   /////////////////////////////////////////////
   else {
     if(!restart)
-      write_streams_inhom(f_inhom,0,v,order);
+      write_streams_inhom(f_inhom,0,order);
 
     if((rank == 0) && (restart_time>0)) {
       totTime = MPI_Wtime() - totTime_start;
@@ -407,7 +407,7 @@ int main(int argc, char **argv) {
 	    return 0;
 	  }
 	}	
-	write_streams_inhom(f_inhom,dt*(t+1),v,order);
+	write_streams_inhom(f_inhom,dt*(t+1),order);
 	outputCount = 0;
       }
       
