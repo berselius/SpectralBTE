@@ -172,3 +172,8 @@ where
 * `beta` - parameter for inelastic collisions. Set to 1 for the usual/elastic case
 * `lambda` - exponent on the relative velocity in the scattering kernel. Set to `-3` for Coulomb.
 * `L_v` - Nondimensional semi-length of velocity domain.
+
+###  Productivity Logging
+
+* To setup this up, simply go into productivity_logging and run setup.sh (./setup.sh)
+* This will ask you if you want to record a log when you commit. If you worked on something relating to parallalization then record a log, otherwise just ignore. 
