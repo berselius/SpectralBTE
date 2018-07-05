@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
   int weightFlag;
   int isoFlag;
   char *meshFile = malloc(80*sizeof(char));
-  int weightgen = 0; // 0 = generate weights before, 1 = on the fly
+  int weightgenFlag; // 0 = generate weights before, 1 = on the fly
 
   //parameters for the spatial mesh, if doing inhomogeneous
   int nX;
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
   }
 
   //load data from input file
-  read_input(&N, &L_v, &Kn, &lambda, &dt, &nT, &order, &dataFreq, &restart, &restart_time, &initFlag, &bcFlag, &homogFlag, &weightFlag, &isoFlag, &meshFile, &num_species, &species_names, inputFilename);
+  read_input(&N, &L_v, &Kn, &lambda, &dt, &nT, &order, &dataFreq, &restart, &restart_time, &initFlag, &bcFlag, &homogFlag, &weightFlag, &isoFlag, &meshFile, &num_species, &species_names, inputFilename, &weightgenFlag);
 
 
   //////////////////////////////////
@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
   if(rank == 0)
     printf("Initializing weight info\n");
 
-  if (weightgen == 0) {
+  if (weightgenFlag == 0) {
     printf("Preparing for precomputation of weights...\n");
     alloc_weights(N, &conv_weights, num_species*num_species);
 
@@ -191,9 +191,14 @@ int main(int argc, char **argv) {
       t1 = omp_get_wtime();
 
       for(l=0;l<num_species;l++) {
-	for(m=0;m<num_species;m++) {	  
-	  //ComputeQ(f_hom[l],f_hom[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
-	  ComputeQ_maxPreserve(f_hom[l],f_hom[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
+	for(m=0;m<num_species;m++) {
+          if (weightgenFlag == 0) {
+            //ComputeQ(f_hom[l],f_hom[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
+            ComputeQ_maxPreserve(f_hom[l], f_hom[m], Q[m*num_species + l], weightgenFlag, conv_weights[m*num_species + l]);
+          }
+          else {
+            ComputeQ_maxPreserve(f_hom[l], f_hom[m], Q[m*num_species + l], weightgenFlag);
+          }
 	}  
       }
 
@@ -223,8 +228,13 @@ int main(int argc, char **argv) {
 	//compute new collision ops
 	for(l=0;l<num_species;l++) {
 	  for(m=0;m<num_species;m++) {
-	    //ComputeQ(f_hom1[l],f_hom1[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
-	    ComputeQ_maxPreserve(f_hom1[l],f_hom1[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
+            if (weightgenFlag == 0) {
+              //ComputeQ(f_hom1[l],f_hom1[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
+              ComputeQ_maxPreserve(f_hom1[l], f_hom1[m], Q[m*num_species + l], weightgenFlag, conv_weights[m*num_species + l]);
+            }
+            else {
+              ComputeQ_maxPreserve(f_hom1[l], f_hom1[m], Q[m*num_species + l], weightgenFlag);
+            }
 	  }  
 	}
 	
@@ -285,7 +295,12 @@ int main(int argc, char **argv) {
       for(l=order;l<(nX_Node+order);l++) {  
 	for(m=0;m<num_species;m++)
 	  for(n=0;n<num_species;n++) {
-	    ComputeQ(f_conv[m][l], f_conv[n][l], Q[n*num_species + m], conv_weights[n*num_species + m]);
+            if (weightgenFlag == 0) {
+              ComputeQ(f_conv[m][l], f_conv[n][l], Q[n*num_species + m], weightgenFlag, conv_weights[n*num_species + m]);
+            }
+            else {
+              ComputeQ(f_conv[m][l], f_conv[n][l], Q[n*num_species + m], weightgenFlag);
+            }
 	  }
 
 	conserveAllMoments(Q);
@@ -323,8 +338,14 @@ int main(int argc, char **argv) {
 	if(order == 2) {
 
 	  for(m=0;m<num_species;m++)
-	    for(n=0;n<num_species;n++)
-	      ComputeQ(f_1[m][l], f_1[n][l], Q[n*num_species + m], conv_weights[n*num_species + m]);
+	    for(n=0;n<num_species;n++) {
+              if (weightgenFlag == 0) {
+                ComputeQ(f_1[m][l], f_1[n][l], Q[n*num_species + m], weightgenFlag, conv_weights[n*num_species + m]);
+              }
+              else {
+                ComputeQ(f_1[m][l], f_1[n][l], Q[n*num_species + m], weightgenFlag);
+              }
+            }
 
 	  conserveAllMoments(Q);
 

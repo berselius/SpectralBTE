@@ -2,6 +2,7 @@
 #include <fftw3.h>
 #include <stdlib.h>
 #include <omp.h>
+#include <stdarg.h>
 
 #include "constants.h"
 #include "collisions.h"
@@ -27,7 +28,7 @@ static int inverse = 1;
 static int noinverse = 0;
 
 static void find_maxwellians(double *M_mat, double *g_mat, double *mat);
-static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat);
+static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...);
 
 //Initializes this module's static variables and allocates what needs allocating
 void initialize_coll(int nodes, double length, double *vel, double *zeta) {
@@ -105,9 +106,16 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
   }
 }
 
-static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
+static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
   int i, j, k, index, index1, index2, l, m, n, x, y, z;
-  double *conv_weight_chunk;
+  double **conv_weights, *conv_weight_chunk;
+
+  if (weightgenFlag == 0) {
+     va_list args;
+     va_start(args, weightgenFlag);
+     conv_weights = va_arg(args, double **);
+     va_end(args);
+   }
 
   for (index = 0; index < N * N * N; index++) {
     qHat[index][0] = 0.0;
@@ -177,25 +185,33 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
   -----------------
   The main function for calculating the collision effects
 */
-void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights) {
+void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ...) {
+  double **conv_weights;
+  if (weightgenFlag == 0) {
+    va_list args;
+    va_start(args, weightgenFlag);
+    conv_weights = va_arg(args, double **);
+    va_end(args);
+  }
+
   int index;
 
   find_maxwellians(M_i, g_i, f);
   find_maxwellians(M_j, g_j, g);
 
-  compute_Qhat(conv_weights, M_i, g_j);
+  compute_Qhat(M_i, g_j, weightgenFlag, conv_weights);
   //set Collision output
   for (index = 0; index < N * N * N; index++) {
     Q[index] = fftOut_f[index][0];
   }
 
-  compute_Qhat(conv_weights, g_i, M_j);
+  compute_Qhat(g_i, M_j, weightgenFlag, conv_weights);
   //set Collision output
   for (index = 0; index < N * N * N; index++) {
    Q[index] += fftOut_f[index][0];
   }
 
-  compute_Qhat(conv_weights, g_i, g_j);
+  compute_Qhat(g_i, g_j, weightgenFlag, conv_weights);
   //set Collision output
   for (index = 0; index < N * N * N; index++) {
 	Q[index] += fftOut_f[index][0];
@@ -203,7 +219,7 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
 
   //Maxwellian part
   /*
-  compute_Qhat(Q, conv_weights, M_i, M_j);
+  compute_Qhat(M_i, M_j, conv_weights);
   //set Collision output
   for (index = 0; index < N * N * N; index++) {
     Q[index] += fftOut_f[index][0];
@@ -211,11 +227,18 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
   */
 }
 
-void ComputeQ(double *f, double *g, double *Q, double **conv_weights)
-{
-  int index;
+void ComputeQ(double *f, double *g, double *Q, int weightgenFlag, ...) {
 
-  compute_Qhat(conv_weights, f, g);
+  double **conv_weights;
+  if (weightgenFlag == 0) {
+    va_list args;
+    va_start(args, weightgenFlag);
+    conv_weights = va_arg(args, double **);
+    va_end(args);
+  }
+  compute_Qhat(f, g, weightgenFlag, conv_weights);
+
+  int index;
   //set Collision output
   for (index = 0; index < N * N * N; index++) {
     Q[index] = fftOut_f[index][0];

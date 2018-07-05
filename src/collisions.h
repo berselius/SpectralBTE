@@ -35,9 +35,9 @@ void dealloc_coll();
 
 //Internal routines
 
-void ComputeQ(double *f, double *g, double *Q, double **conv_weights);
+void ComputeQ(double *f, double *g, double *Q, int weightgenFlag, ...);
 
-void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights);
+void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ...);
 
 void fft3D(fftw_complex *in, fftw_complex *out, int invert);
 
