@@ -33,7 +33,7 @@ def get_diff(base, compare):
 if (len(sys.argv) != 2):
     sys.exit(1)
 
-directory = os.getcwd() + sys.argv[1]
+directory = sys.argv[1]
 print (directory)
 data_dir = directory + "/Data/"
 target_dir = directory + "/target/"
@@ -42,10 +42,10 @@ data_files = [file for file in os.listdir(data_dir) if file.endswith(".plt")]
 target_files = [file for file in os.listdir(data_dir) if file.endswith(".plt")]
 
 if (set(data_files) != set(target_files)):
-    print("Files in ./data and ./target are different.")
+    print("Files in ./Data and ./target are different.")
     sys.exit(1)
 
-catch_error = 0;
+catch_error = 0
 for file_name in data_files:
     data_file = data_dir + file_name
     target_file = target_dir + file_name
