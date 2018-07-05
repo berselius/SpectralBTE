@@ -34,8 +34,6 @@ static FILE **fidPressure;
 static FILE **fidMarginal;
 static FILE **fidSlice;
 static FILE **fidBulkV;
-static FILE **fidEntropy;
-static FILE **fidBGK;
 
 //Parameters from main code
 static int N;
@@ -52,7 +50,6 @@ static int presFlag = 1;
 static int marginalFlag = 1;
 static int sliceFlag = 1;
 static int entFlag = 1;
-static int BGKFlag = 1;
 
 static species *mixture;
 static int Ns;
@@ -127,63 +124,58 @@ static void fopen_output_file(const char* format, char* inputFile, species* mixt
 
 
 //This version is for homogeneous case
-void write_streams(double **f, double time, double *v) {
+void write_streams(double **f, double time) {
     int i, l;
     double density, kinTemp, bulkV[3], energy[2];
+    
+    //We will print everything to this buffer
+    char line[1028];
+    char buff[32];
 
     for (i = 0; i < Ns; i++) {
-        density = getDensity(f[i], 0);
-        if (isnan( density)) {
-            printf("nan detected\n");
-            exit(0);
-        }
-        getBulkVelocity(f[i], bulkV, density, 0);
-        kinTemp = getTemperature(f[i], bulkV, density, 0);
-        getEnergy(f[i], energy);
-		
-		if (densFlag){
-            fprintf(fidRho[i], "%le %le\n", time, density);
-		}
-        if (velFlag){
-            fprintf(fidBulkV[i], "%le %le\n", time, bulkV[0]);
-        }
-		if (tempFlag){
-            fprintf(fidKinTemp[i], "%le %le\n", time, kinTemp);
-        }
-		if (presFlag){
-            fprintf(fidPressure[i], "%le %le\n", time, getPressure(density, kinTemp));
-        }
-		if (sliceFlag) {
-            fprintf(fidSlice[i], "ZONE I=%d T=\"%g\"\n", N, time);
-            for (l = 0; l < N; l++) {
-                fprintf(fidSlice[i], "%le %le\n", v[l], f[i][N / 2 + N * (N / 2 + N * l)]);
-            }
-            fprintf(fidSlice[i], "\n");
-        }
-        if (entFlag) {
-            fprintf(fidEntropy[i], "%le %le\n", time, energy[1] / energy[0]);
-        }
-        /*    if(BGKFlag) {
-          fprintf(fidBGK[i],"%g %g\n",time,);
-          }*/
-        if (densFlag) {
-            fflush(fidRho[i]);
-        }
-        if (velFlag) {
-            fflush(fidBulkV[i]);
-        }
-        if (tempFlag) {
-            fflush(fidKinTemp[i]);
-        }
-        if (presFlag) {
-            fflush(fidPressure[i]);
-        }
-        if (entFlag) {
-            fflush(fidEntropy[i]);
-        }
-        if (sliceFlag) {
-            fflush(fidSlice[i]);
-        }
+
+      //Get moments from the species
+
+      density = getDensity(f[i], 0);
+      if (isnan( density)) {
+	printf("nan detected\n");
+	exit(0);
+      }
+      getBulkVelocity(f[i], bulkV, density, 0);
+      kinTemp = getTemperature(f[i], bulkV, density, 0);
+      getEnergy(f[i], energy);
+      
+      sprintf(line, "%le", time);
+
+      //Build the output line
+      if (densFlag) {	
+	sprintf(buff, "%le", density);      
+	strcat(line,buff);
+      }
+      if (velFlag) {
+	sprintf(buff, "%le", bulkV[0]);
+	strcat(line,buff);
+      }
+      if (tempFlag) {
+	sprintf(buff, "%le", kinTemp);
+	strcat(line,buff);
+      }
+      if (presFlag) {
+	sprintf(buff, "%le", getPressure(density,kinTemp));
+	strcat(line,buff);
+      }
+      if (entFlag) {
+	sprintf(buff, " %le", energy[1] / energy[0]);
+	strcat(line,buff);
+      }
+      if (sliceFlag) {
+	for (l = 0; l < N; l++) {
+	  sprintf(buff, " %le", f[i][N / 2 + N * (N / 2 + N * l)]);
+	  strcat(line,buff);
+	}
+      }
+      strcat(line,"\n");
+      fprintf(fidOutput[i],"%s",line);
     }
 }
 
@@ -348,46 +340,13 @@ void write_streams_inhom(double ***f, double time, double *v, int order) {
 }
 
 
-void close_streams(int homogFlag) {
+void close_streams() {
+
     for (int i = 0; i < Ns; i++) {
-        if (densFlag) {
-            fclose(fidRho[i]);
-        }
-        if (tempFlag){
-            fclose(fidKinTemp[i]);
-        }
-        if (presFlag) {
-            fclose(fidPressure[i]);
-        }
-        if (velFlag) {
-            fclose(fidBulkV[i]);
-        }
-        if (marginalFlag && homogFlag == 1) {
-            fclose(fidMarginal[i]);
-        }
-        if (sliceFlag) {
-            fclose(fidSlice[i]);
-        }
-        if (entFlag) {
-            fclose(fidEntropy[i]);
-        }
-        if (BGKFlag && homogFlag == 0) {
-            fclose(fidBGK[i]);
-        }
+      fclose(fidOutput[i]);        
     }
 
-    free(fidRho);
-    free(fidKinTemp);
-    free(fidPressure);
-    free(fidBulkV);
-    free(fidEntropy);
-
-    if (homogFlag) {
-        free(fidMarginal);
-    }
-    if (!homogFlag) {
-        free(fidBGK);
-    }
+    free(fidOutput);
 }
 
 

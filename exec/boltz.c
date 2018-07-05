@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
   //SPACE HOMOGENEOUS CASE                    //
   //////////////////////////////////////////////
   if(homogFlag == 0) {
-    write_streams(f_hom,0,v);
+    write_streams(f_hom,0);
 
     while(t < nT) {
       printf("In step %d of %d\n",t+1,nT);
@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
 
       outputCount++;
       if(outputCount % dataFreq == 0) {
-	write_streams(f_hom,dt*(t+1),v);
+	write_streams(f_hom,dt*(t+1));
 	outputCount = 0;
       }
       t = t+1;
