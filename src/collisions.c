@@ -8,6 +8,7 @@
 #include "collisions.h"
 #include "conserve.h"
 #include "momentRoutines.h"
+#include "weights.h"
 
 static fftw_plan p_forward;
 static fftw_plan p_backward;
@@ -98,15 +99,16 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
   T = getTemperature(mat, vel, rho, 0);
   prefactor = rho * pow(0.5 / (M_PI * T), 1.5);
   for (index = 0; index < N * N * N; index++) {
-    i = index / (N * N);
-    j = (index - i * N * N) / N;
-    k = index - N * (j + N * i);
+    j = index / (N * N);
+    i = (index - j * N * N) / N;
+    k = index - N * (i + N * j);
     M_mat[index] = prefactor * exp(-(0.5/T) *((v[i]-vel[0])*(v[i]-vel[0]) + (v[j]-vel[1])*(v[j]-vel[1]) + (v[k]-vel[2])*(v[k]-vel[2])));
     g_mat[index] = mat[index] - M_i[index];
   }
 }
 
 static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
+  printf("In Compute Qhat...\n");
   int index, x, y, z;
   double **conv_weights, *conv_weight_chunk;
 
@@ -117,6 +119,7 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
      va_end(args);
    }
 
+  //#pragma omp parallel for private(qHat, fftIn_f, fftIn_g)
   for (index = 0; index < N * N * N; index++) {
     qHat[index][0] = 0.0;
     qHat[index][1] = 0.0;
@@ -132,7 +135,11 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
 
   int zeta, zeta_x, zeta_y, zeta_z;
   int xi, xi_x, xi_y, xi_z;
-  #pragma omp parallel for private(zeta_x, zeta_y, zeta_z, xi_x, xi_y, xi_z, x, y, z, index, conv_weight_chunk)
+  double cweight, prefactor;
+  if (weightgenFlag == 1) {
+    prefactor = 0.0625 * (diam_i + diam_j) * (diam_i + diam_j);
+  }
+  #pragma omp parallel for private(zeta_x, zeta_y, zeta_z, xi_x, xi_y, xi_z, x, y, z, index, conv_weight_chunk, cweight)
   for (zeta = 0; zeta < N * N * N; zeta++) {
     zeta_x = zeta / (N * N);
     zeta_y = (zeta - zeta_x * N * N) / N;
@@ -141,6 +148,7 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
 
     int n2 = N / 2;
 
+   #pragma omp simd
    for(xi = 0; xi < N * N * N; xi++) {
      xi_x = xi / (N * N);
      xi_y = (xi - xi_x * N * N) / N;
@@ -166,9 +174,17 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
         z = z - N;
 
       index = z + N * (y + N * x);
+
+      if (weightgenFlag == 0) {
+        cweight = conv_weight_chunk[xi];
+      }
+      else {
+        //Assume iso-case
+        cweight = wtN[xi_x]*wtN[xi_y]*wtN[xi_z]*0.25*pow(0.5*(diam_i+diam_j),2) * gHat3(eta[xi_x], eta[xi_y], eta[xi_z], eta[zeta_x], eta[zeta_y], eta[zeta_z]);
+      }
       //multiply the weighted fourier coeff product
-      qHat[zeta][0] += conv_weight_chunk[xi]*(fftOut_g[xi][0]*fftOut_f[index][0] - fftOut_g[xi][1]*fftOut_f[index][1]);
-      qHat[zeta][1] += conv_weight_chunk[xi]*(fftOut_g[xi][0]*fftOut_f[index][1] + fftOut_g[xi][1]*fftOut_f[index][0]);
+      qHat[zeta][0] += cweight * (fftOut_g[xi][0]*fftOut_f[index][0] - fftOut_g[xi][1]*fftOut_f[index][1]);
+      qHat[zeta][1] += cweight * (fftOut_g[xi][0]*fftOut_f[index][1] + fftOut_g[xi][1]*fftOut_f[index][0]);
     }
   }
 
@@ -199,18 +215,21 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ..
 
   compute_Qhat(M_i, g_j, weightgenFlag, conv_weights);
   //set Collision output
+  //#pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
     Q[index] = fftOut_f[index][0];
   }
 
   compute_Qhat(g_i, M_j, weightgenFlag, conv_weights);
   //set Collision output
+  //#pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
    Q[index] += fftOut_f[index][0];
   }
 
   compute_Qhat(g_i, g_j, weightgenFlag, conv_weights);
   //set Collision output
+  //#pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
 	Q[index] += fftOut_f[index][0];
   }
@@ -227,6 +246,7 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ..
 
 void ComputeQ(double *f, double *g, double *Q, int weightgenFlag, ...) {
 
+  printf("In Compute Q...\n");
   double **conv_weights;
   if (weightgenFlag == 0) {
     va_list args;
@@ -238,6 +258,7 @@ void ComputeQ(double *f, double *g, double *Q, int weightgenFlag, ...) {
 
   int index;
   //set Collision output
+  //#pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
     Q[index] = fftOut_f[index][0];
   }

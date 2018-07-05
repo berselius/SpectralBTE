@@ -31,11 +31,14 @@ echo "SRC = ${SRC}"
 echo "BIN = ${BIN}"
 echo "EXEC = ${EXEC}"
 
-mpirun -np 1 -x OMP_NUM_THREADS=16 ${EXEC} BKW16.test.in BKW16.test.out
+module load openmpi/3.1.0-gcc_8.1.0
 
-cd Data
-ln -s ../Weights/* .
+#mpirun -np 1 -x OMP_NUM_THREADS=1 valgrind --leak-check=yes --track-origins=yes ${EXEC} BKW16.test.in BKW16.test.out
+mpirun -np 1 -x OMP_NUM_THREADS=16 --mca btl ^openib ${EXEC} BKW16.test.in BKW16.test.out
 
-diff -r --brief ../target .
+cd
+cd SpectralBTE
+module load python
+python check_diff.py /build/tests/BKW16
 
 exit $?

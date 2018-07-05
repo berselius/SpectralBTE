@@ -31,11 +31,13 @@ echo "SRC = ${SRC}"
 echo "BIN = ${BIN}"
 echo "EXEC = ${EXEC}"
 
+module load openmpi/3.1.0-gcc_8.1.0
+
 mpirun -np 1 -x OMP_NUM_THREADS=16 ${EXEC} heat_transport.test.in heat_transport.test.out
 
-cd Data
-ln -s ../Weights/* .
-
-diff -r --brief ../target .
+cd
+cd SpectralBTE
+module load python
+python check_diff.py /build/tests/heat_transport
 
 exit $?

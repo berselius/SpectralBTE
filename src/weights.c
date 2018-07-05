@@ -14,8 +14,6 @@ static double *zeta;
 static double deta;
 static double prefactor;
 static double lambda;
-static double diam_i;
-static double diam_j;
 static double mass_i;
 static double mass_j;
 static double mu_ij;

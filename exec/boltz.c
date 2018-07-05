@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
   int order;
   int dataFreq;
   int restart;
-  double restart_time;
+  double restart_time = MPI_Wtime();
   int initFlag;
   int bcFlag;
   int homogFlag;

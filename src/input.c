@@ -185,7 +185,7 @@ void set_default_values(int *N, double *L_v, double *Kn, double *lambda, double 
   strcpy(*meshFile,"not set");
 
   /*0 = precompute weights, 1 = generate weights on-the-fly*/
-  *weightgenFlag = 0;
+  *weightgenFlag = 1;
   
 }
 

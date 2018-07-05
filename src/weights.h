@@ -9,6 +9,9 @@ weights.h - contains frontend for generating anisotropic weights
 
 #include "species.h"
 
+static double diam_i;
+static double diam_j;
+
 void alloc_weights(int N, double ****conv_weights, int total_species);
 
 /*******************
