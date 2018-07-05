@@ -33,7 +33,8 @@ def get_diff(base, compare):
 if (len(sys.argv) != 2):
     sys.exit(1)
 
-directory = sys.argv[1]
+directory = os.getcwd() + sys.argv[1]
+print (directory)
 data_dir = directory + "/Data/"
 target_dir = directory + "/target/"
 

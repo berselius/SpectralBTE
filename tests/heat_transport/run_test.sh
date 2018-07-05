@@ -36,6 +36,6 @@ mpirun -np 1 -x OMP_NUM_THREADS=16 ${EXEC} heat_transport.test.in heat_transport
 cd
 cd SpectralBTE
 module load python
-python check_diff.py /home/hkim22/SpectralBTE/build/tests/heat_transport
+python check_diff.py /build/tests/heat_transport
 
 exit $?
