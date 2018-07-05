@@ -3,7 +3,7 @@
 
 #include "species.h"
 
-void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, char *outputOptions, species *mix, int num_species);
+void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, char *outputOptions, species *mix, double *velo, int num_species);
 
 void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, double *xnodes, double *dxnodes, int restart, char *inputFile, char *outputOptions, species *mix, int num_species);
 

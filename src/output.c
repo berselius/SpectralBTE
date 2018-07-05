@@ -1,14 +1,5 @@
 //This manages all of the outputting from the Boltzmann code
 
-//Format of the output files will be set up for something numpy can load, I hope. columns are:
-
-// Time
-// Spatial location (just 0 for a 0D problem)
-// Mass density
-// Bulk Velocity
-// Temperature
-// Distribution slice, if on
-
 #include "output.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,6 +29,7 @@ static FILE **fidBulkV;
 //Parameters from main code
 static int N;
 static double L_v;
+static double *v;
 static int nX;
 static int nX_node;
 static double *x, *dx;
@@ -75,12 +67,13 @@ double MaxConverge(int N, double *v, double rho, double* u, double T, double *f)
 }
 
 //initializer for homogeneous case
-void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, char *outputOptions, species *mix, int num_species) {
+void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, char *outputOptions, species *mix, double *velo, int num_species) {
 
     N = nodes;
     L_v = Lv;
     mixture = mix;
     Ns = num_species;
+    v = velo;
 
     char path[100] = {"./input/"};
     char topline[1028];
@@ -98,7 +91,7 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
 
     printf("Opening output files \n");
 
-    const char* format = "Data/moments_";
+    const char* prefac = "Data/moments_";
 
     const char* option = NULL;
 
@@ -107,7 +100,7 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
     else
       option = "w";
 
-    fopen_output_file(format, inputFile, mixture, option);    
+    fopen_output_file(prefac, inputFile, mixture, option);    
     
 
     //Print headers
@@ -139,23 +132,30 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
       }
       if(sliceFlag) {
 	for(int l=0;l<N;l++) {
-	  sprintf(tmpbuff,"vx ");
+	  sprintf(tmpbuff,"v:%le ",v[l]);
 	  strcat(topline,tmpbuff);
 	}
-      }	  
+      }
+      strcat(topline,"\n");
+      fprintf(fidOutput[i],topline);
     }
 }
 
 
-static void fopen_output_file(const char* format, char* inputFile, species* mixture, const char* restartOpt){
+static void fopen_output_file(const char* prefac, char* inputFile, species* mixture, const char* restartOpt){
 
     fidOutput = malloc(Ns * sizeof(FILE *));
 
     char buffer[256];
 
     for(int i = 0; i < Ns; i++) {
-        sprintf(buffer, format, inputFile, mixture[i].name);
-	fidOutput[i] = fopen(buffer, restartOpt);
+      sprintf(buffer, prefac);
+      strcat(buffer,inputFile);
+      if(Ns > 1) {
+	strcat(buffer,"_");
+	strcat(buffer,mixture[i].name);
+      }
+      fidOutput[i] = fopen(buffer, restartOpt);
     }
 }
 
@@ -183,32 +183,32 @@ void write_streams(double **f, double time) {
       kinTemp = getTemperature(f[i], bulkV, density, 0);
       getEnergy(f[i], energy);
       
-      sprintf(line, "%le", time);
+      sprintf(line, "%le ", time);
 
       //Build the output line
       if (densFlag) {	
-	sprintf(buff, "%le", density);      
+	sprintf(buff, "%le ", density);      
 	strcat(line,buff);
       }
       if (velFlag) {
-	sprintf(buff, "%le", bulkV[0]);
+	sprintf(buff, "%le ", bulkV[0]);
 	strcat(line,buff);
       }
       if (tempFlag) {
-	sprintf(buff, "%le", kinTemp);
+	sprintf(buff, "%le ", kinTemp);
 	strcat(line,buff);
       }
       if (presFlag) {
-	sprintf(buff, "%le", getPressure(density,kinTemp));
+	sprintf(buff, "%le ", getPressure(density,kinTemp));
 	strcat(line,buff);
       }
       if (entFlag) {
-	sprintf(buff, " %le", energy[1] / energy[0]);
+	sprintf(buff, " %le ", energy[1] / energy[0]);
 	strcat(line,buff);
       }
       if (sliceFlag) {
 	for (l = 0; l < N; l++) {
-	  sprintf(buff, " %le", f[i][N / 2 + N * (N / 2 + N * l)]);
+	  sprintf(buff, " %le ", f[i][N / 2 + N * (N / 2 + N * l)]);
 	  strcat(line,buff);
 	}
       }

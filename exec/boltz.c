@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
   if(rank == 0)
     printf("Initializing output %s\n",outputChoices);
   if(homogFlag == 0)
-    initialize_output_hom(N, L_v, restart, inputFilename, outputChoices, mixture, num_species);
+    initialize_output_hom(N, L_v, restart, inputFilename, outputChoices, mixture, v, num_species);
   else 
     initialize_output_inhom(N, L_v, nX, nX_Node, x, dx, restart, inputFilename, outputChoices, mixture, num_species);
   
