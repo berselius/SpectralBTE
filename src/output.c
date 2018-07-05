@@ -1,5 +1,14 @@
 //This manages all of the outputting from the Boltzmann code
 
+//Format of the output files will be set up for something numpy can load, I hope. columns are:
+
+// Time
+// Spatial location (just 0 for a 0D problem)
+// Mass density
+// Bulk Velocity
+// Temperature
+// Distribution slice, if on
+
 #include "output.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +27,7 @@ static int rank;
 static int numNodes;
 
 //File streams for output
+static FILE **fidOutput;
 static FILE **fidRho;
 static FILE **fidKinTemp;
 static FILE **fidPressure;
@@ -47,7 +57,7 @@ static int BGKFlag = 1;
 static species *mixture;
 static int Ns;
 
-static void fopen_output_file(FILE*** outfile, const char* format, char* inputFile, char* outputOptions, species* mixture, int flag, const char* restartOpt);
+static void fopen_output_file(const char* format, char* inputFile,species* mixture, const char* restartOpt);
 static void read_flags(FILE* outParams);
 
 //Takes the Linf norm of the difference with maxwellian
@@ -83,30 +93,39 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
     //Load flag data from file
     FILE *outParams = fopen(path, "r");
 
+    //Tells the stream writers which things to output
     read_flags(outParams);
 
     fclose(outParams);
 
-    printf("Opening streams\n");
+    printf("Opening output files \n");
 
-    FILE*** filepointers[7] = {&fidRho,&fidKinTemp,&fidPressure,&fidBulkV,&fidSlice,&fidEntropy,&fidBGK};
-    const char* formats[7] = {"Data/rho_%s_%s_%s.plt","Data/kintemp_%s_%s_%s.plt","Data/pres_%s_%s_%s.plt","Data/bulkV_%s_%s_%s.plt",
-                                "Data/slice_%s_%s_%s.plt","Data/entropy_%s_%s_%s.plt","Data/BGK_%s_%s_%s.plt"};
-    int flags[7] = {densFlag, tempFlag, presFlag, velFlag, sliceFlag, entFlag, BGKFlag};
+    const char* format = "Data/moments_";
 
     const char* option = NULL;
 
-    // I dont know if this will work
-    if(restart){
-        option = "a";
-    } else {
-        option = "w";
-    }
+    if(restart) 
+      option = "a";
+    else
+      option = "w";
 
-    for(i = 0; i < 7; i++) {
-        fopen_output_file(filepointers[i], formats[i], inputFile, outputOptions, mixture, flags[i], option);
+    fopen_output_file(format, inputFile, mixture, option);    
+}
+
+
+static void fopen_output_file(const char* format, char* inputFile, species* mixture, const char* restartOpt){
+
+    fidOutput = malloc(Ns * sizeof(FILE *));
+
+    char buffer[256];
+
+    for(int i = 0; i < Ns; i++) {
+        sprintf(buffer, format, inputFile, mixture[i].name);
+	fidOutput[i] = fopen(buffer, restartOpt);
     }
 }
+
+
 
 //This version is for homogeneous case
 void write_streams(double **f, double time, double *v) {
@@ -213,9 +232,9 @@ void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, doub
             option = "w";
         }
 
-        for(i = 0; i < 7; i++) {
-            fopen_output_file(filepointers[i], formats[i], inputFile, outputOptions, mixture, flags[i], option);
-        }
+        //for(i = 0; i < 7; i++) {
+        //    fopen_output_file(filepointers[i], formats[i], inputFile, outputOptions, mixture, flags[i], option);
+        //}
     }
 }
 
@@ -376,19 +395,6 @@ void close_streams(int homogFlag) {
     }
 }
 
-static void fopen_output_file(FILE*** outfile, const char* format, char* inputFile, char* outputOptions, species* mixture, int flag, const char* restartOpt){
-    *outfile = malloc(Ns * sizeof(FILE *));
-
-    char buffer[100];
-
-    for(int i = 0; i < Ns; i++) {
-        sprintf(buffer, format, inputFile, outputOptions, mixture[i].name);
-
-        if(flag) {
-            *outfile[i] = fopen(buffer, restartOpt);
-        }
-    }
-}
 
 static void read_flags(FILE* outParams) {
     char line[80] = {"dummy"};
