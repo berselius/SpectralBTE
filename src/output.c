@@ -79,7 +79,6 @@ double MaxConverge(int N, double *v, double rho, double* u, double T, double *f)
 
 //initializer for homogeneous case
 void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, char *outputOptions, species *mix, int num_species) {
-    int i;
 
     N = nodes;
     L_v = Lv;
@@ -189,7 +188,6 @@ void write_streams(double **f, double time, double *v) {
 }
 
 void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, double *xnodes, double *dxnodes, int restart, char *inputFile, char *outputOptions, species *mix, int num_species) {
-    int i;
 
     N = nodes;
     L_v = Lv;
@@ -208,20 +206,19 @@ void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, doub
     //Load flag data from file
     FILE *outParams = fopen(path, "r");
 
+    //Sets flags so the stream writer knows what to output
     read_flags(outParams);
 
     fclose(outParams);
 
+    //Set this up to have all ranks send moments to rank 0 for output
     MPI_Comm_size(MPI_COMM_WORLD, &numNodes);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     if (rank == 0) {
-        printf("Opening streams\n");
+        printf("Opening output files \n");
 
-        FILE*** filepointers[7] = {&fidRho,&fidKinTemp,&fidPressure,&fidBulkV,&fidSlice,&fidEntropy,&fidMarginal};
-        const char* formats[7] = {"Data/rho_%s_%s_%s.plt","Data/kintemp_%s_%s_%s.plt","Data/pres_%s_%s_%s.plt","Data/bulkV_%s_%s_%s.plt",
-                                    "Data/slice_%s_%s_%s.plt","Data/entropy_%s_%s_%s.plt","Data/entropy_%s_%s_%s.plt"};
-        int flags[7] = {densFlag, tempFlag, presFlag, velFlag, sliceFlag, entFlag, marginalFlag};
+	const char* format = "Data/moments_";	
 
         const char* option = NULL;
 
@@ -232,9 +229,7 @@ void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, doub
             option = "w";
         }
 
-        //for(i = 0; i < 7; i++) {
-        //    fopen_output_file(filepointers[i], formats[i], inputFile, outputOptions, mixture, flags[i], option);
-        //}
+	fopen_output_file(format, inputFile, mixture, option);
     }
 }
 
