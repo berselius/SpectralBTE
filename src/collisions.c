@@ -107,7 +107,7 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
 }
 
 static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
-  int i, j, k, index, index1, index2, l, m, n, x, y, z;
+  int index, x, y, z;
   double **conv_weights, *conv_weight_chunk;
 
   if (weightgenFlag == 0) {
@@ -130,27 +130,25 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
   fft3D(fftIn_f, fftOut_f, noinverse);
   fft3D(fftIn_g, fftOut_g, noinverse);
 
-  #pragma omp parallel for private(i,j,k,l,m,n,x,y,z,conv_weight_chunk)
-  for (index = 0; index < N * N * N; index++) {
-    i = index / (N * N);
-    j = (index - i * N * N) / N;
-    k = index - N * (j + i * N);
-    conv_weight_chunk = conv_weights[index];
+  int zeta, zeta_x, zeta_y, zeta_z;
+  int xi, xi_x, xi_y, xi_z;
+  #pragma omp parallel for private(zeta_x, zeta_y, zeta_z, xi_x, xi_y, xi_z, x, y, z, index, conv_weight_chunk)
+  for (zeta = 0; zeta < N * N * N; zeta++) {
+    zeta_x = zeta / (N * N);
+    zeta_y = (zeta - zeta_x * N * N) / N;
+    zeta_z = zeta - N * (zeta_y + zeta_x * N);
+    conv_weight_chunk = conv_weights[zeta];
 
     int n2 = N / 2;
 
-/*   for(index1 = 0; index1 < N * N * N; index1++) {
-     l = index / (N * N);
-     m = (index - i * N * N) / N;
-     n = index - N * (j + i * N);*/
-    for (l = 0; l < N; l++)
-    for (m = 0; m < N; m++)
-    for (n = 0; n < N; n++) {
-      index1 = n + N * (m + N * l);
+   for(xi = 0; xi < N * N * N; xi++) {
+     xi_x = xi / (N * N);
+     xi_y = (xi - xi_x * N * N) / N;
+     xi_z = xi - N * (xi_y + xi_x * N);
 
-      x = i + n2 - l;
-      y = j + n2 - m;
-      z = k + n2 - n;
+      x = zeta_x + n2 - xi_x;
+      y = zeta_y + n2 - xi_y;
+      z = zeta_z + n2 - xi_z;
 
       if (x < 0)
         x = N + x;
@@ -167,10 +165,10 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
       else if (z > N-1)
         z = z - N;
 
-      index2 = z + N * (y + N * x);
+      index = z + N * (y + N * x);
       //multiply the weighted fourier coeff product
-      qHat[index][0] += conv_weight_chunk[index1]*(fftOut_g[index1][0]*fftOut_f[index2][0] - fftOut_g[index1][1]*fftOut_f[index2][1]);
-      qHat[index][1] += conv_weight_chunk[index1]*(fftOut_g[index1][0]*fftOut_f[index2][1] + fftOut_g[index1][1]*fftOut_f[index2][0]);
+      qHat[zeta][0] += conv_weight_chunk[xi]*(fftOut_g[xi][0]*fftOut_f[index][0] - fftOut_g[xi][1]*fftOut_f[index][1]);
+      qHat[zeta][1] += conv_weight_chunk[xi]*(fftOut_g[xi][0]*fftOut_f[index][1] + fftOut_g[xi][1]*fftOut_f[index][0]);
     }
   }
 
