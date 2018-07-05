@@ -9,7 +9,7 @@ void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, doub
 
 void write_streams(double **f, double time);
 
-void write_streams_inhom(double ***f, double time, double *v, int order);
+void write_streams_inhom(double ***f, double time, int order);
 
 void close_streams();
 

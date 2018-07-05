@@ -19,12 +19,6 @@ static int numNodes;
 
 //File streams for output
 static FILE **fidOutput;
-static FILE **fidRho;
-static FILE **fidKinTemp;
-static FILE **fidPressure;
-static FILE **fidMarginal;
-static FILE **fidSlice;
-static FILE **fidBulkV;
 
 //Parameters from main code
 static int N;
@@ -213,6 +207,7 @@ void write_streams(double **f, double time) {
 	}
       }
       strcat(line,"\n");
+
       fprintf(fidOutput[i],"%s",line);
     }
 }
@@ -230,6 +225,8 @@ void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, doub
     dx = dxnodes;
     
     char path[100] = {"./input/"};
+    char topline[1028];
+    char tmpbuff[32];
 
     strcat(path, outputOptions);
 
@@ -260,98 +257,126 @@ void initialize_output_inhom(int nodes, double Lv, int numX, int numX_node, doub
         }
 
 	fopen_output_file(format, inputFile, mixture, option);
+
+	//Print headers
+	for(int i=0; i<Ns; i++) {
+	  sprintf(topline,"#");
+	  
+	  sprintf(tmpbuff,"Time ");
+	  strcat(topline,tmpbuff);
+
+	  sprintf(tmpbuff,"Position ");
+	  strcat(topline,tmpbuff);
+	  
+	  if(densFlag) {
+	    sprintf(tmpbuff,"Density ");
+	    strcat(topline,tmpbuff);
+	  }
+	  if(velFlag) {
+	    sprintf(tmpbuff,"Velocity_x ");
+	    strcat(topline,tmpbuff);
+	  }
+	  if(tempFlag) {
+	    sprintf(tmpbuff,"Temperature ");
+	    strcat(topline,tmpbuff);
+	  }
+	  if(presFlag) {
+	    sprintf(tmpbuff,"Pressure ");
+	    strcat(topline,tmpbuff);
+	  }
+
+	  strcat(topline,"\n");
+	  fprintf(fidOutput[i],topline);
+	}
+	
     }
 }
 
-void write_streams_inhom(double ***f, double time, double *v, int order) {
-    int i, j, k, l, spec;
-    double density, kinTemp, bulkV[3], marg, h_v;
-
-    h_v = 2 * L_v / N;
+void write_streams_inhom(double ***f, double time, int order) {
+    int l, spec;
+    double density, kinTemp, bulkV[3];
 
     MPI_Status status;
     double momentBuffer[6];
 
+    char line[1028];
+    char buff[32];
+
+
     if (rank == 0) {
         for (spec = 0; spec < Ns; spec++) {
-            if (densFlag)
-                fprintf(fidRho[spec], "ZONE I=%d T=\"T=%g\"\n", nX, time);
-            if (tempFlag)
-                fprintf(fidKinTemp[spec], "ZONE I=%d T=\"T=%g\"\n", nX, time);
-            if (presFlag)
-                fprintf(fidPressure[spec], "ZONE I=%d T=\"T=%g\"\n", nX, time);
-            if (velFlag)
-                fprintf(fidBulkV[spec], "ZONE I=%d T=\"T=%g\"\n", nX, time);
-
             for (l = order; l < (nX_node + order); l++) {
-                density = getDensity(f[spec][l], 0);
-                if (isnan( density)) {
-                    printf("nan detected in rank 0 cell %d \n", l);
-                    exit(0);
-                }
-                getBulkVelocity(f[spec][l], bulkV, density, 0);
-                kinTemp = getTemperature(f[spec][l], bulkV, density, 0);
 
-                if (densFlag)
-                    fprintf(fidRho[spec], "%le %le\n", x[l], density);
-                if (velFlag)
-                    fprintf(fidBulkV[spec], "%le %le\n", x[l], bulkV[0]);
-                if (tempFlag)
-                    fprintf(fidKinTemp[spec], "%le %le\n", x[l], kinTemp);
-                if (presFlag)
-                    fprintf(fidPressure[spec], "%le %le\n", x[l], getPressure(density, kinTemp));
-                if (sliceFlag) {
-                    fprintf(fidSlice[spec],    "ZONE I=%d T=\"T=%g X=%g\" \n", N, time, x[l]);
-                    for (i = 0; i < N; i++)
-                        fprintf(fidSlice[spec], "%le %le\n", v[i], f[spec][l][N / 2 + N * (N / 2 + N * i)]);
-                    fprintf(fidSlice[spec], "\n");
-                }
-                if (marginalFlag) {
-                    fprintf(fidMarginal[spec], "ZONE I=%d T=\"T=%g X=%g\" \n", N, time, x[l]);
-                    for (i = 0; i < N; i++) {
-                        marg = 0.0;
-                        for (j = 0; j < N; j++)
-                            for (k = 0; k < N; k++) {
-                                marg += h_v * h_v * f[spec][l][k + N * (j + N * i)];
-                            }
-
-                        fprintf(fidMarginal[spec], "%le %le\n", v[i], marg);
-                    }
-                    fprintf(fidMarginal[spec], "\n");
-                }
+	      //get the moments
+	      density = getDensity(f[spec][l], 0);
+	      if (isnan( density)) {
+		printf("nan detected in rank 0 cell %d \n", l);
+		exit(0);
+	      }
+	      getBulkVelocity(f[spec][l], bulkV, density, 0);
+	      kinTemp = getTemperature(f[spec][l], bulkV, density, 0);
+	      
+	      
+	      sprintf(line, "%le ", time);
+	      
+	      sprintf(buff, "%le ", x[l]);      
+	      strcat(line,buff);
+	      
+	      //Build the output line
+	      if (densFlag) {	
+		sprintf(buff, "%le ", density);      
+		strcat(line,buff);
+	      }
+	      if (velFlag) {
+		sprintf(buff, "%le ", bulkV[0]);
+		strcat(line,buff);
+	      }
+	      if (tempFlag) {
+		sprintf(buff, "%le ", kinTemp);
+		strcat(line,buff);
+	      }
+	      if (presFlag) {
+		sprintf(buff, "%le ", getPressure(density,kinTemp));
+		strcat(line,buff);
+	      }
+	      strcat(line,"\n");
+	      fprintf(fidOutput[spec],"%s",line);	      
             }
 
+
+	    //Next, get moment data from all the other nodes in order
+	    //Note: this was implemented in a SUPER clunky way
             int nodeCounter;
             for (nodeCounter = 1; nodeCounter < numNodes; nodeCounter++) {
-                for (l = order; l < nX_node + order; l++) {
-                    MPI_Recv(momentBuffer, 6, MPI_DOUBLE, nodeCounter, l, MPI_COMM_WORLD, &status);
-                    if (densFlag)
-                        fprintf(fidRho[spec], "%le %le\n", momentBuffer[5], momentBuffer[0]);
-                    if (velFlag)
-                        fprintf(fidBulkV[spec], "%le %le\n", momentBuffer[5], momentBuffer[1]);
-                    if (tempFlag)
-                        fprintf(fidKinTemp[spec], "%le %le\n", momentBuffer[5], momentBuffer[4]);
-                    if (presFlag)
-                        fprintf(fidPressure[spec], "%le %le\n", momentBuffer[5], getPressure(momentBuffer[0], momentBuffer[4]));
-                    //if(sliceFlag) {
-                    //fprintf(fidSlice, "ZONE I=%d T=\"T=%g X=%g\" \n", N, time, x[l]);
-                    //for(i=0;i<N;i++)
-                    //fprintf(fidSlice, "%le %le\n", v[i], f[l][N/2 + N*(N/2 + N*i)]);
-                    //fprintf(fidSlice,"\n");
-                }
+	      for (l = order; l < nX_node + order; l++) {
+		MPI_Recv(momentBuffer, 6, MPI_DOUBLE, nodeCounter, l, MPI_COMM_WORLD, &status);		
+
+		sprintf(line, "%le ", time);
+		
+		sprintf(buff, "%le ", momentBuffer[5]);      
+		strcat(line,buff);
+		
+		//Build the output line
+		if (densFlag) {	
+		  sprintf(buff, "%le ", momentBuffer[0]);      
+		  strcat(line,buff);
+		}
+		if (velFlag) {
+		  sprintf(buff, "%le ", momentBuffer[1]);
+		  strcat(line,buff);
+		}
+		if (tempFlag) {
+		  sprintf(buff, "%le ", momentBuffer[4]);
+		  strcat(line,buff);
+		}
+		if (presFlag) {
+		  sprintf(buff, "%le ", getPressure(momentBuffer[0],momentBuffer[4]));
+		  strcat(line,buff);
+		}
+		strcat(line,"\n");
+		fprintf(fidOutput[spec],"%s",line);	      		
+	      }
             }
-            if (densFlag)
-                fflush(fidRho[spec]);
-            if (velFlag)
-                fflush(fidBulkV[spec]);
-            if (tempFlag)
-                fflush(fidKinTemp[spec]);
-            if (presFlag)
-                fflush(fidPressure[spec]);
-            if (marginalFlag)
-                fflush(fidMarginal[spec]);
-            if (sliceFlag)
-                fflush(fidSlice[spec]);
         }
     }
     else {
@@ -364,6 +389,7 @@ void write_streams_inhom(double ***f, double time, double *v, int order) {
                 }
                 getBulkVelocity(f[spec][l], bulkV, density, 0);
                 kinTemp = getTemperature(f[spec][l], bulkV, density, 0);
+
                 momentBuffer[0] = density;
                 momentBuffer[1] = bulkV[0];
                 momentBuffer[2] = bulkV[1];

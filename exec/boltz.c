@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
   /////////////////////////////////////////////
   else {
     if(!restart)
-      write_streams_inhom(f_inhom,0,v,order);
+      write_streams_inhom(f_inhom,0,order);
 
     if((rank == 0) && (restart_time>0)) {
       totTime = MPI_Wtime() - totTime_start;
@@ -386,7 +386,7 @@ int main(int argc, char **argv) {
 	    return 0;
 	  }
 	}	
-	write_streams_inhom(f_inhom,dt*(t+1),v,order);
+	write_streams_inhom(f_inhom,dt*(t+1),order);
 	outputCount = 0;
       }
       
