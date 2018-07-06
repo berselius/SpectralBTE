@@ -1,0 +1,232 @@
+#!/bin/bash
+#setup.sh will insert LOG's definition here
+
+#log path - should be consistent with other scripts
+LOG=.commit.log
+
+COMMIT=$1
+
+#data about project
+FILE_TYPES=(c cc h f)
+WORK_STAGES=(planning coding refactoring debugging optimising)
+FRAMEWORKS=(MPI OpenMP Cuda Kokkos "domain specific work")
+
+function rate_on_scale {
+	#give function args names
+	local message="$1"
+	local __result_var="$2"
+
+	local rating=
+	#get a rating
+	#(must be an integer between 1 and 7)
+	while [[ ! "$rating" =~ ^[0-9]+$ ]] \
+				|| [ 1 -gt "$rating" ] \
+				|| [ "$rating" -gt 7 ]
+	do
+		printf "$message"
+		read rating
+	done
+	echo ''
+
+	eval $__result_var="'$rating'"
+}
+
+#initialise temp
+echo '' > $LOG
+
+#mark the start of user-provided info
+echo '{"user_responses":' >> $LOG
+
+#copy over the original commit message
+#(after removing any comments)
+#as a description of the work done
+printf '\t{"description":"' >> $LOG
+grep -v '^#' $COMMIT >> $LOG
+printf '"},\n' >> $LOG
+
+#enable user input; assigns stdin to keyboard
+exec < /dev/tty
+
+#ask the user if they want to record any logging info
+#for this commit
+while [ "$record_log" != 'y' ] \
+	 && [ "$record_log" != 'n' ]
+do
+	printf 'Would you like to answer questions for\n'
+	printf 'the productivity log for this commit? (y/n)'
+	read record_log
+done
+echo ''
+
+#only ask the main body of questions if the user wants to make
+#a log; otherwise only make an automatic record
+if [ "$record_log" = 'y' ]; then
+
+	echo '###############'
+	echo '# Work Stages #'
+	echo '###############'
+	printf '\t{"time_categories":\n' >> $LOG
+	for ((i = 0; i < ${#WORK_STAGES[@]}; i++)) ; do
+		#if this isn't the first stage, add the trailing comma
+		if (($i != 0)) ; then
+			printf ',\n' >> $LOG
+		fi
+
+		stage="${WORK_STAGES[$i]}"
+
+		#mark the start of this stage
+		printf '\t\t{"%s":\n' "$stage" >> $LOG
+
+		#get an estimate of time spent on this stage for this commit
+		time_spent=
+		while [[ ! "$time_spent" =~ ^[0-9]+(\.[0-9]+)?$ ]]; do
+			printf 'Please estimate how many hours you spent\n'
+			printf 'on %s for the work in this commit:' "$stage"
+			read time_spent
+		done
+		echo ''
+		printf '\t\t{"time_spent":%f},' $time_spent >> $LOG
+
+		#0 indicates not completed or N/A
+		difficulty=0
+		#only ask about how hard the work was if they spent time on it	
+		if [[ ! "$time_spent" =~ ^[0]+(\.[0]+)?$ ]]; then
+			#get an estimate of the difficulty of the work
+			#(must be an integer between 1 and 7)
+			message="Please rate the difficulty of the $stage\n"\
+"you did for the work in this commit on a scale of 1-7\n"\
+"(1 - very easy, 4 - about average, 7 - very hard):"
+			rate_on_scale "$message" difficulty
+		fi
+		printf '\t\t\t{"difficulty":%d}\n\t\t}' $difficulty >> $LOG
+	done
+	printf '\n\t}' >> $LOG
+
+	echo '##########################'
+	echo '# Parallelism Frameworks #'
+	echo '##########################'
+	#ask the user about which tags are relevant to their work
+	printf '\t{"tags":\n' >> $LOG
+	for ((i = 0; i < ${#FRAMEWORKS[@]}; i++)) ; do
+		tag_used=
+		tag="${FRAMEWORKS[$i]}"
+		
+		#add trailing comma and newline if this isn't the
+		#first tag
+		if (($i != 0)); then
+			printf ',\n' >> $LOG
+		fi
+
+		#read in a yes or no answer
+		while [ "$tag_used" != 'y' ] \
+			 && [ "$tag_used" != 'n' ]
+		do
+			printf 'Did this work involve %s? (y/n)' "$tag"
+			read tag_used
+		done
+		
+		#write out the answer as a boolean
+		if [ $tag_used = 'y' ]; then
+			printf '\t\t{"%s":true}' "$tag" >> $LOG
+		else
+			printf '\t\t{"%s":false}' "$tag" >> $LOG
+		fi
+		echo ''
+	done
+	#end the tag section
+	printf '\n\t},\n' >> $LOG
+
+	echo '##################'
+	echo '# Total Workload #'
+	echo '##################'
+
+	#start NASA Task Load Index accessment
+	printf '\t{"NASA-TLX":\n' >> $LOG
+
+	message="Please rate the mental demand of this work on a scale of 1-7.\n"\
+"How much mental and perceptual activity was required?\n"\
+"Was the work easy or demanding, simple or complex?\n"\
+"(1 - very low, 4 - about average, 7 - very high):"
+	rate_on_scale "$message" mental_demand
+	printf '\t\t{"mental_demand":%d},' $mental_demand >> $LOG
+
+	#NOTE: physical effort ommited; deemed irrelevant
+	#message="Please rate the physical demand of this work on a scale of 1-7.\n"\
+#"How much physical activity was required?\n"\
+#"Was the task easy or demanding, slack or strenuous?\n"\
+#"(1 - very low, 4 - about average, 7 - very high):"
+	#rate_on_scale "$message" physical_demand
+	#printf '\t\t{"physical_demand":%d},' $physical_demand >> $LOG
+
+	message="Please rate the temporal demand of this work on a scale of 1-7.\n"\
+"How much time pressure did you feel due to the pace?\n"\
+"at which the work occured? Was the pace slow or rapid?\n"\
+"(1 - very low, 4 - about average, 7 - very high):"
+	rate_on_scale "$message" temporal_demand
+	printf '\t\t{"temporal_demand":%d},' $temporal_demand >> $LOG
+
+	message="Please rate your performance on a scale of 1-7.\n"\
+"How successful were you in accomplishing what you were asked to do?\n"\
+"How satisfied were you with your performance?\n"\
+"(1 - perfect, 4 - about average, 7 - failure):"
+	rate_on_scale "$message" performance
+	printf '\t\t{"performance":%d},' $performance >> $LOG
+
+	message="Please rate the effort involved in this work on a scale of 1-7.\n"\
+"How hard did you have to work to accomplish your level of performance?\n"\
+"(1 - very low, 4 - about average, 7 - very high):"
+	rate_on_scale "$message" effort
+	printf '\t\t{"effort":%d},' $effort >> $LOG
+
+	message="Please rate your frustration during this work on a scale of 1-7.\n"\
+"How irritated, stressed, and annoyed versus content, relaxed,\n"\
+"and complacent did you feel during your work?\n"\
+"(1 - very low, 4 - about average, 7 - very high):"
+	rate_on_scale "$message" frustration
+	printf '\t\t{"frustration":%d}' $frustration >> $LOG
+
+	#end NASA-TLX info
+	printf '\t}' >> $LOG
+fi
+
+#close stdin back up
+exec <&-
+
+#mark the end of user-provided info
+echo '}' >> $LOG
+
+#copy over the autogenerated commented out lines
+printf '{"status":"' >> $LOG
+grep "^#" $COMMIT >> $LOG
+printf '"}\n' >> $LOG
+
+#get a list of relevant files in the main directory of the repo,
+#from a list of important file extensions
+files=""                                                                           
+for extension in "${FILE_TYPES[@]}"                                                
+do                                                                                 
+    f=$(find . -type f -name "*.$extension")                                       
+    files+=" $f"                                                                   
+done                                                                               
+
+IFS=' ' read -r -a files <<< "$files"
+#write info on every file in the list to the log file
+printf '{"files":\n' >> $LOG
+if [ ! -z "$files" ]; then
+	for ((i = 0; i < ${#files[@]}; i++)); do
+		file="${files[$i]}"
+
+		#only add the trailing comma and newline if this
+		#isn't the first file
+		if (($i != 0)) ; then
+			printf ',\n' >> $LOG
+		fi
+
+		#write the info on the current file
+		stat --printf="\t{\"name\":\"%n\",\"size\":%s,\"last_modified\":%Y}" \
+		"$file" >> $LOG
+	done
+fi
+printf '\n}\n' >> $LOG
+
+#git info will be stored by post-commit
