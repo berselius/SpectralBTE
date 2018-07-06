@@ -7,6 +7,7 @@
 #include <gsl/gsl_sf_bessel.h>
 #include "species.h"
 #include <string.h>
+#include <stdarg.h>
 
 static int N;
 static double L_v;
@@ -28,8 +29,7 @@ void alloc_weights(int N, double ****conv_weights, int total_species) {
     (*conv_weights)[i] = malloc(N*N*N*sizeof(double *));
 }
 
-void initialize_weights(int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j) {
-  FILE *fidWeights;
+void initialize_weights(int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, species species_i, species species_j, int weightgenFlag, ...) {
   char buffer_weights[100];
   int readFlag;
   int i;
@@ -56,69 +56,82 @@ void initialize_weights(int nodes, double *eta, double Lv, double lam, int weigh
 
   printf("%g %g %g %g %s %s \n",diam_i,diam_j,mass_i,mass_j,species_i.name,species_j.name);
 
-  for(i=0;i<N*N*N;i++) {
-    conv_weights[i] = malloc(N*N*N*sizeof(double));
-  }
+  if (weightgenFlag == 0) {
+    double **conv_weights;
+    va_list args;
+    va_start(args, weightgenFlag);
+    conv_weights = va_arg(args, double **);
+    va_end(args);
 
+    FILE *fidWeights;
 
-  if(!isoFlag) {
-    if(strcmp(species_i.name,"default")==0)
-      sprintf(buffer_weights,"Weights/N%d_isotropic_L_v%g_lambda%g.wts",N, L_v,lambda); //old style of naming
-    else
-      sprintf(buffer_weights,"Weights/N%d_isotropic_L_v%g_HS_%s_%zd_%s_%zd.wts",N, L_v,species_i.name,species_i.id,species_j.name,species_j.id);
-  }
-  else {
-    sprintf(buffer_weights,"Weights/N%d_AnIso_L_v%g_lambda%g_Landau.wts",N, L_v,lambda);
-    //sprintf(buffer_weights,"Weights/N%d_AnIso_L_v%g_lambda%g_glance0.0001_C.wts",N, L_v,lambda);
-  }
+    printf("Precomputing weights to be stored...\n");
+    for(i=0;i<N*N*N;i++) {
+      conv_weights[i] = malloc(N*N*N*sizeof(double));
+    }
 
-
-  if(weightFlag == 0) { //Check to see if the weights are there
-    if((fidWeights = fopen(buffer_weights,"r"))) {
-      printf("Loading weights from file %s\n",buffer_weights);
-      for(i=0;i<N*N*N;i++) { 
-	readFlag = (int) fread(conv_weights[i],sizeof(double),N*N*N,fidWeights);
-	if(readFlag != N*N*N) {
-	  printf("Error reading weight file\n");
-	  exit(1);
-	} 
-      }      
+    if(!isoFlag) {
+      if(strcmp(species_i.name,"default")==0)
+        sprintf(buffer_weights,"Weights/N%d_isotropic_L_v%g_lambda%g.wts",N, L_v,lambda); //old style of naming
+      else
+        sprintf(buffer_weights,"Weights/N%d_isotropic_L_v%g_HS_%s_%zd_%s_%zd.wts",N, L_v,species_i.name,species_i.id,species_j.name,species_j.id);
     }
     else {
-      printf("Stored weights not found for this configuration, generating ...\n");
-      if(!isoFlag) {
-	generate_conv_weights_iso(conv_weights);
+      sprintf(buffer_weights,"Weights/N%d_AnIso_L_v%g_lambda%g_Landau.wts",N, L_v,lambda);
+      //sprintf(buffer_weights,"Weights/N%d_AnIso_L_v%g_lambda%g_glance0.0001_C.wts",N, L_v,lambda);
+    }
+
+
+    if(weightFlag == 0) { //Check to see if the weights are there
+      if((fidWeights = fopen(buffer_weights,"r"))) {
+        printf("Loading weights from file %s\n",buffer_weights);
+        for(i=0;i<N*N*N;i++) { 
+          readFlag = (int) fread(conv_weights[i],sizeof(double),N*N*N,fidWeights);
+          if(readFlag != N*N*N) {
+	    printf("Error reading weight file\n");
+            exit(1);
+          } 
+        }      
       }
       else {
-	printf("Please use the MPI Weight generator to build the weights for this anisotropic function\n");
-	exit(1);
-      }
-      //dump the weights we've computed into a file
+        printf("Stored weights not found for this configuration, generating ...\n");
+        if(!isoFlag) {
+          generate_conv_weights_iso(conv_weights);
+        }
+        else {
+          printf("Please use the MPI Weight generator to build the weights for this anisotropic function\n");
+          exit(1);
+        }
+        //dump the weights we've computed into a file
       
+        fidWeights = fopen(buffer_weights,"w");
+        for(i=0;i<N*N*N;i++) {
+          fwrite(conv_weights[i],sizeof(double),N*N*N,fidWeights);
+        } 
+        if(fflush(fidWeights) != 0) {
+          printf("Something is wrong with storing the weights");
+          exit(0);
+        }      
+      }
+      fclose(fidWeights);
+    }
+    else { //weights forced to be regenerated
+      printf("Fresh version of weights being computed and stored for this configuration\n");
+      generate_conv_weights_iso(conv_weights);
+      //dump the weights we've computed into a file
       fidWeights = fopen(buffer_weights,"w");
       for(i=0;i<N*N*N;i++) {
-	fwrite(conv_weights[i],sizeof(double),N*N*N,fidWeights);
+        fwrite(conv_weights[i],sizeof(double),N*N*N,fidWeights);
       } 
       if(fflush(fidWeights) != 0) {
-	printf("Something is wrong with storing the weights");
-	exit(0);
-      }      
+        printf("Something is wrong with storing the weights");
+        exit(0);
+      }
+      fclose(fidWeights);
     }
-    fclose(fidWeights);
-  } 
-  else { //weights forced to be regenerated
-    printf("Fresh version of weights being computed and stored for this configuration\n");
-    generate_conv_weights_iso(conv_weights);
-    //dump the weights we've computed into a file
-    fidWeights = fopen(buffer_weights,"w");
-    for(i=0;i<N*N*N;i++) {
-      fwrite(conv_weights[i],sizeof(double),N*N*N,fidWeights);
-    } 
-    if(fflush(fidWeights) != 0) {
-      printf("Something is wrong with storing the weights");
-      exit(0);
-    }
-    fclose(fidWeights);
+  }
+  else {
+    printf("Not precomputing weights. The weights will be generated on-the-fly...\n");
   }
 }
 
@@ -177,7 +190,6 @@ ki, zeta: wavenumbers for the convolution weight
 
 
 double gHat3(double ki1, double ki2, double ki3, double zeta1, double zeta2, double zeta3) {
-  printf("In gHat3....\n");
   double result = 0.0;
   double error;
   gsl_function F_ghat;
@@ -193,15 +205,12 @@ double gHat3(double ki1, double ki2, double ki3, double zeta1, double zeta2, dou
   args[2] = sqrt( (ki1 - mu*zeta1)*(ki1 - mu*zeta1) + (ki2 - mu*zeta2)*(ki2 - mu*zeta2) + (ki3 - mu*zeta3)*(ki3 - mu*zeta3) );
  
 
-  printf("Alocating GSL integration workspace...\n");
   w_r = gsl_integration_workspace_alloc(10000);
   
   F_ghat.function = &ghat;
   F_ghat.params = args;
-  printf("GSL Integration qag\n");
   gsl_integration_qag(&F_ghat, 0.0, L_v, 1e-8,1e-8,10000,2,w_r,&result,&error);
   //result = gauss_legendre(64,ghat,args,0.,L_v);
-  printf("I'm here!\n");  
   gsl_integration_workspace_free(w_r);
   
   

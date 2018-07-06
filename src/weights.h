@@ -37,8 +37,7 @@ isoFlag
 conv_weights: pointer to memory allocated by alloc_weights
 
  *******************/
-void initialize_weights(int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j);
-
+void initialize_weights(int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, species species_i, species species_j, int weightgenFlag, ...);
 
 
 //Internal functions
