@@ -177,6 +177,7 @@ ki, zeta: wavenumbers for the convolution weight
 
 
 double gHat3(double ki1, double ki2, double ki3, double zeta1, double zeta2, double zeta3) {
+  printf("In gHat3....\n");
   double result = 0.0;
   double error;
   gsl_function F_ghat;
@@ -192,15 +193,15 @@ double gHat3(double ki1, double ki2, double ki3, double zeta1, double zeta2, dou
   args[2] = sqrt( (ki1 - mu*zeta1)*(ki1 - mu*zeta1) + (ki2 - mu*zeta2)*(ki2 - mu*zeta2) + (ki3 - mu*zeta3)*(ki3 - mu*zeta3) );
  
 
-  
+  printf("Alocating GSL integration workspace...\n");
   w_r = gsl_integration_workspace_alloc(10000);
   
   F_ghat.function = &ghat;
   F_ghat.params = args;
-  
+  printf("GSL Integration qag\n");
   gsl_integration_qag(&F_ghat, 0.0, L_v, 1e-8,1e-8,10000,2,w_r,&result,&error);
   //result = gauss_legendre(64,ghat,args,0.,L_v);
-  
+  printf("I'm here!\n");  
   gsl_integration_workspace_free(w_r);
   
   

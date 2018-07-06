@@ -107,16 +107,9 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
   }
 }
 
-<<<<<<< HEAD
 static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
-  printf("In Compute Qhat...\n");
   int index, x, y, z;
   double **conv_weights, *conv_weight_chunk;
-=======
-static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
-  int index, x, y, z;
-  double *conv_weight_chunk;
->>>>>>> 65c85cfea5a57320625f8377ef518eed9aa52a6c
 
   if (weightgenFlag == 0) {
      va_list args;
@@ -135,7 +128,7 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
     fftIn_g[index][1] = 0.0;
   }
 
-  //move to foureir space
+  //move to fourier space
   fft3D(fftIn_f, fftOut_f, noinverse);
   fft3D(fftIn_g, fftOut_g, noinverse);
 
@@ -145,16 +138,18 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
   if (weightgenFlag == 1) {
     prefactor = 0.0625 * (diam_i + diam_j) * (diam_i + diam_j);
   }
-  #pragma omp parallel for private(zeta_x, zeta_y, zeta_z, xi_x, xi_y, xi_z, x, y, z, index, conv_weight_chunk, cweight)
+  //#pragma omp parallel for private(zeta_x, zeta_y, zeta_z, xi_x, xi_y, xi_z, x, y, z, index, conv_weight_chunk, cweight)
   for (zeta = 0; zeta < N * N * N; zeta++) {
     zeta_x = zeta / (N * N);
     zeta_y = (zeta - zeta_x * N * N) / N;
     zeta_z = zeta - N * (zeta_y + zeta_x * N);
-    conv_weight_chunk = conv_weights[zeta];
+    if (weightgenFlag == 0) {
+      conv_weight_chunk = conv_weights[zeta];
+    }
 
     int n2 = N / 2;
 
-   #pragma omp simd
+  // #pragma omp simd
    for(xi = 0; xi < N * N * N; xi++) {
      xi_x = xi / (N * N);
      xi_y = (xi - xi_x * N * N) / N;
@@ -252,7 +247,6 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ..
 
 void ComputeQ(double *f, double *g, double *Q, int weightgenFlag, ...) {
 
-  printf("In Compute Q...\n");
   double **conv_weights;
   if (weightgenFlag == 0) {
     va_list args;
