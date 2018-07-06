@@ -184,7 +184,7 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
       }
       else {
         //Assume iso-case
-        cweight = wtN[xi_x]*wtN[xi_y]*wtN[xi_z]*0.25*pow(0.5*(diam_i+diam_j),2) * gHat3(eta[xi_x], eta[xi_y], eta[xi_z], eta[zeta_x], eta[zeta_y], eta[zeta_z]);
+        cweight = wtN[xi_x] * wtN[xi_y] * wtN[xi_z] * prefactor * gHat3(eta[xi_x], eta[xi_y], eta[xi_z], eta[zeta_x], eta[zeta_y], eta[zeta_z]);
       }
       //multiply the weighted fourier coeff product
       qHat[zeta][0] += cweight * (fftOut_g[xi][0]*fftOut_f[index][0] - fftOut_g[xi][1]*fftOut_f[index][1]);
@@ -204,6 +204,7 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
   The main function for calculating the collision effects
 */
 void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ...) {
+// timers = [Q_hat, Q_max_preserve, Q, maxwellian]
   double **conv_weights;
   if (weightgenFlag == 0) {
     va_list args;
@@ -214,12 +215,9 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ..
 
   int index;
 
-  function_time = clock();
   find_maxwellians(M_i, g_i, f);
   find_maxwellians(M_j, g_j, g);
-  printf("Two calls of find_maxwellians takes %f seconds.\n", ((double)(clock() - function_time)) / CLOCKS_PER_SEC);
 
-  function_time = clock();
   compute_Qhat(M_i, g_j, weightgenFlag, conv_weights);
   //set Collision output
   //#pragma omp parallel for private(Q)
@@ -240,7 +238,6 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ..
   for (index = 0; index < N * N * N; index++) {
 	Q[index] += fftOut_f[index][0];
   }
-  printf("Three calls of compute_Qhat takes %f seconds.\n", ((double)(clock() - function_time)) / CLOCKS_PER_SEC);
 
   //Maxwellian part
   /*

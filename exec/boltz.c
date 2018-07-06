@@ -453,7 +453,24 @@ int main(int argc, char **argv) {
   dealloc_conservation();
   MPI_Finalize();
   
-  printf("Total runtime is %f seconds.\n", ((double)(clock() - main_code_timer)) / CLOCKS_PER_SEC);
+  func_timer.main_code_time = clock() - main_code_timer;
+
+  printf("Total code runtime: %f seconds.\n", func_timer.main_code_time / CLOCKS_PER_SEC);
+  if (func_timer.maxwellian_count != 0) {
+    printf("Average Maxwellian function (collisions.c) time: %f seconds\n", (double)(func_timer.maxwellian_time / CLOCKS_PER_SEC) / (double)func_time.maxwellian_count);
+  }
+  if (func_timer.Q_max_count != 0) {
+    printf("Average Q_max_preserve function (collisions.c) time: %f seconds\n", (double)(func_timer.Q_max_time / CLOCKS_PER_SEC) / (double)func_time.Q_max_count);
+  }
+  if (func_timer.Q_count != 0) {
+    printf("Average Q function (collisions.c) time: %f seconds\n", (double)(func_timer.Q_time / CLOCKS_PER_SEC) / (double)func_time.Q_count);
+  }
+  if (func_timer.Qhat_count != 0) {
+    printf("Average Qhat function (collisions.c) time: %f seconds\n", (double)(func_timer.Qhat_time / CLOCKS_PER_SEC) / (double)func_time.Qhat_count);
+  }
+  if (func_timer.fft3D_count != 0) {
+    printf("Average fft3D function (collisions.c) time: %f seconds\n", (double)(func_timer.fft3D_Time / CLOCKS_PER_SEC) / (double)func_time.fft3D_count);
+  }
 
   return 0;
 }
