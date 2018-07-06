@@ -141,7 +141,7 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
   if (weightgenFlag == 1) {
     prefactor = 0.0625 * (diam_i + diam_j) * (diam_i + diam_j);
   }
-  //#pragma omp parallel for private(zeta_x, zeta_y, zeta_z, xi_x, xi_y, xi_z, x, y, z, index, conv_weight_chunk, cweight)
+  #pragma omp parallel for private(zeta_x, zeta_y, zeta_z, xi_x, xi_y, xi_z, x, y, z, index, conv_weight_chunk, cweight)
   for (zeta = 0; zeta < N * N * N; zeta++) {
     zeta_x = zeta / (N * N);
     zeta_y = (zeta - zeta_x * N * N) / N;
@@ -152,7 +152,7 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
 
     int n2 = N / 2;
 
-  // #pragma omp simd
+   #pragma omp simd
    for(xi = 0; xi < N * N * N; xi++) {
      xi_x = xi / (N * N);
      xi_y = (xi - xi_x * N * N) / N;
