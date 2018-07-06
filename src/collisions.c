@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <omp.h>
 #include <stdarg.h>
+#include <time.h>
 
 #include "constants.h"
 #include "collisions.h"
@@ -27,6 +28,8 @@ static double scale3;
 
 static int inverse = 1;
 static int noinverse = 0;
+
+time_t function_time;
 
 static void find_maxwellians(double *M_mat, double *g_mat, double *mat);
 static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...);
@@ -211,9 +214,12 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ..
 
   int index;
 
+  function_time = clock();
   find_maxwellians(M_i, g_i, f);
   find_maxwellians(M_j, g_j, g);
+  printf("Two calls of find_maxwellians takes %f seconds.\n", ((double)(clock() - function_time)) / CLOCKS_PER_SEC);
 
+  function_time = clock();
   compute_Qhat(M_i, g_j, weightgenFlag, conv_weights);
   //set Collision output
   //#pragma omp parallel for private(Q)
@@ -234,6 +240,7 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ..
   for (index = 0; index < N * N * N; index++) {
 	Q[index] += fftOut_f[index][0];
   }
+  printf("Three calls of compute_Qhat takes %f seconds.\n", ((double)(clock() - function_time)) / CLOCKS_PER_SEC);
 
   //Maxwellian part
   /*
@@ -246,22 +253,30 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ..
 }
 
 void ComputeQ(double *f, double *g, double *Q, int weightgenFlag, ...) {
-
   double **conv_weights;
   if (weightgenFlag == 0) {
     va_list args;
     va_start(args, weightgenFlag);
     conv_weights = va_arg(args, double **);
     va_end(args);
+    function_time = clock();
+    compute_Qhat(f, g, weightgenFlag, conv_weights);
+    printf("compute_Qhat with precomputed weights takes %f seconds.\n", ((double)(clock() - function_time)) / CLOCKS_PER_SEC);
   }
-  compute_Qhat(f, g, weightgenFlag, conv_weights);
+  else {
+    function_time = clock();
+    compute_Qhat(f, g, weightgenFlag);
+    printf("compute_Qhat with on-the-fly weights takes %f seconds.\n", ((double)(clock() - function_time)) / CLOCKS_PER_SEC);
+  }
 
   int index;
   //set Collision output
+  function_time = clock();
   //#pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
     Q[index] = fftOut_f[index][0];
   }
+  printf("%d number of function calls of Q takes %f seconds.\n", N * N * N, ((double)(clock() - function_time)) / CLOCKS_PER_SEC);
 }
 
 
