@@ -34,7 +34,8 @@ int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD,&numNodes);
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-
+	
+  printf("MPI SIZE %d \n",numNodes);
 
   //Top-level parameters, read from input
   int N;
@@ -113,8 +114,8 @@ int main(int argc, char **argv) {
 
   if(homogFlag == 1) {     //load mesh data
     if(rank == 0)
+	  make_mesh(&nX, &nX_Node, &dx_min, &x, &dx, order,meshFile);
       printf("Loading mesh\n");
-    make_mesh(&nX, &nX_Node, &dx_min, &x, &dx, order,meshFile);
   }
 
   if(rank == 0)

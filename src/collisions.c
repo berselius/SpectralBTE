@@ -176,6 +176,7 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
   function ComputeQ
   -----------------
   The main function for calculating the collision effects
+  Q is the output
 */
 void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights) {
   int index;
