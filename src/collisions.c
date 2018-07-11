@@ -256,14 +256,10 @@ void ComputeQ(double *f, double *g, double *Q, int weightgenFlag, ...) {
     va_start(args, weightgenFlag);
     conv_weights = va_arg(args, double **);
     va_end(args);
-    function_time = clock();
     compute_Qhat(f, g, weightgenFlag, conv_weights);
-    printf("compute_Qhat with precomputed weights takes %f seconds.\n", ((double)(clock() - function_time)) / CLOCKS_PER_SEC);
   }
   else {
-    function_time = clock();
     compute_Qhat(f, g, weightgenFlag);
-    printf("compute_Qhat with on-the-fly weights takes %f seconds.\n", ((double)(clock() - function_time)) / CLOCKS_PER_SEC);
   }
 
   int index;
@@ -273,7 +269,6 @@ void ComputeQ(double *f, double *g, double *Q, int weightgenFlag, ...) {
   for (index = 0; index < N * N * N; index++) {
     Q[index] = fftOut_f[index][0];
   }
-  printf("%d number of function calls of Q takes %f seconds.\n", N * N * N, ((double)(clock() - function_time)) / CLOCKS_PER_SEC);
 }
 
 

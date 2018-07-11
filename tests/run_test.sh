@@ -53,6 +53,17 @@ done
 
 # check *.plt output files with python script (that compares numbers with
 # tolerance)
+
+module load anaconda/Anaconda3
+condaval=$(conda create -n conda_env pip) awk '{print $1;}'
+if [ "$condaval" = "CondaValueError" ]
+then
+  echo Conda virtual environment exists.
+fi
+
+source activate conda_env
+pip install numpy
+
 ${PYTHON} ${BIN}/check_diff.py ${BIN}
 res=$?
 
@@ -60,5 +71,7 @@ if [ ${res} -ne 0 ]; then
   echo "check_diff exited with code ${res}"
   exit 1
 fi
+
+source deactivate
 
 exit 0

@@ -1,3 +1,5 @@
+#include <time.h>
+
 struct FuncTimer{
   time_t main_code_time;
   time_t maxwellian_time;
@@ -13,3 +15,5 @@ struct FuncTimer{
 };
 
 struct FuncTimer func_timer; 
+
+void initialize_func_timer();

@@ -3,6 +3,7 @@ set(lib_SOURCES
   boundaryConditions.c
   collisions.c
   conserve.c
+  function_timer.c
   gauss_legendre.c
   initializer.c
   input.c
