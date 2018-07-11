@@ -28,23 +28,23 @@ static int load(double **conv_weights, char buffer_weights[100], int N);
 
 static void write(double **conv_weights, char buffer_weights[100], int N);
 
-static void generate_conv_weights_iso(double **conv_weights);
+static void generate_conv_weights_iso(int lower, int range, double **conv_weights);
 
 static double ghat(double r, void *args);
 
 static double gHat3(double ki1, double ki2, double ki3, double zeta1, double zeta2, double zeta3);
 
 // Allocates arrays N*N*N*total_species
-void alloc_weights(int N, double ****conv_weights, int total_species) {
+void alloc_weights(int range, double ****conv_weights, int total_species) {
   int i;
   *conv_weights = malloc(total_species * sizeof(double **));
   for (i = 0; i < total_species; i++) {
-    (*conv_weights)[i] = malloc(N * N * N * sizeof(double *));
+    (*conv_weights)[i] = malloc(range * sizeof(double *));
   }
 }
 
 // weightFlag = recompute weights even if they are already saved
-void initialize_weights(int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j) {
+void initialize_weights(int lower, int range, int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j) {
   char buffer_weights[100];
   int i;
 
@@ -86,13 +86,13 @@ void initialize_weights(int nodes, double *eta, double Lv, double lam, int weigh
     if(weightFlag == 0) {
       if(!load(conv_weights, buffer_weights, N)) {
 	printf("Stored weights not found for this configuration, generating ...\n");
-	generate_conv_weights_iso(conv_weights);
+	generate_conv_weights_iso(lower, range, conv_weights);
 	write(conv_weights, buffer_weights, N);
       }
     }
     else { //weights forced to be regenerated
       printf("Fresh version of weights being computed and stored for this configuration\n");
-      generate_conv_weights_iso(conv_weights);
+      generate_conv_weights_iso(lower, range, conv_weights);
       //dump the weights we've computed into a file
       write(conv_weights, buffer_weights, N);
     }
@@ -240,71 +240,29 @@ double gHat3(double ki1, double ki2, double ki3, double zeta1, double zeta2, dou
 
   gsl_integration_workspace_free(w_r);
 
-
-  /*
-      int origFlag = 0;
-      int origFlag2 = 0;
-      double ap = (args[0] + args[2])*L_v;
-      double am = (args[0] - args[2])*L_v;
-    if(lambda == 1) {
-      //GAIN
-      if(fabs(args[0] - args[2]) < 1e-10)
-        am = 0.0;
-      double xL = L_v*args[0];
-      double yL = L_v*args[2];
-      if((args[0] > 1e-8) && (args[2] > 1e-8)) {
-        origFlag = 1;
-        gain = (L_v*L_v*0.5/(args[0]*args[2])) * (sinc(am) - sinc(ap) + func_cos(am) - func_cos(ap));
-      }
-      else if ((args[0] > 1e-8) && (args[2] < 1e-8)) {
-        gain = L_v*(sin(xL) - xL*cos(xL)          )*pow(args[0],-3) + L_v*args[2]*args[2]*(xL*(xL*xL - 6.0)*cos(xL)  - 3.0*(xL*xL - 2.0)*sin(xL)       )*pow(args[0],-5)/6.0
-           + (xL*sin(xL) + 2.0*cos(xL) - 2.0)*pow(args[0],-4) -     args[2]*args[2]*(xL*(xL*xL - 18.0)*sin(xL) + 6.0*(xL*xL - 4.0)*cos(xL) + 24.0)*pow(args[0],-6)/6.0;
-      }
-      else if ((args[2] > 1e-8) && (args[0] < 1e-8)) {
-        gain = L_v*(sin(yL) - yL*cos(yL)          )*pow(args[2],-3) + L_v*args[0]*args[0]*(yL*(yL*yL - 6.0)*cos(yL)  - 3.0*(yL*yL - 2.0)*sin(yL)       )*pow(args[2],-5)/6.0
-           + (yL*sin(yL) + 2.0*cos(yL) - 2.0)*pow(args[2],-4) -     args[0]*args[0]*(yL*(yL*yL - 18.0)*sin(yL) + 6.0*(yL*yL - 4.0)*cos(yL) + 24.0)*pow(args[2],-6)/6.0;
-      }
-      else
-        gain = 0.25*pow(L_v,4) + pow(L_v,6)*(args[0]*args[0] + args[2]*args[2])*(1.0/180.0 - 1.0/30.0);
-      //LOSS
-      double zL = L_v*args[1];
-      if(args[1] > 1e-8) {
-        origFlag2 = 1;
-        loss = (cos(zL)*(2.0 - zL*zL) + 2.0*zL*sin(zL) - 2.0)*pow(args[1],-4);
-      }
-      else
-        loss = 0.25*pow(L_v,4) - args[1]*args[1]*pow(L_v,6)/36.0;
-      result = gain - loss;
-      }*/
-  /*
-      if(fabs(gain - loss - result) > max) {
-        max = fabs(gain-loss-result);
-        printf("%g %le %le \n", max, result, gain-loss);
-      }
-  */
   return prefactor * result;
 }
 
 //this generates the convolution weights G
-void generate_conv_weights_iso(double **conv_weights)
+void generate_conv_weights_iso(int lower, int range, double **conv_weights)
 {
-  int i,j,k,l,m,n;
+  int t,i,j,k,l,m,n;
+  int index;
 
 #pragma omp parallel for private(i,j,k,l,m,n)
-  for (i = 0; i < N; i++) {
-    for (j = 0; j < N; j++) {
-      for (k = 0; k < N; k++) {
+  for (t = 0; t < range; t++) {
 	for (l = 0; l < N; l++) {
 	  for (m = 0; m < N; m++) {
 	    for (n = 0; n < N; n++) {
 
-	      conv_weights[k + N * (j + N * i)][n + N * (m + N * l)] = wtN[l] * wtN[m] * wtN[n] * 0.25 * pow(0.5 * (diam_i + diam_j), 2) * gHat3(zeta[l], zeta[m], zeta[n], zeta[i], zeta[j], zeta[k]);
-	      //conv_weights[k + N*(j + N*i)][n + N*(m + N*l)] = wtN[l]*wtN[m]*wtN[n]*gHat3(zeta[l], zeta[m], zeta[n], zeta[i], zeta[j], zeta[k]);
-	      //conv_weights[k + N*(j + N*i)][n + N*(m + N*l)] = 0.0;
+		  index = lower+i;
+		  i = index/(N*N);
+		  j = (index - (i*N*N)/(N);
+		  k = (index - (i*N*N) - (j*N));
+	
+	      conv_weights[t][n + N * (m + N * l)] = wtN[l] * wtN[m] * wtN[n] * 0.25 * pow(0.5 * (diam_i + diam_j), 2) * gHat3(zeta[l], zeta[m], zeta[n], zeta[i], zeta[j], zeta[k]);
+	      //conv_weights[k + N * (j + N * i)][n + N * (m + N * l)] = wtN[l] * wtN[m] * wtN[n] * 0.25 * pow(0.5 * (diam_i + diam_j), 2) * gHat3(zeta[l], zeta[m], zeta[n], zeta[i], zeta[j], zeta[k]);
 	    }
 	  }
 	}
-      }
-    }
-  }
 }
