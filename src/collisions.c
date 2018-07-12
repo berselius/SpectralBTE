@@ -10,10 +10,11 @@
 #include "conserve.h"
 #include "momentRoutines.h"
 #include "weights.h"
+#include "collisions_gpu.h"
 
 static fftw_plan p_forward;
 static fftw_plan p_backward;
-static fftw_complex *temp;
+static fftw_complex *temp_global;
 static fftw_complex *fftIn_f, *fftOut_f, *fftIn_g, *fftOut_g, *qHat;
 static double *M_i, *M_j, *g_i, *g_j;
 static double L_v;
@@ -23,7 +24,7 @@ static double *eta;
 static double dv;
 static double deta;
 static int N;
-static double *wtN;
+static double *wtN_global;
 static double scale3;
 
 static int inverse = 1;
@@ -33,6 +34,9 @@ time_t function_time;
 
 static void find_maxwellians(double *M_mat, double *g_mat, double *mat);
 static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...);
+static void fft3D(const fftw_complex *in, fftw_complex *out, fftw_complex *temp, const fftw_plan p, const double delta, const double L_start, const double L_end, const double sign, const double *var, const double *wtN, const double scaling);
+//static void fft3D(fftw_complex *in, fftw_complex *out, fftw_complex *temp, fftw_plan p, double delta, double L_start, double L_end, double sign, double *var, double *wtN, double scaling);
+static void fft3D_cuda (const fftw_complex *in, fftw_complex *out, fftw_complex *temp, const fftw_plan p, const double delta, const double L_start, const double L_end, const double sign, const double *var, const double *wtN, const double scaling, const int invert);
 
 //Initializes this module's static variables and allocates what needs allocating
 void initialize_coll(int nodes, double length, double *vel, double *zeta) {
@@ -50,13 +54,13 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
 
   scale3 = pow(1.0/sqrt(2.0*M_PI), 3.0);
 
-  wtN = malloc(N*sizeof(double));
-  wtN[0] = 0.5;
+  wtN_global = malloc(N*sizeof(double));
+  wtN_global[0] = 0.5;
   #pragma omp simd
   for(i=1;i<(N-1);i++) {
-    wtN[i] = 1.0;
+    wtN_global[i] = 1.0;
   }
-  wtN[N-1] = 0.5;
+  wtN_global[N-1] = 0.5;
 
   //SETTING UP FFTW
 
@@ -66,11 +70,11 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
   fftIn_g = fftw_malloc(N*N*N*sizeof(fftw_complex));
   fftOut_g = fftw_malloc(N*N*N*sizeof(fftw_complex));
   qHat = fftw_malloc(N*N*N*sizeof(fftw_complex));
-  temp = fftw_malloc(N*N*N*sizeof(fftw_complex));
+  temp_global = fftw_malloc(N*N*N*sizeof(fftw_complex));
 
   //Set up plans for FFTs
-  p_forward  = fftw_plan_dft_3d (N, N, N, temp, temp, FFTW_FORWARD , FFTW_ESTIMATE);
-  p_backward = fftw_plan_dft_3d (N, N, N, temp, temp, FFTW_BACKWARD, FFTW_ESTIMATE);
+  p_forward  = fftw_plan_dft_3d (N, N, N, temp_global, temp_global, FFTW_FORWARD , FFTW_ESTIMATE);
+  p_backward = fftw_plan_dft_3d (N, N, N, temp_global, temp_global, FFTW_BACKWARD, FFTW_ESTIMATE);
 
   M_i = malloc(N*N*N*sizeof(double));
   M_j = malloc(N*N*N*sizeof(double));
@@ -89,8 +93,8 @@ void dealloc_coll() {
   fftw_free(fftIn_g);
   fftw_free(fftOut_g);
   fftw_free(qHat);
-  fftw_free(temp);
-  free(wtN);
+  fftw_free(temp_global);
+  free(wtN_global);
 }
 
 static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
@@ -99,7 +103,6 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
 
   rho = getDensity(mat, 0);
   getBulkVelocity(mat, vel, rho, 0);
-  T = getTemperature(mat, vel, rho, 0);
   prefactor = rho * pow(0.5 / (M_PI * T), 1.5);
   for (index = 0; index < N * N * N; index++) {
     j = index / (N * N);
@@ -132,8 +135,8 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
   }
 
   //move to fourier space
-  fft3D(fftIn_f, fftOut_f, noinverse);
-  fft3D(fftIn_g, fftOut_g, noinverse);
+  fft3D_cuda(fftIn_f, fftOut_f, temp_global, p_forward, dv, L_eta, L_v, 1.0, eta, wtN_global, scale3, noinverse);
+  fft3D_cuda(fftIn_g, fftOut_g, temp_global, p_forward, dv, L_eta, L_v, 1.0, eta, wtN_global, scale3, noinverse);
 
   int zeta, zeta_x, zeta_y, zeta_z;
   int xi, xi_x, xi_y, xi_z;
@@ -184,7 +187,7 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
       }
       else {
         //Assume iso-case
-        cweight = wtN[xi_x] * wtN[xi_y] * wtN[xi_z] * prefactor * gHat3(eta[xi_x], eta[xi_y], eta[xi_z], eta[zeta_x], eta[zeta_y], eta[zeta_z]);
+        cweight = wtN_global[xi_x] * wtN_global[xi_y] * wtN_global[xi_z] * prefactor * gHat3(eta[xi_x], eta[xi_y], eta[xi_z], eta[zeta_x], eta[zeta_y], eta[zeta_z]);
       }
       //multiply the weighted fourier coeff product
       qHat[zeta][0] += cweight * (fftOut_g[xi][0]*fftOut_f[index][0] - fftOut_g[xi][1]*fftOut_f[index][1]);
@@ -193,7 +196,7 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
   }
 
   //End of parallel section
-  fft3D(qHat, fftOut_f, inverse);
+  fft3D_cuda(qHat, fftOut_f, temp_global, p_backward, deta, L_v, L_eta, -1.0, v, wtN_global, scale3, inverse);
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
@@ -280,29 +283,10 @@ function fft3D
 --------------
 Computes the fourier transform of in, and adjusts the coefficients based on our v, eta grids
 */
-void fft3D(fftw_complex *in, fftw_complex *out, int invert) {
+static void fft3D(const fftw_complex *in, fftw_complex *out, fftw_complex *temp, const fftw_plan p, const double delta, const double L_start, const double L_end, const double sign, const double *var, const double *wtN, const double scaling) {
   int i, j, k, index;
   double sum, prefactor, factor;
-  double delta, L_start, L_end, sign, *varr;
-  fftw_plan p;
-
-  if (invert == noinverse) {
-    delta = dv;
-    L_start = L_eta;
-    L_end = L_v;
-    varr = eta;
-    sign = 1.0;
-    p = p_forward;
-  }
-  else {
-    delta = deta;
-    L_start = L_v;
-    L_end = L_eta;
-    varr = v;
-    sign = -1.0;
-    p = p_backward;
-  }
-  prefactor = scale3 * delta * delta * delta;
+  prefactor = scaling * delta * delta * delta;
 
   //shift the 'v' terms in the exponential to reflect our velocity domain
   for (index = 0; index < N * N * N; index++) {
@@ -325,7 +309,7 @@ void fft3D(fftw_complex *in, fftw_complex *out, int invert) {
     i = index / (N * N);
     j = (index - i * N * N) / N;
     k = index - N * (j + i * N);
-    sum = sign * L_end * (varr[i] + varr[j] + varr[k]);
+    sum = sign * L_end * (var[i] + var[j] + var[k]);
 
     out[index][0] = cos(sum)*temp[index][0] - sin(sum)*temp[index][1];
     out[index][1] = cos(sum)*temp[index][1] + sin(sum)*temp[index][0];
