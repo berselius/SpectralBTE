@@ -249,7 +249,7 @@ void generate_conv_weights_iso(int lower, int range, double **conv_weights)
   int t,i,j,k,l,m,n;
   int index;
 
-#pragma omp parallel for private(i,j,k,l,m,n)
+#pragma omp parallel for private(index,t,l,m,n)
   for (t = 0; t < range; t++) {
 	for (l = 0; l < N; l++) {
 	  for (m = 0; m < N; m++) {

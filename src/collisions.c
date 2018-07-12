@@ -122,6 +122,7 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
   fft3D(fftIn_f, fftOut_f, noinverse);
   fft3D(fftIn_g, fftOut_g, noinverse);
 
+  // Hector, ranges should be implemented here. 
   #pragma omp parallel for private(i,j,k,l,m,n,x,y,z,conv_weight_chunk)
   for (index = 0; index < N * N * N; index++) {
     i = index / (N * N);
