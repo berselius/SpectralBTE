@@ -23,16 +23,26 @@ else
 	MAIN_REPO=$1
 fi
 
+echo "Starting setup"
 #setup the main repo hooks
-for hook in commit-msg post-commit ; do
+for hook in commit-msg post-commit pre-push ; do
+	echo "Starting setup for $hook"	
+
 	hook_copy=$MAIN_REPO/.git/hooks/$hook
 
 	#move over the main-repo-side hooks
-	cp $hook $hook_copy 
+	cp $hook $hook_copy
+	printf "\t$hook copied to $hook_copy\n" 
 	
 	#make sure LOG variable line up in all the hooks
 	#sed -i "3iLOG=.commit.log" $hook_copy
 
 	#make sure the hooks are executable
 	chmod +x $hook_copy
+	printf "\t$hook_copy is now executable\n"
+	
+	#let the user know that the hook was configured properly
+	echo "Setup complete for $hook"
 done
+
+echo "Setup complete for all hooks"
