@@ -4,6 +4,7 @@
 #log path - should be consistent with other scripts
 LOG=.commit.log
 
+#argument passed by git
 COMMIT=$1
 
 #data about project
@@ -32,10 +33,10 @@ function rate_on_scale {
 }
 
 #initialise temp
-echo '' > $LOG
+echo '{"log":[' >> $LOG
 
 #mark the start of user-provided info
-echo '{"user_responses":' >> $LOG
+echo '{"user_responses":[' >> $LOG
 
 #copy over the original commit message
 #(after removing any comments)
@@ -65,7 +66,7 @@ if [ "$record_log" = 'y' ]; then
 	echo '###############'
 	echo '# Work Stages #'
 	echo '###############'
-	printf '\t{"time_categories":\n' >> $LOG
+	printf '\t{"time_categories":[\n' >> $LOG
 	for ((i = 0; i < ${#WORK_STAGES[@]}; i++)) ; do
 		#if this isn't the first stage, add the trailing comma
 		if (($i != 0)) ; then
@@ -75,7 +76,7 @@ if [ "$record_log" = 'y' ]; then
 		stage="${WORK_STAGES[$i]}"
 
 		#mark the start of this stage
-		printf '\t\t{"%s":\n' "$stage" >> $LOG
+		printf '\t\t{"%s":[\n' "$stage" >> $LOG
 
 		#get an estimate of time spent on this stage for this commit
 		time_spent=
@@ -85,7 +86,7 @@ if [ "$record_log" = 'y' ]; then
 			read time_spent
 		done
 		echo ''
-		printf '\t\t{"time_spent":%f},' $time_spent >> $LOG
+		printf '\t\t\t{"time_spent":%f},' $time_spent >> $LOG
 
 		#0 indicates not completed or N/A
 		difficulty=0
@@ -98,15 +99,15 @@ if [ "$record_log" = 'y' ]; then
 "(1 - very easy, 4 - about average, 7 - very hard):"
 			rate_on_scale "$message" difficulty
 		fi
-		printf '\t\t\t{"difficulty":%d}\n\t\t}' $difficulty >> $LOG
+		printf '\n\t\t\t{"difficulty":%d}\n\t\t]}' $difficulty >> $LOG
 	done
-	printf '\n\t}' >> $LOG
+	printf '\n\t]},' >> $LOG
 
 	echo '##########################'
 	echo '# Parallelism Frameworks #'
 	echo '##########################'
 	#ask the user about which tags are relevant to their work
-	printf '\t{"tags":\n' >> $LOG
+	printf '\t{"tags":[\n' >> $LOG
 	for ((i = 0; i < ${#FRAMEWORKS[@]}; i++)) ; do
 		tag_used=
 		tag="${FRAMEWORKS[$i]}"
@@ -134,21 +135,21 @@ if [ "$record_log" = 'y' ]; then
 		echo ''
 	done
 	#end the tag section
-	printf '\n\t},\n' >> $LOG
+	printf '\n\t]},\n' >> $LOG
 
 	echo '##################'
 	echo '# Total Workload #'
 	echo '##################'
 
 	#start NASA Task Load Index accessment
-	printf '\t{"NASA-TLX":\n' >> $LOG
+	printf '\t{"NASA-TLX":[\n' >> $LOG
 
 	message="Please rate the mental demand of this work on a scale of 1-7.\n"\
 "How much mental and perceptual activity was required?\n"\
 "Was the work easy or demanding, simple or complex?\n"\
 "(1 - very low, 4 - about average, 7 - very high):"
 	rate_on_scale "$message" mental_demand
-	printf '\t\t{"mental_demand":%d},' $mental_demand >> $LOG
+	printf '\t\t{"mental_demand":%d},\n' $mental_demand >> $LOG
 
 	#NOTE: physical effort ommited; deemed irrelevant
 	#message="Please rate the physical demand of this work on a scale of 1-7.\n"\
@@ -156,49 +157,51 @@ if [ "$record_log" = 'y' ]; then
 #"Was the task easy or demanding, slack or strenuous?\n"\
 #"(1 - very low, 4 - about average, 7 - very high):"
 	#rate_on_scale "$message" physical_demand
-	#printf '\t\t{"physical_demand":%d},' $physical_demand >> $LOG
+	#printf '\t\t{"physical_demand":%d},\n' $physical_demand >> $LOG
 
 	message="Please rate the temporal demand of this work on a scale of 1-7.\n"\
 "How much time pressure did you feel due to the pace?\n"\
 "at which the work occured? Was the pace slow or rapid?\n"\
 "(1 - very low, 4 - about average, 7 - very high):"
 	rate_on_scale "$message" temporal_demand
-	printf '\t\t{"temporal_demand":%d},' $temporal_demand >> $LOG
+	printf '\t\t{"temporal_demand":%d},\n' $temporal_demand >> $LOG
 
 	message="Please rate your performance on a scale of 1-7.\n"\
 "How successful were you in accomplishing what you were asked to do?\n"\
 "How satisfied were you with your performance?\n"\
 "(1 - perfect, 4 - about average, 7 - failure):"
 	rate_on_scale "$message" performance
-	printf '\t\t{"performance":%d},' $performance >> $LOG
+	printf '\t\t{"performance":%d},\n' $performance >> $LOG
 
 	message="Please rate the effort involved in this work on a scale of 1-7.\n"\
 "How hard did you have to work to accomplish your level of performance?\n"\
 "(1 - very low, 4 - about average, 7 - very high):"
 	rate_on_scale "$message" effort
-	printf '\t\t{"effort":%d},' $effort >> $LOG
+	printf '\t\t{"effort":%d},\n' $effort >> $LOG
 
 	message="Please rate your frustration during this work on a scale of 1-7.\n"\
 "How irritated, stressed, and annoyed versus content, relaxed,\n"\
 "and complacent did you feel during your work?\n"\
 "(1 - very low, 4 - about average, 7 - very high):"
 	rate_on_scale "$message" frustration
-	printf '\t\t{"frustration":%d}' $frustration >> $LOG
+	printf '\t\t{"frustration":%d}\n' $frustration >> $LOG
 
 	#end NASA-TLX info
-	printf '\t}' >> $LOG
+	printf '\t]}\n' >> $LOG
 fi
 
 #close stdin back up
 exec <&-
 
 #mark the end of user-provided info
-echo '}' >> $LOG
+echo ']},' >> $LOG
+
+printf '{"autogeneratated":[' >> $LOG
 
 #copy over the autogenerated commented out lines
-printf '{"status":"' >> $LOG
+printf '\t{"status":"' >> $LOG
 grep "^#" $COMMIT >> $LOG
-printf '"}\n' >> $LOG
+printf '"},\n' >> $LOG
 
 #get a list of relevant files in the main directory of the repo,
 #from a list of important file extensions
@@ -211,7 +214,7 @@ done
 
 IFS=' ' read -r -a files <<< "$files"
 #write info on every file in the list to the log file
-printf '{"files":\n' >> $LOG
+printf '\t{"files":[\n' >> $LOG
 if [ ! -z "$files" ]; then
 	for ((i = 0; i < ${#files[@]}; i++)); do
 		file="${files[$i]}"
@@ -227,6 +230,6 @@ if [ ! -z "$files" ]; then
 		"$file" >> $LOG
 	done
 fi
-printf '\n}\n' >> $LOG
+printf '\n\t]},\n' >> $LOG
 
 #git info will be stored by post-commit
