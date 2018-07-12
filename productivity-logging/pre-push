@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#arguments passed by git
+LOCAL_REF=$1
+LOCAL_HASH=$2
+REMOTE_REF=$3
+REMOTE_HASH=$4
+
+#breadcrumb filename
+BREADCRUMB=.breadcrumb.temp
+
+#check to see if breadcrumb already exists
+#if so, this is a call triggered by pushing the notes
+#and thus we don't need to do anything
+if [ ! -f $BREADCRUMB ]; then
+	#create breadcrumb file
+	echo '' > $BREADCRUMB
+
+	#push the notes
+	git push origin refs/notes/productivity --quiet
+
+	#delete breadcrumb file, now that we're done
+	rm $BREADCRUMB
+fi
