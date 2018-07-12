@@ -16,4 +16,9 @@ set(lib_SOURCES
   weights.c
 )
 
+set(lib_CUDA_SOURCES
+  collisions_gpu.cu
+)
+
 add_SpectralBTE_library(lib "${lib_SOURCES}")
+add_SpectralBTE_CUDA_sources("${lib_CUDA_SOURCES}")

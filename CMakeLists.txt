@@ -74,6 +74,18 @@ find_package(GSL REQUIRED)
 include_directories(${GSL_INCLUDE_DIRS})
 set(SPECTRALBTE_EXTERNAL_LIBS "${SPECTRALBTE_EXTERNAL_LIBS};${GSL_LIBRARIES}")
 
+find_package(CUDA REQUIRED)
+include_directories(${CUDA_INCLUDE_DIRS})
+set(SPECTRALBTE_EXTERNAL_LIBS "${SPECTRALBTE_EXTERNAL_LIBS};${CUDA_LIBRARIES}")
+set(CUDA_SEPARABLE_COMPILATION On)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_35,code=sm_35) # Tesla K40
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_37,code=sm_37) # Tesla K80
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_52,code=sm_52) # GeForce GTX TITAN X
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_60,code=sm_60) # Tesla P100
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_70,code=sm_70) # Tesla V100, GeForce TITAN V
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--ptxas-options=-v)
+#set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--maxrregcount 32)
+
 # add the src directory to the include list
 include_directories(src)
 
@@ -82,7 +94,23 @@ macro(add_SpectralBTE_library library sources)
   set(SPECTRALBTE_LIBS "${SPECTRALBTE_LIBS};$<TARGET_OBJECTS:${library}>" PARENT_SCOPE)
 endmacro()
 
+set(SPECTRALBTE_CUDA_SRCS "")
+macro(add_SpectralBTE_CUDA_sources sources)
+  foreach(src IN ITEMS ${sources})
+    get_filename_component(abs_path "${src}" ABSOLUTE)
+    list(APPEND SPECTRALBTE_CUDA_SRCS "${abs_path}")
+  endforeach()
+  set(SPECTRALBTE_CUDA_SRCS "${SPECTRALBTE_CUDA_SRCS}" PARENT_SCOPE)
+endmacro()
+
 add_subdirectory(src)
+
+message(STATUS "SPECTRALBTE_CUDA_SRCS = ${SPECTRALBTE_CUDA_SRCS}")
+
+# compile CUDA sources
+cuda_add_library(SpectralBTE_CUDA ${SPECTRALBTE_CUDA_SRCS})
+CUDA_COMPUTE_SEPARABLE_COMPILATION_OBJECT_FILE_NAME(SpectralBTE_CUDA_link SpectralBTE_CUDA "${SpectralBTE_CUDA_SEPARABLE_COMPILATION_OBJECTS}")
+set(SPECTRALBTE_LIBS "${SPECTRALBTE_LIBS};${SpectralBTE_CUDA_SEPARABLE_COMPILATION_OBJECTS};${SpectralBTE_CUDA_link}")
 
 # create static library that will be used to link tests and SWIG library
 add_library(SpectralBTE_static
@@ -92,6 +120,10 @@ add_library(SpectralBTE_static
 # create shared library that can be used to link other C++ applications
 add_library(SpectralBTE SHARED
   ${SPECTRALBTE_LIBS}
+)
+
+set_target_properties(SpectralBTE_static SpectralBTE
+  PROPERTIES LINKER_LANGUAGE CXX
 )
 
 add_subdirectory(exec)
