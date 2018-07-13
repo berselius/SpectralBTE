@@ -30,7 +30,7 @@ Space_order
 #----------------------------------------------------------
 # Data writing frequency - number of timesteps between output snaphot
 Data_writing_frequency
-50
+1
 #----------------------------------------------------------
 # Flag telling whether this is restarting from a previous code
 Restart
