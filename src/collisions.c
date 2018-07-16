@@ -103,6 +103,7 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
 
   rho = getDensity(mat, 0);
   getBulkVelocity(mat, vel, rho, 0);
+  T = getTemperature(mat, vel, rho, 0);
   prefactor = rho * pow(0.5 / (M_PI * T), 1.5);
   for (index = 0; index < N * N * N; index++) {
     j = index / (N * N);
@@ -135,8 +136,8 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
   }
 
   //move to fourier space
-  fft3D_cuda(fftIn_f, fftOut_f, temp_global, p_forward, dv, L_eta, L_v, 1.0, eta, wtN_global, scale3, noinverse);
-  fft3D_cuda(fftIn_g, fftOut_g, temp_global, p_forward, dv, L_eta, L_v, 1.0, eta, wtN_global, scale3, noinverse);
+  fft3D(fftIn_f, fftOut_f, temp_global, p_forward, dv, L_eta, L_v, 1.0, eta, wtN_global, scale3);
+  fft3D(fftIn_g, fftOut_g, temp_global, p_forward, dv, L_eta, L_v, 1.0, eta, wtN_global, scale3);
 
   int zeta, zeta_x, zeta_y, zeta_z;
   int xi, xi_x, xi_y, xi_z;
@@ -196,7 +197,7 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
   }
 
   //End of parallel section
-  fft3D_cuda(qHat, fftOut_f, temp_global, p_backward, deta, L_v, L_eta, -1.0, v, wtN_global, scale3, inverse);
+  fft3D(qHat, fftOut_f, temp_global, p_backward, deta, L_v, L_eta, -1.0, v, wtN_global, scale3);
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
