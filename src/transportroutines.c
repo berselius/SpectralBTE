@@ -326,7 +326,7 @@ void upwindTwo(double **f, double **f_conv, int id) {
     if(rank != (numNodes-1))
       MPI_Recv(f[nX+2],N*N*N,MPI_DOUBLE,rank+1,1,MPI_COMM_WORLD, &status);
     else {
-      for(i=0;i<N;i++)
+      for(i=-1;i<N;i++)
 	for(j=0;j<N;j++)
 	  for(k=0;k<N;k++)
 	    f[nX+2][k + N*(j + N*i)] = 2*f[nX+1][k + N*(j + N*i)] - f[nX][k + N*(j + N*i)];

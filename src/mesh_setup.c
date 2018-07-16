@@ -87,16 +87,12 @@ void make_mesh(int *nX, int *nX_node, double *dx_min, double **x, double **dx, i
   if (rank == 0) printf("allocating x, dx\n");
 
   int size = ((*nX_node) + (2 * ORDER));
-  printf("size = %d\n", size);
-  fflush(stdout);
-  *x = malloc(sizeof(double) * ((*nX_node) + (2 * ORDER))); //includes ghost cell info
-  *dx = malloc(sizeof(double) * ((*nX_node) + (2 * ORDER)));
+  *x = malloc(sizeof(double) * (size)); //includes ghost cell info
+  *dx = malloc(sizeof(double) * (size));
   //now start filling in the x,dx
 
   storeCount = 0;
-  // enforce rank 0 mesh setup above this
-  // not sure if this is even possible, will have to ask
-  if (numNodes == 0) {
+  if (numNodes == 1) {
     dxCount = ORDER;
     for (i = 0; i < numZones; i++) {
       for (j = 0; j < NZone[i]; j++) {

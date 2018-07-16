@@ -73,9 +73,7 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
   g_j = malloc(N*N*N*sizeof(double));
 }
 
-
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
-
 
 //Deallocator function
 void dealloc_coll() {
@@ -105,7 +103,7 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
   }
 }
 
-static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
+static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat, int lower, int range) {
   int i, j, k, index, index1, index2, l, m, n, x, y, z;
   double *conv_weight_chunk;
 
@@ -122,14 +120,14 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
   fft3D(fftIn_f, fftOut_f, noinverse);
   fft3D(fftIn_g, fftOut_g, noinverse);
 
-  // Hector, ranges should be implemented here. 
   #pragma omp parallel for private(i,j,k,l,m,n,x,y,z,conv_weight_chunk)
-  for (index = 0; index < N * N * N; index++) {
-    i = index / (N * N);
-    j = (index - i * N * N) / N;
-    k = index - N * (j + i * N);
-    conv_weight_chunk = conv_weights[index];
-
+  for (index = 0; index < range; index++) { // N * N * N
+	int newindex = index+lower;
+    i = newindex / (N * N);
+    j = (newindex - i * N * N) / N;
+    k = newindex - N * (j + i * N);
+    conv_weight_chunk = conv_weights[newindex];
+	
     int n2 = N / 2;
 
 /*   for(index1 = 0; index1 < N * N * N; index1++) {
@@ -162,8 +160,9 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
 
       index2 = z + N * (y + N * x);
       //multiply the weighted fourier coeff product
-      qHat[index][0] += conv_weight_chunk[index1]*(fftOut_g[index1][0]*fftOut_f[index2][0] - fftOut_g[index1][1]*fftOut_f[index2][1]);
-      qHat[index][1] += conv_weight_chunk[index1]*(fftOut_g[index1][0]*fftOut_f[index2][1] + fftOut_g[index1][1]*fftOut_f[index2][0]);
+      //hector qhat[index] and change all the functions here to the appropiate range
+      qHat[newindex][0] += conv_weight_chunk[index1]*(fftOut_g[index1][0]*fftOut_f[index2][0] - fftOut_g[index1][1]*fftOut_f[index2][1]);
+      qHat[newindex][1] += conv_weight_chunk[index1]*(fftOut_g[index1][0]*fftOut_f[index2][1] + fftOut_g[index1][1]*fftOut_f[index2][0]);
     }
   }
 

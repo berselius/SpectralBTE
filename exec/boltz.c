@@ -33,6 +33,7 @@ int main(int argc, char **argv) {
   int rank;
   int numNodes;
   int nX_Node;
+  MPI_Comm worker;
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD,&numNodes);
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
@@ -105,6 +106,11 @@ int main(int argc, char **argv) {
   //load data from input file
   read_input(&N, &L_v, &Kn, &lambda, &dt, &nT, &order, &dataFreq, &restart, &restart_time, &initFlag, &bcFlag, &homogFlag, &weightFlag, &isoFlag, &meshFile, &num_species, &species_names, inputFilename);
 
+  if(rank) {
+	MPI_Comm_split(MPI_COMM_WORLD,1,rank,&worker);
+  } else {
+	MPI_Comm_split(MPI_COMM_WORLD,0,rank,&worker);
+  }
 
   //////////////////////////////////
   //SETUP                         //
@@ -122,6 +128,7 @@ int main(int argc, char **argv) {
 
   if(rank == 0) printf("Initializing variables %d\n",homogFlag);
 
+  // hector this should probably only be done by rank 0
   if(homogFlag == 0) {  //homogeneous case
     allocate_hom(N, &v, &zeta, &f_hom, &f_hom1, &Q, num_species);
     initialize_hom(N, L_v, v, zeta, f_hom, initFlag, mixture);
@@ -255,8 +262,8 @@ int main(int argc, char **argv) {
   //SPACE INHOMOGENEOUS CASE                 //
   /////////////////////////////////////////////
   else {
-    if(!restart)
-      write_streams_inhom(f_inhom,0,v,order);
+	// change write streams inhom for only 1 rank
+    if(!restart && rank == 0) write_streams_inhom(f_inhom,0,v,order);
 
     if((rank == 0) && (restart_time>0)) {
       totTime = MPI_Wtime() - totTime_start;
@@ -265,31 +272,33 @@ int main(int argc, char **argv) {
     }
 
     while(t < nT) {
-      if(rank == 0)
-	printf("In step %d of %d\n",t+1,nT);
+      if(rank == 0) printf("In step %d of %d\n",t+1,nT);
 
-      
       ///////////////////////////
       //ADVECTION STEP         //
       ///////////////////////////
+      // rank 0
       for(m=0;m<num_species;m++) {
-	if(order == 1) 
-	  advectOne(f_inhom[m], f_conv[m],m);
-	else
-	  advectTwo(f_inhom[m], f_conv[m],m);
+		if(order == 1) advectOne(f_inhom[m], f_conv[m],m);
+	    else advectTwo(f_inhom[m], f_conv[m],m);
       }
       
       t1 = (double) clock() / (double) CLOCKS_PER_SEC;
       
+	  // MPI get fs
 
       ////////////////////////
       //COLLISION STEP      //
       ////////////////////////
+      // rank 1 to m-1
       for(l=order;l<(nX_Node+order);l++) {  
-	for(m=0;m<num_species;m++)
-	  for(n=0;n<num_species;n++) {
-	    ComputeQ(f_conv[m][l], f_conv[n][l], Q[n*num_species + m], conv_weights[n*num_species + m]);
-	  }
+		for(m=0;m<num_species;m++)
+	  		for(n=0;n<num_species;n++) {
+			// hector this needs range
+	    	ComputeQ(f_conv[m][l], f_conv[n][l], Q[n*num_species + m], conv_weights[n*num_species + m]);
+	  		}
+	
+	// MPI put things together, Q
 
 	conserveAllMoments(Q);
 
@@ -355,7 +364,6 @@ int main(int argc, char **argv) {
 	for(m=0;m<num_species;m++)
 	  advectTwo(f_conv[m],f_inhom[m],m);
       
-
       ////////////////////////////////
       //RECORD DATA                 //
       ////////////////////////////////
