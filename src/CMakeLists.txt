@@ -2,6 +2,7 @@ set(lib_SOURCES
   aniso_weights.c
   boundaryConditions.c
   collisions.c
+  collisions_support_cpu.c
   conserve.c
   function_timer.c
   gauss_legendre.c
@@ -17,7 +18,7 @@ set(lib_SOURCES
 )
 
 set(lib_CUDA_SOURCES
-  collisions_gpu.cu
+  collisions_support_gpu.cu
 )
 
 add_SpectralBTE_library(lib "${lib_SOURCES}")

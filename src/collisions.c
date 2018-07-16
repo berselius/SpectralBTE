@@ -3,6 +3,8 @@
 #include <omp.h>
 #include <stdarg.h>
 #include <time.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 
 #include "constants.h"
 #include "collisions.h"
@@ -11,20 +13,26 @@
 #include "weights.h"
 
 #include "collisions_support_cpu.h"
+#include "collisions_support_gpu.h"
 
 static double (*fftIn_f)[2], (*fftOut_f)[2], (*fftIn_g)[2], (*fftOut_g)[2], (*qHat)[2];
+static double (*fftIn_f_cuda)[2], (*fftOut_f_cuda)[2], (*fftIn_g_cuda)[2], (*fftOut_g_cuda)[2], (*qHat_cuda)[2];
 static double *M_i, *M_j, *g_i, *g_j;
 static double L_v;
 static double L_eta;
 static double *v;
 static double *eta;
+
+static double *eta_cuda, *v_cuda;
+
 static double dv;
 static double deta;
 static int N;
 static double *wtN_global;
 
-static int inverse = 1;
-static int noinverse = 0;
+static double scale3;
+
+static int cudaFlag = 1;
 
 time_t function_time;
 
@@ -45,7 +53,8 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
   L_eta = -zeta[0];
   //L_eta = 0.0;
 
-  initialize_collisions_support_cpu(N, pow(1.0/sqrt(2.0*M_PI), 3.0));
+  scale3 = pow(1.0 / sqrt(2.0*M_PI), 3.0);
+  initialize_collisions_support_cpu(N, scale3);
 
   wtN_global = malloc(N*sizeof(double));
   wtN_global[0] = 0.5;
@@ -63,6 +72,16 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
   fftIn_g = malloc(N*N*N*sizeof(double[2]));
   fftOut_g = malloc(N*N*N*sizeof(double[2]));
   qHat = malloc(N*N*N*sizeof(double[2]));
+
+
+  if (cudaFlag == 1) {
+    initialize_collisions_support_gpu(wtN_global, N);
+
+    cudaMalloc((void**)&eta_cuda, N*sizeof(double));
+    cudaMalloc((void**)&v_cuda, N*sizeof(double));
+    cudaMemcpy(eta_cuda, eta, N*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(v_cuda, v, N*sizeof(double), cudaMemcpyHostToDevice);
+  }
 
   M_i = malloc(N*N*N*sizeof(double));
   M_j = malloc(N*N*N*sizeof(double));
@@ -82,6 +101,13 @@ void dealloc_coll() {
   free(fftOut_g);
   free(qHat);
   free(wtN_global);
+
+  if (cudaFlag == 1) {
+    cudaFree(eta_cuda);
+    cudaFree(v_cuda);
+
+    deallocate_collisions_support_gpu();
+  }
 
   deallocate_collisions_support_cpu();
 }
@@ -124,9 +150,16 @@ static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...) {
     fftIn_g[index][1] = 0.0;
   }
 
-  //move to fourier space
-  fft3D_cpu(fftIn_f, fftOut_f, dv, L_eta, L_v, 1.0, eta, wtN_global);
-  fft3D_cpu(fftIn_g, fftOut_g, dv, L_eta, L_v, 1.0, eta, wtN_global);
+
+  // move to Fourier space
+  if (cudaFlag == 0) { // Use CPU version
+    fft3D_cpu(fftIn_f, fftOut_f, dv, L_eta, L_v, 1.0, eta, wtN_global);
+    fft3D_cpu(fftIn_g, fftOut_g, dv, L_eta, L_v, 1.0, eta, wtN_global);
+  }
+  else { // Use GPU version
+    fft3D_gpu(fftIn_f, fftOut_f, dv, L_eta, L_v, 1.0, eta_cuda, scale3, N);
+    fft3D_gpu(fftIn_g, fftOut_g, dv, L_eta, L_v, 1.0, eta_cuda, scale3, N);
+  }
 
   int zeta, zeta_x, zeta_y, zeta_z;
   int xi, xi_x, xi_y, xi_z;
