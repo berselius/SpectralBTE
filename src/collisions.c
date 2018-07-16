@@ -212,9 +212,18 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
   */
 }
 
+void resddetQ(double* Q, int N){
+	int N3 = N*N*N;
+		for(int j = 0; j < N3; j+=1){
+			Q[i][j] = 0;
+		}
+}
+
 void ComputeQ(double *f, double *g, double *Q, double **conv_weights)
 {
   int index;
+
+  resetQ(Q, N);
 
   compute_Qhat(conv_weights, f, g);
   //set Collision output

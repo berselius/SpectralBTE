@@ -42,6 +42,7 @@ int main(int argc, char **argv) {
 
   //Top-level parameters, read from input
   int N;
+  int N3;
   double L_v;
   double Kn;
   double lambda;
@@ -111,11 +112,12 @@ int main(int argc, char **argv) {
   } else {
 	MPI_Comm_split(MPI_COMM_WORLD,0,rank,&worker);
   }
-
+  
+  N3 = N*N*N
   //////////////////////////////////
   //SETUP                         //
   //////////////////////////////////
-
+  
   //Allocating and initializing
 
   load_and_allocate_spec(&mixture, num_species, species_names);
@@ -129,16 +131,42 @@ int main(int argc, char **argv) {
   if(rank == 0) printf("Initializing variables %d\n",homogFlag);
 
   // hector this should probably only be done by rank 0
-  if(homogFlag == 0) {  //homogeneous case
+  if(homogFlag == 0) {  // homogeneous case
     allocate_hom(N, &v, &zeta, &f_hom, &f_hom1, &Q, num_species);
     initialize_hom(N, L_v, v, zeta, f_hom, initFlag, mixture);
     t = 0;
   }
-  else { //inhomogeneous case
-    allocate_inhom(N, nX_Node + (2*order), &v, &zeta, &f_inhom, &f_conv, &f_1, &Q, num_species);
-    initialize_inhom(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, nX_Node, x, dx, dt, &t, order, restart, inputFilename);
+  else { // inhomogeneous case
+	// might not need this
+	/*
+	if(rank == 0) {
+		double ***Q_all;
+		Q_all = malloc(numNodes*sizeof(double**));
+		for(int h = 0; h < numNodes; n += 1) {
+			*Q_all[h] = malloc(num_species*(sizeof(double*)));
+			for(for j = 0; j < N*N*N; j += 1){
+				**Q_all[j] = malloc(N*N*N*sizeof(double));
+			}
+		}
+	}
+	*/
+    	allocate_inhom(N, nX_Node + (2*order), &v, &zeta, &f_inhom, &f_conv, &f_1, &Q, num_species);
+    	initialize_inhom(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, nX_Node, x, dx, dt, &t, order, restart, inputFilename);
+	} else {
+		allocate_inhom(N, N + (2*order), &v, &zeta, &f_inhom, &f_conv, &f_1, &Q, num_species);
+		initialize_inhom_mpi(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, N, x, dx, dt, &t, order, restart, inputFilename); 
+	}
   }
 
+  // datatype to hold f array
+  MPI_Datatype fsubarray;
+  MPI_Type_create_subarray(3, [num_species,nX_Node + (2*order),N3], [num_species,nX_Node + (2*order),N3], [0,0,0], MPI_ORDER_C, MPI_INT, &fsubarray);
+  MPI_Type_commit(&fsubarray);
+
+  // datatype to hold Q
+  MPI_Datatype qsubarray;
+  MPI_Type_create_subarray(2, [num_species*num_species,N3], [num_species*num_species,N3], [0,0], MPI_ORDER_C, MPI_INT, &qsubarray);
+  MPI_Type_commit(&fsubarray);
 
   //Setup output
 
@@ -149,7 +177,6 @@ int main(int argc, char **argv) {
   else 
     initialize_output_inhom(N, L_v, nX, nX_Node, x, dx, restart, inputFilename, outputChoices, mixture, num_species);
   }
-  
 
   //Setup weights
 
@@ -215,7 +242,7 @@ int main(int argc, char **argv) {
 
       if(order == 1) {
 	//update
-	for(i=0;i<N*N*N;i++)
+	for(i=0;i<N3;i++)
 	  for(l=0;l<num_species;l++) 
 	    for(m=0;m<num_species;m++)      
 	      f_hom[l][i] += dt*Q[m*num_species + l][i]/Kn; 
@@ -223,7 +250,7 @@ int main(int argc, char **argv) {
       else if(order == 2) {
 	//update
 	
-	for(i=0;i<N*N*N;i++)
+	for(i=0;i<N3;i++)
 	  for(l=0;l<num_species;l++) {
 	    f_hom1[l][i] = f_hom[l][i];
 	    for(m=0;m<num_species;m++)      
@@ -242,7 +269,7 @@ int main(int argc, char **argv) {
 	conserveAllMoments(Q);	
 	
 	//update 2
-	for(i=0;i<N*N*N;i++)
+	for(i=0;i<N3;i++)
 	  for(l=0;l<num_species;l++) {
 	    f_hom[l][i] = 0.5*(f_hom[l][i] + f_hom1[l][i]);
 	    for(m=0;m<num_species;m++)      
@@ -262,7 +289,7 @@ int main(int argc, char **argv) {
   //SPACE INHOMOGENEOUS CASE                 //
   /////////////////////////////////////////////
   else {
-	// change write streams inhom for only 1 rank
+	// hector change write streams inhom for only 1 rank
     if(!restart && rank == 0) write_streams_inhom(f_inhom,0,v,order);
 
     if((rank == 0) && (restart_time>0)) {
@@ -272,33 +299,47 @@ int main(int argc, char **argv) {
     }
 
     while(t < nT) {
-      if(rank == 0) printf("In step %d of %d\n",t+1,nT);
+      	if(rank == 0) printf("In step %d of %d\n",t+1,nT);
 
       ///////////////////////////
       //ADVECTION STEP         //
       ///////////////////////////
       // rank 0
-      for(m=0;m<num_species;m++) {
-		if(order == 1) advectOne(f_inhom[m], f_conv[m],m);
-	    else advectTwo(f_inhom[m], f_conv[m],m);
-      }
-      
-      t1 = (double) clock() / (double) CLOCKS_PER_SEC;
-      
-	  // MPI get fs
+		if(rank == 0){
+      		for(m=0;m<num_species;m++) {
+				if(order == 1) advectOne(f_inhom[m], f_conv[m],m);
+	    		else advectTwo(f_inhom[m], f_conv[m],m);
+      		}
+		}
 
+		// broadcast f to all other ranks from rank 0      
+		MPI_Bcast(f_conv,num_species*N3*(nX_Node+(2*order)),fsubarray,0,MPI_COMM_WORLD);
+
+      	t1 = (double) clock() / (double) CLOCKS_PER_SEC;
+      
       ////////////////////////
       //COLLISION STEP      //
       ////////////////////////
-      // rank 1 to m-1
-      for(l=order;l<(nX_Node+order);l++) {  
-		for(m=0;m<num_species;m++)
-	  		for(n=0;n<num_species;n++) {
-			// hector this needs range
-	    	ComputeQ(f_conv[m][l], f_conv[n][l], Q[n*num_species + m], conv_weights[n*num_species + m]);
-	  		}
-	
-	// MPI put things together, Q
+      	for(l=order;l<(nX_Node+order);l++) {
+			
+ 		if(rank != 0) { 
+			for(m=0;m<num_species;m++) {
+	  			for(n=0;n<num_species;n++) {
+	    			ComputeQ(f_conv[m][l], f_conv[n][l], Q[n*num_species + m], conv_weights[n*num_species + m], lower, range);
+	  			}
+			}
+		}
+
+	// hector, make a function for this
+	if(rank == 0){
+	for(int y_ = 0; y_ < num_species*num_species; y_ += 1){
+	for(int x_ = 0; x_ < N3; x_ += 1) {
+		Q[y_][x_] = 0;
+	}	
+	}
+	}
+
+	MPI_Reduce((const void*)&Q,(void*)&Q,num_species*num_species*N3,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
 
 	conserveAllMoments(Q);
 
