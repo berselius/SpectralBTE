@@ -14,8 +14,8 @@
 
 static fftw_plan p_forward;
 static fftw_plan p_backward;
-static fftw_complex *temp_global;
-static fftw_complex *fftIn_f, *fftOut_f, *fftIn_g, *fftOut_g, *qHat;
+static double (*temp_global)[2];
+static double (*fftIn_f)[2], (*fftOut_f)[2], (*fftIn_g)[2], (*fftOut_g)[2], (*qHat)[2];
 static double *M_i, *M_j, *g_i, *g_j;
 static double L_v;
 static double L_eta;
@@ -34,9 +34,7 @@ time_t function_time;
 
 static void find_maxwellians(double *M_mat, double *g_mat, double *mat);
 static void compute_Qhat(double *f_mat, double *g_mat, int weightgenFlag, ...);
-static void fft3D(const fftw_complex *in, fftw_complex *out, fftw_complex *temp, const fftw_plan p, const double delta, const double L_start, const double L_end, const double sign, const double *var, const double *wtN, const double scaling);
-//static void fft3D(fftw_complex *in, fftw_complex *out, fftw_complex *temp, fftw_plan p, double delta, double L_start, double L_end, double sign, double *var, double *wtN, double scaling);
-static void fft3D_cuda (const fftw_complex *in, fftw_complex *out, fftw_complex *temp, const fftw_plan p, const double delta, const double L_start, const double L_end, const double sign, const double *var, const double *wtN, const double scaling, const int invert);
+static void fft3D(const double (*in)[2], double (*out)[2], double (*temp)[2], const fftw_plan p, const double delta, const double L_start, const double L_end, const double sign, const double *var, const double *wtN, const double scaling);
 
 //Initializes this module's static variables and allocates what needs allocating
 void initialize_coll(int nodes, double length, double *vel, double *zeta) {
@@ -65,12 +63,12 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
   //SETTING UP FFTW
 
   //allocate bins for ffts
-  fftIn_f = fftw_malloc(N*N*N*sizeof(fftw_complex));
-  fftOut_f = fftw_malloc(N*N*N*sizeof(fftw_complex));
-  fftIn_g = fftw_malloc(N*N*N*sizeof(fftw_complex));
-  fftOut_g = fftw_malloc(N*N*N*sizeof(fftw_complex));
-  qHat = fftw_malloc(N*N*N*sizeof(fftw_complex));
-  temp_global = fftw_malloc(N*N*N*sizeof(fftw_complex));
+  fftIn_f = malloc(N*N*N*sizeof(double[2]));
+  fftOut_f = malloc(N*N*N*sizeof(double[2]));
+  fftIn_g = malloc(N*N*N*sizeof(double[2]));
+  fftOut_g = malloc(N*N*N*sizeof(double[2]));
+  qHat = malloc(N*N*N*sizeof(double[2]));
+  temp_global = malloc(N*N*N*sizeof(double[2]));
 
   //Set up plans for FFTs
   p_forward  = fftw_plan_dft_3d (N, N, N, temp_global, temp_global, FFTW_FORWARD , FFTW_ESTIMATE);
@@ -88,12 +86,12 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
 
 //Deallocator function
 void dealloc_coll() {
-  fftw_free(fftIn_f);
-  fftw_free(fftOut_f);
-  fftw_free(fftIn_g);
-  fftw_free(fftOut_g);
-  fftw_free(qHat);
-  fftw_free(temp_global);
+  free(fftIn_f);
+  free(fftOut_f);
+  free(fftIn_g);
+  free(fftOut_g);
+  free(qHat);
+  free(temp_global);
   free(wtN_global);
 }
 
@@ -284,7 +282,7 @@ function fft3D
 --------------
 Computes the fourier transform of in, and adjusts the coefficients based on our v, eta grids
 */
-static void fft3D(const fftw_complex *in, fftw_complex *out, fftw_complex *temp, const fftw_plan p, const double delta, const double L_start, const double L_end, const double sign, const double *var, const double *wtN, const double scaling) {
+static void fft3D(const double (*in)[2], double (*out)[2], double (*temp)[2], const fftw_plan p, const double delta, const double L_start, const double L_end, const double sign, const double *var, const double *wtN, const double scaling) {
   int i, j, k, index;
   double sum, prefactor, factor;
   prefactor = scaling * delta * delta * delta;
