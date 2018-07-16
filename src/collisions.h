@@ -12,7 +12,6 @@ Requires linking of momentRoutines.h
 
 #ifndef _COLLISIONS_H
 #define _COLLISIONS_H
-#include <fftw3.h>
 
 /*******************
 function initialize_coll
