@@ -19,7 +19,7 @@ set(lib_SOURCES
 )
 
 set(lib_CUDA_SOURCES
-  collisions_support_gpu.cu
+  collisions_fft3d_gpu.cu
 )
 
 add_SpectralBTE_library(lib "${lib_SOURCES}")
