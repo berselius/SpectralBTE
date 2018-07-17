@@ -19,15 +19,12 @@
 static double (*fftIn_f)[2], (*fftOut_f)[2], (*fftIn_g)[2], (*fftOut_g)[2], (*qHat)[2];
 static double (*fftIn_f_cuda)[2], (*fftOut_f_cuda)[2], (*fftIn_g_cuda)[2], (*fftOut_g_cuda)[2], (*qHat_cuda)[2];
 static double *M_i, *M_j, *g_i, *g_j;
-static double L_v;
-static double L_eta;
-static double *v;
-static double *eta;
 
 static double *eta_cuda, *v_cuda;
 
-static double dv;
-static double deta;
+struct FFTVars v;
+struct FFTVars eta;
+
 static int N;
 static double *wtN_global;
 
@@ -42,13 +39,13 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
   int i;
 
   N = nodes;
-  L_v = length;
-  v = vel;
-  dv = v[1] - v[0];
+  v.L_var = length;
+  v.var = vel;
+  v.d_var = vel[1] - vel[0];
 
-  eta = zeta;
-  deta = zeta[1]-zeta[0];;
-  L_eta = -zeta[0];
+  eta.var = zeta;
+  eta.d_var = zeta[1]-zeta[0];;
+  eta.L_var = -zeta[0];
   //L_eta = 0.0;
 
   scale3 = pow(1.0 / sqrt(2.0*M_PI), 3.0);
@@ -77,8 +74,8 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
 
     cudaMalloc((void**)&eta_cuda, N*sizeof(double));
     cudaMalloc((void**)&v_cuda, N*sizeof(double));
-    cudaMemcpy(eta_cuda, eta, N*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(v_cuda, v, N*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(eta_cuda, eta.var, N*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(v_cuda, v.var, N*sizeof(double), cudaMemcpyHostToDevice);
   }
 
   M_i = malloc(N*N*N*sizeof(double));
@@ -130,24 +127,24 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ..
 
   int index;
 
-  find_maxwellians(M_i, g_i, f, M_i, v, N);
-  find_maxwellians(M_j, g_j, g, M_i, v, N);
+  find_maxwellians(M_i, g_i, f, M_i, v.var, N);
+  find_maxwellians(M_j, g_j, g, M_i, v.var, N);
 
-  compute_Qhat(M_i, g_j, qHat, fftIn_f, fftOut_f, fftIn_g, fftOut_g, v, dv, L_v, eta, deta, L_eta, wtN_global, N, scale3, cudaFlag, weightgenFlag, conv_weights);
+  compute_Qhat(M_i, g_j, qHat, fftIn_f, fftOut_f, fftIn_g, fftOut_g, v, eta, wtN_global, N, scale3, cudaFlag, weightgenFlag, conv_weights);
   //set Collision output
   //#pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
     Q[index] = fftOut_f[index][0];
   }
 
-  compute_Qhat(g_i, M_j, qHat, fftIn_f, fftOut_f, fftIn_g, fftOut_g, v, dv, L_v, eta, deta, L_eta, wtN_global, N, scale3, cudaFlag, weightgenFlag, conv_weights);
+  compute_Qhat(g_i, M_j, qHat, fftIn_f, fftOut_f, fftIn_g, fftOut_g, v, eta, wtN_global, N, scale3, cudaFlag, weightgenFlag, conv_weights);
   //set Collision output
   //#pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
    Q[index] += fftOut_f[index][0];
   }
 
-  compute_Qhat(g_i, g_j, qHat, fftIn_f, fftOut_f, fftIn_g, fftOut_g, v, dv, L_v, eta, deta, L_eta, wtN_global, N, scale3, cudaFlag, weightgenFlag, conv_weights);
+  compute_Qhat(g_i, g_j, qHat, fftIn_f, fftOut_f, fftIn_g, fftOut_g, v, eta, wtN_global, N, scale3, cudaFlag, weightgenFlag, conv_weights);
   //set Collision output
   //#pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
@@ -173,7 +170,7 @@ void ComputeQ(double *f, double *g, double *Q, int weightgenFlag, ...) {
     va_end(args);
   }
 
-  compute_Qhat(f, g, qHat, fftIn_f, fftOut_f, fftIn_g, fftOut_g, v, dv, L_v, eta, deta, L_eta, wtN_global, N, scale3, cudaFlag, weightgenFlag, conv_weights);
+  compute_Qhat(f, g, qHat, fftIn_f, fftOut_f, fftIn_g, fftOut_g, v, eta, wtN_global, N, scale3, cudaFlag, weightgenFlag, conv_weights);
 
   int index;
   //set Collision output

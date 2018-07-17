@@ -15,6 +15,14 @@ Requires linking of momentRoutines.h
 
 #include <stdarg.h>
 
+
+struct FFTVars
+{
+  double d_var;
+  double L_var;
+  double *var;
+};
+
 /*******************
 function initialize_coll
 Initializes the collision routine parameters and allocates needed memory
@@ -38,8 +46,6 @@ void dealloc_coll_cpu();
 
 void find_maxwellians(double *M_mat, double *g_mat, double *mat, const double *M_i, const double *v, const int N);
 
-void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftIn_f)[2], double (*fftOut_f)[2], double (*fftIn_g)[2], double (*fftOut_g)[2], double *v, double dv, double L_v, double *eta, double deta, double L_eta, double *wtN, int N, double scale3, int cudaFlag, int weightgenFlag, ...);
-
-
+void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftIn_f)[2], double (*fftOut_f)[2], double (*fftIn_g)[2], double (*fftOut_g)[2], struct FFTVars v, struct FFTVars eta, double *wtN, int N, double scale3, int cudaFlag, int weightgenFlag, ...);
 
 #endif

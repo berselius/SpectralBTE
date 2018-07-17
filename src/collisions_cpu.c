@@ -34,7 +34,7 @@ void find_maxwellians(double *M_mat, double *g_mat, double *mat, const double *M
 }
 
 
-void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftIn_f)[2], double (*fftOut_f)[2], double (*fftIn_g)[2], double (*fftOut_g)[2], double *v, double dv, double L_v, double *eta, double deta, double L_eta, double *wtN, int N, double scale3, int cudaFlag, int weightgenFlag, ...) {
+void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftIn_f)[2], double (*fftOut_f)[2], double (*fftIn_g)[2], double (*fftOut_g)[2], struct FFTVars v, struct FFTVars eta, double *wtN, int N, double scale3, int cudaFlag, int weightgenFlag, ...) {
   int index, x, y, z;
   double **conv_weights, *conv_weight_chunk;
 
@@ -58,8 +58,8 @@ void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftI
 
   // move to Fourier space
   if (cudaFlag == 0) { // Use CPU version
-    fft3D_cpu(fftIn_f, fftOut_f, dv, L_eta, L_v, 1.0, eta, wtN);
-    fft3D_cpu(fftIn_g, fftOut_g, dv, L_eta, L_v, 1.0, eta, wtN);
+    fft3D_cpu(fftIn_f, fftOut_f, v.d_var, eta.L_var, v.L_var, 1.0, eta.var, wtN);
+    fft3D_cpu(fftIn_g, fftOut_g, v.d_var, eta.L_var, v.L_var, 1.0, eta.var, wtN);
   }
 /*  else { // Use GPU version
     double *eta_cuda;
@@ -118,7 +118,7 @@ void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftI
       }
       else {
         //Assume iso-case
-        cweight = wtN[xi_x] * wtN[xi_y] * wtN[xi_z] * prefactor * gHat3(eta[xi_x], eta[xi_y], eta[xi_z], eta[zeta_x], eta[zeta_y], eta[zeta_z]);
+        cweight = wtN[xi_x] * wtN[xi_y] * wtN[xi_z] * prefactor * gHat3(eta.var[xi_x], eta.var[xi_y], eta.var[xi_z], eta.var[zeta_x], eta.var[zeta_y], eta.var[zeta_z]);
       }
       //multiply the weighted fourier coeff product
       qHat[zeta][0] += cweight * (fftOut_g[xi][0]*fftOut_f[index][0] - fftOut_g[xi][1]*fftOut_f[index][1]);
@@ -127,6 +127,6 @@ void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftI
   }
 
   //End of parallel section
-  fft3D_cpu(qHat, fftOut_f, deta, L_v, L_eta, -1.0, v, wtN);
+  fft3D_cpu(qHat, fftOut_f, eta.d_var, v.L_var, eta.L_var, -1.0, v.var, wtN);
 }
 
