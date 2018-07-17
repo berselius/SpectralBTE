@@ -67,11 +67,7 @@ __global__ static void fft3D_get_v_domain(const double (*in)[2], const double de
   for (index = 0; index < N * N * N; index++) {
     i = index / (N * N);
     j = (index - i * N * N) / N;
-    k = inde  //#pragma omp parallel for private(qHat, fftIn_f, fftIn_g)
-  for (index = 0; index < N * N * N; index++) {
-    qHat[index][0] = 0.0;
-    qHat[index][1] = 0.0;
-x - N * (j + i * N);
+    k = index - N * (j + i * N); 
     sum = sign * (double)(i + j + k) * L * delta;
 
     factor = prefactor * wtN[i] * wtN[j] * wtN[k];
