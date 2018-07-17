@@ -10,8 +10,8 @@ Requires linking of momentRoutines.h
 
 **************************************************/
 
-#ifndef _COLLISIONS_H
-#define _COLLISIONS_H
+#ifndef _COLLISIONS_CPU_H
+#define _COLLISIONS_CPU_H
 
 #include <stdarg.h>
 
@@ -36,11 +36,10 @@ void dealloc_coll_cpu();
 
 //Internal routines
 
-void find_maxwellians(double *M_mat, double *g_mat, const double *mat, const double *M_i, const double *v, const int N):
+void find_maxwellians(double *M_mat, double *g_mat, double *mat, const double *M_i, const double *v, const int N);
 
 void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftIn_f)[2], double (*fftOut_f)[2], double (*fftIn_g)[2], double (*fftOut_g)[2], double *v, double dv, double L_v, double *eta, double deta, double L_eta, double *wtN, int N, double scale3, int cudaFlag, int weightgenFlag, ...);
 
 
-struct 
 
 #endif

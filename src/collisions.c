@@ -13,8 +13,8 @@
 #include "weights.h"
 
 #include "collisions_cpu.h"
-#include "collisions_support_cpu.h"
-#include "collisions_support_gpu.h"
+#include "collisions_fft3d_cpu.h"
+#include "collisions_fft3d_gpu.h"
 
 static double (*fftIn_f)[2], (*fftOut_f)[2], (*fftIn_g)[2], (*fftOut_g)[2], (*qHat)[2];
 static double (*fftIn_f_cuda)[2], (*fftOut_f_cuda)[2], (*fftIn_g_cuda)[2], (*fftOut_g_cuda)[2], (*qHat_cuda)[2];
