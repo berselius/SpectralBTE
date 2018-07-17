@@ -6,6 +6,8 @@
 
 #include "collisions_support_gpu.h"
 
+extern "C" {
+
 static cufftDoubleComplex *temp;
 static cufftHandle plan;
 static double (*in_cuda)[2];
@@ -92,3 +94,5 @@ __global__ static void fft3D_get_fourier_domain(double (*out)[2], const double *
     out[index][1] = cos(sum)*temp[index].y + sin(sum)*temp[index].x;
   }
 }
+
+} // extern "C"
