@@ -2,6 +2,7 @@ set(lib_SOURCES
   aniso_weights.c
   boundaryConditions.c
   collisions.c
+  collisions_cpu.c
   collisions_support_cpu.c
   conserve.c
   function_timer.c
