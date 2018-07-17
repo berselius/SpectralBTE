@@ -99,7 +99,8 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
     j = (index - i * N * N) / N;
     k = index - N * (j + N * i);
     M_mat[index] = prefactor * exp(-(0.5/T) *((v[i]-vel[0])*(v[i]-vel[0]) + (v[j]-vel[1])*(v[j]-vel[1]) + (v[k]-vel[2])*(v[k]-vel[2])));
-    g_mat[index] = mat[index] - M_mat[index];
+	// hector is this a bug?
+    g_mat[index] = mat[index] - M_i[index];
   }
 }
 
@@ -212,18 +213,9 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
   */
 }
 
-void resddetQ(double* Q, int N){
-	int N3 = N*N*N;
-		for(int j = 0; j < N3; j+=1){
-			Q[i][j] = 0;
-		}
-}
-
 void ComputeQ(double *f, double *g, double *Q, double **conv_weights)
 {
   int index;
-
-  resetQ(Q, N);
 
   compute_Qhat(conv_weights, f, g);
   //set Collision output
