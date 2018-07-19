@@ -27,7 +27,7 @@ static int inverse = 1;
 static int noinverse = 0;
 
 static void find_maxwellians(double *M_mat, double *g_mat, double *mat);
-static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat);
+static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat, int lower, int range);
 
 //Initializes this module's static variables and allocates what needs allocating
 void initialize_coll(int nodes, double length, double *vel, double *zeta) {
@@ -185,19 +185,19 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
   find_maxwellians(M_i, g_i, f);
   find_maxwellians(M_j, g_j, g);
 
-  compute_Qhat(conv_weights, M_i, g_j);
+  compute_Qhat(conv_weights, M_i, g_j, 0, N*N*N);
   //set Collision output
   for (index = 0; index < N * N * N; index++) {
     Q[index] = fftOut_f[index][0];
   }
 
-  compute_Qhat(conv_weights, g_i, M_j);
+  compute_Qhat(conv_weights, g_i, M_j, 0, N*N*N);
   //set Collision output
   for (index = 0; index < N * N * N; index++) {
    Q[index] += fftOut_f[index][0];
   }
 
-  compute_Qhat(conv_weights, g_i, g_j);
+  compute_Qhat(conv_weights, g_i, g_j, 0, N*N*N);
   //set Collision output
   for (index = 0; index < N * N * N; index++) {
 	Q[index] += fftOut_f[index][0];
@@ -213,11 +213,11 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
   */
 }
 
-void ComputeQ(double *f, double *g, double *Q, double **conv_weights)
+void ComputeQ(double *f, double *g, double *Q, double **conv_weights, int lower, int range)
 {
   int index;
 
-  compute_Qhat(conv_weights, f, g);
+  compute_Qhat(conv_weights, f, g, lower, range);
   //set Collision output
   for (index = 0; index < N * N * N; index++) {
     Q[index] = fftOut_f[index][0];

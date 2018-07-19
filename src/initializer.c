@@ -420,10 +420,57 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 	break;
       }
     }
-
     }
   }
+}
 
+void initialize_inhom_mpi(int N, int Ns, double L_v, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, species *mixture, int initFlag, int nX, double *xnodes, double *dxnodes, double dt, int *t, int order, int restart, char *inputfilename) {
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+  int i,l;
+  double dv, L_eta, deta;
+
+  printf("Initializing for inhomogeneous run\n");
+
+  if(strcmp(mixture[0].name,"default") != 0)
+    KB = KB_in_Joules_per_Kelvin;
+  else
+    KB = 1.;
+
+  /*Initialize things*/
+  dv = 2*L_v / (N-1);
+  for(i=0;i<N;i++) {
+    v[i] = -L_v + i*dv;
+  }
+
+  //Set up Fourier space grid
+  L_eta = 0.5*(N-1)*M_PI/L_v;
+  deta = M_PI*(N-1)/(N*L_v);
+  for (i=0;i<N;i++) {
+    zeta[i] = -L_eta + i*deta;
+  }
+
+  /*Call initializers for other modules*/
+  initialize_coll(N,L_v,v,zeta);
+
+  // Initialize the moment routines
+  initialize_moments(N, v, mixture);
+
+  for(i=0;i<Ns;i++)
+    for(l=0;l<(nX+2*order);l++) {
+      f[i][l]      = malloc(N*N*N*sizeof(double));
+      f_conv[i][l] = malloc(N*N*N*sizeof(double));
+      f_1[i][l]    = malloc(N*N*N*sizeof(double));
+    }
+
+  // Initialize F based on initial conditions...
+
+  init_restart(nX, order, N, Ns, mixture);
+
+  // hector look at this function, does it need to be refactored?
+  if(restart){
+    load_restart(f,t,inputfilename);
+  }
 }
 
 void dealloc_inhom(int nX, int order, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, double **Q) {

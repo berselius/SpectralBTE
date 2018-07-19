@@ -15,4 +15,5 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 
 void dealloc_inhom(int nX, int order, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, double **Q);
 
+void initialize_inhom_mpi(int N, int Ns, double L_v, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, species *mixture, int initFlag, int nX, double *xnodes, double *dxnodes, double dt, int *t, int order, int restart, char *inputfilename);
 #endif

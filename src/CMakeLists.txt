@@ -13,6 +13,7 @@ set(lib_SOURCES
   species.c
   transportroutines.c
   weights.c
+  mpi_routines.c
 )
 
 add_SpectralBTE_library(lib "${lib_SOURCES}")

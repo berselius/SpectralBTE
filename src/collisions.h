@@ -32,10 +32,9 @@ deallocates all dynamically allocated memory for the collisions module
  ********************/
 void dealloc_coll();
 
-
 //Internal routines
 
-void ComputeQ(double *f, double *g, double *Q, double **conv_weights);
+void ComputeQ(double *f, double *g, double *Q, double **conv_weights, int lower, int range);
 
 void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights);
 

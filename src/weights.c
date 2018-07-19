@@ -257,12 +257,12 @@ void generate_conv_weights_iso(int lower, int range, double **conv_weights)
 
 		  index = lower+i;
 		  i = index/(N*N);
-		  j = (index - (i*N*N)/(N);
+		  j = (index - (i*N*N))/(N);
 		  k = (index - (i*N*N) - (j*N));
 	
 	      conv_weights[t][n + N * (m + N * l)] = wtN[l] * wtN[m] * wtN[n] * 0.25 * pow(0.5 * (diam_i + diam_j), 2) * gHat3(zeta[l], zeta[m], zeta[n], zeta[i], zeta[j], zeta[k]);
-	      //conv_weights[k + N * (j + N * i)][n + N * (m + N * l)] = wtN[l] * wtN[m] * wtN[n] * 0.25 * pow(0.5 * (diam_i + diam_j), 2) * gHat3(zeta[l], zeta[m], zeta[n], zeta[i], zeta[j], zeta[k]);
 	    }
 	  }
 	}
+  }
 }
