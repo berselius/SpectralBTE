@@ -30,6 +30,7 @@ void initialize_moments(int nodes, double *vel, species *mix) {
 
   wtN = malloc(N*sizeof(double));
   wtN[0] = 0.5;
+  #pragma omp parallel for
   for(i=1;i<(N-1);i++)
     wtN[i] = 1.0;
   wtN[N-1] = 0.5;
@@ -49,6 +50,7 @@ void initialize_moments_fast(int nodes, double *vel) {
 
   wtN = malloc(N*sizeof(double));
   wtN[0] = 0.5;
+  #pragma omp parallel for
   for(i=1;i<(N-1);i++)
     wtN[i] = 1.0;
   wtN[N-1] = 0.5;
@@ -61,6 +63,7 @@ double getDensity(double *in, int spec_id)
 	int i, j, k;
 
 	//printf("in get dens %p %p\n", wtN, in);
+	#pragma omp parallel for reduction(+:result)
 	for(i=0;i<N;i++) {
 	  for(j=0;j<N;j++)
 	    for(k=0;k<N;k++)
@@ -79,6 +82,7 @@ double getEntropy(double *in)
 	int i, j, k;
 
 	//Original
+	#pragma omp parallel for reduction(+:result)
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
 	for(k=0;k<N;k++)
@@ -96,7 +100,7 @@ double Kullback(double *in, double rho, double T) {
   double result = 0.0, max;
   int i, j, k;
 
-
+  #pragma omp parallel for private(max) reduction(+:result)
   for(i=0;i<N;i++)
     for(j=0;j<N;j++)
       for(k=0;k<N;k++)
@@ -120,9 +124,10 @@ void getBulkVelocity(double *in, double *out, double rho, int spec_id)
 
 	double mass = mixture[spec_id].mass;
 
-	out[0] = 0.0;
-	out[1] = 0.0;
-	out[2] = 0.0;
+	double out0 = 0.0;
+	double out1 = 0.0;
+	double out2 = 0.0;
+        #pragma omp parallel for private(temp1, temp2, temp3) reduction(+:out0, out1, out2)
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
 	for(k=0;k<N;k++)
@@ -131,14 +136,14 @@ void getBulkVelocity(double *in, double *out, double rho, int spec_id)
 		temp2 = v[j]*dv3*wtN[i]*wtN[j]*wtN[k]/rho;
 		temp3 = v[k]*dv3*wtN[i]*wtN[j]*wtN[k]/rho;
 
-		out[0] += temp1*in[k + N*(j + N*i)];
-		out[1] += temp2*in[k + N*(j + N*i)];
-		out[2] += temp3*in[k + N*(j + N*i)];
+		out0 += temp1*in[k + N*(j + N*i)];
+		out1 += temp2*in[k + N*(j + N*i)];
+		out2 += temp3*in[k + N*(j + N*i)];
 	}
 
-	out[0] = mass*out[0];
-	out[1] = mass*out[1];
-	out[2] = mass*out[2];
+	out[0] = mass*out0;
+	out[1] = mass*out1;
+	out[2] = mass*out2;
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
@@ -172,6 +177,7 @@ double getTemperature(double *in, double *bulkV, double rho, int spec_id)
 
 	double mass = mixture[spec_id].mass;
 
+	#pragma omp parallel for private(temp) reduction(+: result)
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
 	for(k=0;k<N;k++)
@@ -196,29 +202,39 @@ void getStressTensor(double *in, double *bulkV, double **out)
 	int i, j, k;
 	double temp = 0.0;
 
-	for(i=0;i<3;i++)
-	for(j=0;j<3;j++)
-	out[i][j] = 0.0;
-
+	double out00, out01, out02, out11, out12, out22;
+	out00 = out[0][0];
+	out01 = out[0][1];
+	out02 = out[0][2];
+	out11 = out[1][1];
+	out12 = out[1][2];
+	out22 = out[2][2];
+	#pragma omp parallel for private(temp) reduction(+: out00, out01, out02, out11, out12, out22)
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
 	for(k=0;k<N;k++)
 	{
 		temp = 2.0*dv*dv*dv*wtN[i]*wtN[j]*wtN[k];
 
-		out[0][0] += (v[i] - bulkV[0])*(v[i] - bulkV[0])*temp*in[k + N*(j + N*i)];
-		out[0][1] += (v[i] - bulkV[0])*(v[j] - bulkV[1])*temp*in[k + N*(j + N*i)];
-		out[0][2] += (v[i] - bulkV[0])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
+		out00 += (v[i] - bulkV[0])*(v[i] - bulkV[0])*temp*in[k + N*(j + N*i)];
+		out01 += (v[i] - bulkV[0])*(v[j] - bulkV[1])*temp*in[k + N*(j + N*i)];
+		out02 += (v[i] - bulkV[0])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
 
-		out[1][1] += (v[j] - bulkV[1])*(v[j] - bulkV[1])*temp*in[k + N*(j + N*i)];
-		out[1][2] += (v[j] - bulkV[1])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
+		out11 += (v[j] - bulkV[1])*(v[j] - bulkV[1])*temp*in[k + N*(j + N*i)];
+		out12 += (v[j] - bulkV[1])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
 
-		out[2][2] += (v[k] - bulkV[2])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
+		out22 += (v[k] - bulkV[2])*(v[k] - bulkV[2])*temp*in[k + N*(j + N*i)];
 	}
 
-	out[1][0] = out[0][1];
-	out[2][0] = out[0][2];
-	out[2][1] = out[1][2];
+	out[0][0] = out00;
+	out[0][1] = out01;
+	out[0][2] = out02;
+	out[1][0] = out01;
+	out[1][1] = out11;
+	out[1][2] = out12;
+	out[2][0] = out02;
+	out[2][1] = out12;
+	out[2][2] = out22;
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
@@ -228,18 +244,24 @@ void getHeatFlowVector(double *in, double *bulkV, double *out)
 	int i, j, k;
 	double temp = 0.0;
 
-	for(i=0;i<3;i++) out[i] = 0.0;
-
+	double out0, out1, out2;
+	out0 = 0.0;
+	out1 = 0.0;
+	out2 = 0.0;
+	#pragma omp parallel for private(temp) reduction(+:out0, out1, out2)
 	for(i=0;i<N;i++)
 	for(j=0;j<N;j++)
 	for(k=0;k<N;k++)
 	{
 		temp = 2.0*( (v[i] - bulkV[0])*(v[i] - bulkV[0]) + (v[j] - bulkV[1])*(v[j] - bulkV[1]) + (v[k] - bulkV[2])*(v[k] - bulkV[2]) )*dv*dv*dv*wtN[i]*wtN[j]*wtN[k];
 
-		out[0] += temp*(v[i] - bulkV[0])*in[k + N*(j + N*i)];
-		out[1] += temp*(v[j] - bulkV[1])*in[k + N*(j + N*i)];
-		out[2] += temp*(v[k] - bulkV[2])*in[k + N*(j + N*i)];
+		out0 += temp*(v[i] - bulkV[0])*in[k + N*(j + N*i)];
+		out1 += temp*(v[j] - bulkV[1])*in[k + N*(j + N*i)];
+		out2 += temp*(v[k] - bulkV[2])*in[k + N*(j + N*i)];
 	}
+	out[0] = out0;
+	out[1] = out1;
+	out[2] = out2;
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
@@ -248,6 +270,7 @@ double halfmoment(double *in) {
   int i,j,k;
   double moment = 0.0;
 
+  #pragma omp parallel for reduction (+:moment)
   for(i=0;i<N;i++)
     for(j=0;j<N;j++)
       for(k=0;k<N;k++)
@@ -259,6 +282,7 @@ double thirdmoment(double *in) {
   int i,j,k;
   double moment = 0.0;
 
+  #pragma omp parallel for reduction(+:moment)
   for(i=0;i<N;i++)
     for(j=0;j<N;j++)
       for(k=0;k<N;k++)

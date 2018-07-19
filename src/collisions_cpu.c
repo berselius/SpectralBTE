@@ -24,6 +24,7 @@ void find_maxwellians(double *M_mat, double *g_mat, double *mat, const double *M
   getBulkVelocity(mat, vel, rho, 0);
   T = getTemperature(mat, vel, rho, 0);
   prefactor = rho * pow(0.5 / (M_PI * T), 1.5);
+  #pragma omp parallel for private(i, j, k, M_mat, g_mat)
   for (index = 0; index < N * N * N; index++) {
     j = index / (N * N);
     i = (index - j * N * N) / N;
@@ -45,7 +46,7 @@ void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftI
      va_end(args);
    }
 
-  //#pragma omp parallel for private(qHat, fftIn_f, fftIn_g)
+  #pragma omp parallel for private(qHat, fftIn_f, fftIn_g)
   for (index = 0; index < N * N * N; index++) {
     qHat[index][0] = 0.0;
     qHat[index][1] = 0.0;

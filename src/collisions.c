@@ -132,21 +132,21 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, int weightgenFlag, ..
 
   compute_Qhat(M_i, g_j, qHat, fftIn_f, fftOut_f, fftIn_g, fftOut_g, v, eta, wtN_global, N, scale3, cudaFlag, weightgenFlag, conv_weights);
   //set Collision output
-  //#pragma omp parallel for private(Q)
+  #pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
     Q[index] = fftOut_f[index][0];
   }
 
   compute_Qhat(g_i, M_j, qHat, fftIn_f, fftOut_f, fftIn_g, fftOut_g, v, eta, wtN_global, N, scale3, cudaFlag, weightgenFlag, conv_weights);
   //set Collision output
-  //#pragma omp parallel for private(Q)
+  #pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
    Q[index] += fftOut_f[index][0];
   }
 
   compute_Qhat(g_i, g_j, qHat, fftIn_f, fftOut_f, fftIn_g, fftOut_g, v, eta, wtN_global, N, scale3, cudaFlag, weightgenFlag, conv_weights);
   //set Collision output
-  //#pragma omp parallel for private(Q)
+  #pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
 	Q[index] += fftOut_f[index][0];
   }
@@ -175,7 +175,7 @@ void ComputeQ(double *f, double *g, double *Q, int weightgenFlag, ...) {
   int index;
   //set Collision output
   function_time = clock();
-  //#pragma omp parallel for private(Q)
+  #pragma omp parallel for private(Q)
   for (index = 0; index < N * N * N; index++) {
     Q[index] = fftOut_f[index][0];
   }

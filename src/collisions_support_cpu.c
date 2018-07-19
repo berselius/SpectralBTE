@@ -36,6 +36,7 @@ void fft3D_cpu(const double (*in)[2], double (*out)[2], const double delta, cons
   prefactor = scaling * delta * delta * delta;
 
   //shift the 'v' terms in the exponential to reflect our velocity domain
+  #pragma omp parallel for private(i, j, k, sum, factor, temp)
   for (index = 0; index < N * N * N; index++) {
     i = index / (N * N);
     j = (index - i * N * N) / N;
@@ -57,6 +58,7 @@ void fft3D_cpu(const double (*in)[2], double (*out)[2], const double delta, cons
   }
 
   //shifts the 'eta' terms to reflect our fourier domain
+  #pragma omp parallel for private(i, j, k, sum, out)
   for (index = 0; index < N * N * N; index++) {
     i = index / (N * N);
     j = (index - i * N * N) / N;

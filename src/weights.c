@@ -48,6 +48,7 @@ void initialize_weights(int nodes, double *eta, double Lv, double lam, int weigh
 
   wtN = malloc(N*sizeof(double));
   wtN[0] = 0.5;
+  #pragma omp parallel for
   for(i=1;i<(N-1);i++)
     wtN[i] = 1.0;
   wtN[N-1] = 0.5;
