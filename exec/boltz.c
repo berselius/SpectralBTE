@@ -276,12 +276,10 @@ int main(int argc, char **argv) {
             if(rank == 0) printf("In step %d of %d\n", t + 1, nT);
 			
 			double sum_check = 0;
-			if(rank == 0) {	
 			for(int sum_check_x = 0; sum_check_x < num_species; sum_check_x += 1) {
 			for(int sum_check_y = 0; sum_check_y < (nX_Node) + (2*order); sum_check_y += 1) {
 			for(int sum_check_z = 0; sum_check_z < N3; sum_check_z += 1) {
 					sum_check += f_inhom[sum_check_x][sum_check_y][sum_check_z];
-			}
 			}
 			}
 			}
@@ -301,12 +299,10 @@ int main(int argc, char **argv) {
             }
 
 			sum_check = 0;
-			if(rank == 0) {	
 			for(int sum_check_x = 0; sum_check_x < num_species; sum_check_x += 1) {
 			for(int sum_check_y = 0; sum_check_y < (nX_Node) + (2*order); sum_check_y += 1) {
 			for(int sum_check_z = 0; sum_check_z < N3; sum_check_z += 1) {
 					sum_check += f_conv[sum_check_x][sum_check_y][sum_check_z];
-			}
 			}
 			}
 			}
@@ -316,14 +312,28 @@ int main(int argc, char **argv) {
 			
 			if(rank == 0) {	
 				fcopy(fbuffer,f_conv,num_species,(nX_Node+(2*order)),N3, -1);
+			sum_check = 0;
+			for(int sum_check_i = 0; sum_check_i < num_species*((nX_Node)+(2*order))*N3; sum_check_i += 1){
+				sum_check += fbuffer[sum_check_i];				
 			}
-		
+
+			printf("SUM AFTER COPYT TO BUFFER STEP RANK %d (fbuffer) %f\n", rank, sum_check);
+			fflush(stdout);
+			}
+
             // broadcast f to all other ranks from rank 0
             int error = MPI_Bcast(fbuffer, num_species * N3 * (nX_Node + (2 * order)), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 			if(rank != 0){
 				fcopy(fbuffer,f_conv,num_species,(nX_Node+(2*order)),N3, 1);				
+			sum_check = 0;
+			for(int sum_check_i = 0; sum_check_i < num_species*((nX_Node)+(2*order))*N3; sum_check_i += 1){
+				sum_check += fbuffer[sum_check_i];				
 			}
+
+			printf("SUM AFTER BROADCAST STEP RANK %d (fbuffer) %f\n", rank, sum_check);
+			fflush(stdout);
+			}		
 
             t1 = (double) clock() / (double) CLOCKS_PER_SEC;
 
@@ -484,13 +494,15 @@ int main(int argc, char **argv) {
     if (rank == 0)
         close_streams(homogFlag);
 
-    if (homogFlag)
+    if (homogFlag && rank == 0)
         dealloc_trans();
 
+	if(!homogFlag || homogFlag && rank != 0){
     for (i = 0; i < num_species; i++)
-        dealloc_weights(N, conv_weights[i]);
+        dealloc_weights(range, conv_weights[i]);
+	}
     free(conv_weights);
-
+	
     dealloc_coll();
     dealloc_conservation();
     MPI_Finalize();

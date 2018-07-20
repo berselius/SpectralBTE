@@ -164,8 +164,8 @@ void write(double **conv_weights, char buffer_weights[100], int N) {
   fclose(fidWeights);
 }
 
-void dealloc_weights(int N, double **conv_weights) {
-  for (int i = 0; i < N * N * N; i++) {
+void dealloc_weights(int range, double **conv_weights) {
+  for (int i = 0; i < range; i++) {
     free(conv_weights[i]);
   }
   free(conv_weights);
