@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
             conserveAllMoments(Q);
 
             t2 = omp_get_wtime();
-            printf("Time elapsed: %g\n", t2 - t1);
+            //printf("Time elapsed: %g\n", t2 - t1);
 
             if (order == 1) {
                 //update
@@ -275,7 +275,7 @@ int main(int argc, char **argv) {
         while (t < nT) {
             if(rank == 0) printf("In step %d of %d\n", t + 1, nT);
 			
-			int sum_check = 0;
+			double sum_check = 0;
 			if(rank == 0) {	
 			for(int sum_check_x = 0; sum_check_x < num_species; sum_check_x += 1) {
 			for(int sum_check_y = 0; sum_check_y < (nX_Node) + (2*order); sum_check_y += 1) {
@@ -286,7 +286,7 @@ int main(int argc, char **argv) {
 			}
 			}
 				
-			printf("SUM BEFORE ADVECTION STEP (F_INHOM) %d\n", sum_check);
+			printf("SUM BEFORE ADVECTION STEP RANK %d (F_INHOM) %f\n", rank, sum_check);
 			fflush(stdout);
 				 
             ///////////////////////////
@@ -311,7 +311,7 @@ int main(int argc, char **argv) {
 			}
 			}
 
-			printf("SUM AFTER ADVECTION STEP (F_CONV) %d\n", sum_check);
+			printf("SUM AFTER ADVECTION STEP RANK %d (F_CONV) %f\n", rank, sum_check);
 			fflush(stdout);
 			
 			if(rank == 0) {	
@@ -354,7 +354,7 @@ int main(int argc, char **argv) {
                 conserveAllMoments(Q);
 
                 t2 = (double)clock() / (double)CLOCKS_PER_SEC;
-                if(rank == 0) printf("Time elapsed: %g\n", t2 - t1);
+                //if(rank == 0) printf("Time elapsed: %g\n", t2 - t1);
 				
 				// at the moment this will be done by all the ranks
                 for (m = 0; m < num_species; m++) {
