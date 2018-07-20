@@ -85,7 +85,7 @@ void make_mesh(int *nX, int *nX_node, double *dx_min, double **x, double **dx, i
   //now start filling in the x,dx
 
   storeCount = 0;
-  if (numNodes == 1) {
+ // if (numNodes == 1) {
     dxCount = ORDER;
     for (i = 0; i < numZones; i++) {
       for (j = 0; j < NZone[i]; j++) {
@@ -119,8 +119,8 @@ void make_mesh(int *nX, int *nX_node, double *dx_min, double **x, double **dx, i
       (*dx)[(*nX_node) + 3] = (*dx)[(*nX_node) + 2];
       (*x)[(*nX_node) + 3] = (*x)[(*nX_node) + 2] + (*dx)[(*nX_node) + 2];
     }
-  }
-  // standard case
+  //}
+/*  // standard case
   else {
     dxCount = 0;
     storeCount = 0;
@@ -160,7 +160,7 @@ void make_mesh(int *nX, int *nX_node, double *dx_min, double **x, double **dx, i
       (*x)[storeCount] = (*x)[storeCount - 1] + (*dx)[storeCount - 1];
     }
   }
-
+*/
   printf("Loaded mesh!\n");
   fflush(stdout);
   free(dx_zone);

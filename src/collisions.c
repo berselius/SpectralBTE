@@ -100,7 +100,7 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
     k = index - N * (j + N * i);
     M_mat[index] = prefactor * exp(-(0.5/T) *((v[i]-vel[0])*(v[i]-vel[0]) + (v[j]-vel[1])*(v[j]-vel[1]) + (v[k]-vel[2])*(v[k]-vel[2])));
 	// hector is this a bug?
-    g_mat[index] = mat[index] - M_i[index];
+    g_mat[index] = mat[index] - M_mat[index];
   }
 }
 
