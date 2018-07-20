@@ -216,7 +216,6 @@ void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights
 void ComputeQ(double *f, double *g, double *Q, double **conv_weights, int lower, int range)
 {
   int index;
-
   compute_Qhat(conv_weights, f, g, lower, range);
   //set Collision output
   for (index = 0; index < N * N * N; index++) {

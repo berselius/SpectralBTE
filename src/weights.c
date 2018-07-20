@@ -7,6 +7,7 @@
 #include <gsl/gsl_sf_bessel.h>
 #include "species.h"
 #include <string.h>
+#include <mpi.h>
 
 static int N;
 static double L_v;
@@ -83,19 +84,19 @@ void initialize_weights(int lower, int range, int nodes, double *eta, double Lv,
       sprintf(buffer_weights, "Weights/N%d_isotropic_L_v%g_HS_%s_%zd_%s_%zd.wts", N, L_v, species_i.name, species_i.id, species_j.name, species_j.id);
     }
 
-    if(weightFlag == 0) {
+    /*if(weightFlag == 0) {
       if(!load(conv_weights, buffer_weights, N)) {
 	printf("Stored weights not found for this configuration, generating ...\n");
 	generate_conv_weights_iso(lower, range, conv_weights);
 	write(conv_weights, buffer_weights, N);
       }
     }
-    else { //weights forced to be regenerated
-      printf("Fresh version of weights being computed and stored for this configuration\n");
+    else {//weights forced to be regenerated
+      printf("Fresh version of weights being computed and stored for this configuration\n");*/
       generate_conv_weights_iso(lower, range, conv_weights);
       //dump the weights we've computed into a file
-      write(conv_weights, buffer_weights, N);
-    }
+      //write(conv_weights, buffer_weights, N);
+    //}
   }
   else {
     sprintf(buffer_weights, "Weights/N%d_AnIso_L_v%g_lambda%g_Landau.wts", N, L_v, lambda);
@@ -248,8 +249,10 @@ void generate_conv_weights_iso(int lower, int range, double **conv_weights)
 {
   int t,i,j,k,l,m,n;
   int index;
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
-#pragma omp parallel for private(index,t,l,m,n)
+//#pragma omp parallel for private(index,t,l,m,n)
   for (t = 0; t < range; t++) {
 	for (l = 0; l < N; l++) {
 	  for (m = 0; m < N; m++) {
@@ -260,7 +263,10 @@ void generate_conv_weights_iso(int lower, int range, double **conv_weights)
 		  j = (index - (i*N*N))/(N);
 		  k = (index - (i*N*N) - (j*N));
 	
+		//printf("rank %d : %d %d %d %d\n",rank,t,l,m,n);
+		//fflush(stdout);
 	      conv_weights[t][n + N * (m + N * l)] = wtN[l] * wtN[m] * wtN[n] * 0.25 * pow(0.5 * (diam_i + diam_j), 2) * gHat3(zeta[l], zeta[m], zeta[n], zeta[i], zeta[j], zeta[k]);
+		
 	    }
 	  }
 	}

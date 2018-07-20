@@ -95,10 +95,10 @@ void upwindOne(double **f, double **f_conv, int id) {
     double CFL_NUM;
     double Ma;
 
-    int rank, numNodes;
     //int numamt;
 
-    //FILL GHOST CELLS
+    //FILL GHOST CELLS 
+
     if (ICChoice == 3 || ICChoice == 5) { // Heat Transfer or Poiseuille
         setDiffuseReflectionBC(f[1], f[0], T0, 0, id);
         setDiffuseReflectionBC(f[nX], f[nX + 1], T1, 1, id); //sets incoming velocities of f_conv
@@ -181,9 +181,7 @@ void upwindTwo(double **f, double **f_conv, int id) {
     //ghost cells filled
 
     for (l = 2; l < nX + 2; l++) {
-
         //generate wall values - need the slopes at the wall to get 'em
-        if ((l == 2) && (rank == 0)) {
             for (i = 0; i < N / 2; i++)
                 for (j = 0; j < N; j++)
                     for (k = 0; k < N; k++) {
@@ -207,12 +205,7 @@ void upwindTwo(double **f, double **f_conv, int id) {
                                               (f[3][k + N * (j + N * i)] - f[1][k + N * (j + N * i)]) / (x[3] - x[1]));
                             f_l[k + N * (j + N * i)] = f[2][k + N * (j + N * i)] + 0.5 * dx[2] * slope[1]; //matches the flux leaving cell 0
                         }
-
-
             }
-        }
-
-        if ((l == nX + 1) && (rank == numNodes - 1)) { //on right wall
 
             for (i = N / 2; i < N; i++)
                 for (j = 0; j < N; j++)
@@ -236,7 +229,6 @@ void upwindTwo(double **f, double **f_conv, int id) {
 
 
             }
-        }
 
         for (j = 0; j < N; j++) {
             for (k = 0; k < N; k++) {
@@ -250,9 +242,8 @@ void upwindTwo(double **f, double **f_conv, int id) {
                                       (f[l][k + N * (j + N * i)] - f[l - 1][k + N * (j + N * i)]) / (x[l] - x[l - 1]),
                                       (f[l][k + N * (j + N * i)] - f[l - 2][k + N * (j + N * i)]) / (x[l] - x[l - 2]));
 
-
                     CFL_NUM = 0.5 * dt * v[i] / dx[l];
-                    if ( (l == 2) && (rank == 0) )  {
+                    if ( l == 2 )  {
                         //f_l is the INCOMING distribution from the left wall
                         f_conv[l][k + N * (j + N * i)] = f[l][k + N * (j + N * i)] - CFL_NUM * (f[l][k + N * (j + N * i)] + 0.5 * dx[l] * slope[1] - f_l[k + N * (j + N * i)]);
                     }
@@ -281,7 +272,7 @@ void upwindTwo(double **f, double **f_conv, int id) {
                                       (f[l + 1][k + N * (j + N * i)] - f[l - 1][k + N * (j + N * i)]) / (x[l + 1] - x[l - 1]));
 
                     CFL_NUM = 0.5 * dt * v[i] / dx[l];
-                    if ( (l == nX + 1) && (rank == numNodes - 1) ) {
+                    if ( l == nX + 1 ) {
                         //f_r is the INCOMING distribution from the right wall
                         f_conv[l][k + N * (j + N * i)] = f[l][k + N * (j + N * i)] - CFL_NUM * (f_r[k + N * (j + N * i)] - (f[l][k + N * (j + N * i)] - 0.5 * dx[l] * slope[1]));
                     }

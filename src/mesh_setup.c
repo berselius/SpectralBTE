@@ -48,14 +48,7 @@ void make_mesh(int *nX, int *nX_node, double *dx_min, double **x, double **dx, i
   MPI_Comm_size(MPI_COMM_WORLD, &numNodes);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  if (( (*nX) % numNodes) == 0) {
-    *nX_node = (*nX) / numNodes;
-  }
-  else {
-    printf("Please have a number of grid points evenly divisible by the number of nodes\n");
-    fflush(stdout);
-    exit(0);
-  }
+  *nX_node = (*nX);
 
   //dx for a specific zone
   dx_zone = malloc(sizeof(double) * numZones);
