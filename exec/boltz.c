@@ -73,6 +73,9 @@ int main(int argc, char **argv) {
     double ***f_1;      //levels - species, x-postion, v-position (for intermediate step in 2nd order time integrator)
     double **Q;         //array of collision operator results - levels - species, v-position
     double ***conv_weights; //array of convolution weights - levels - interaction index, zeta, xi
+	fftw_complex **qHat; // for fftw 
+	fftw_complex **fftw_out;
+    double ***qHat_mpi; // for mpi communication (not sure how to send fftw_complex)
 
     //Species data
     int num_species;
@@ -129,7 +132,7 @@ int main(int argc, char **argv) {
     }
 	
 	double *fbuffer = malloc(sizeof(double)*num_species*(nX_Node+(2*order))*N3);
-	double *qbuffer = malloc(sizeof(double)*num_species*num_species*N3);
+	double *qbuffer = malloc(sizeof(double)*num_species*num_species*N3*2);
 
     if (rank == 0) printf("Initializing variables %d\n", homogFlag);
 
@@ -140,11 +143,26 @@ int main(int argc, char **argv) {
         t = 0;
     }
     else { // inhomogeneous case
+		qHat = (fftw_complex **)malloc(num_species*num_species*sizeof(fftw_complex*));
+		fftw_out = (fftw_complex **)malloc(num_species*num_species*sizeof(fftw_complex*));
+		for(int index_s = 0; index_s < num_species*num_species; index_s += 1){
+			qHat[index_s] = (fftw_complex *)malloc(N3*sizeof(fftw_complex));
+			fftw_out[index_s] = (fftw_complex *)malloc(N3*sizeof(fftw_complex));
+		}
+
+		qHat_mpi = (double*** )malloc(num_species*num_species*sizeof(double**));
+		for(int index_s = 0; index_s < num_species*num_species; index_s += 1){
+			qHat_mpi[index_s] = (double**)malloc(N3*sizeof(double*));
+			for(int index_n = 0; index_n < N3; index_n += 1){
+				qHat_mpi[index_s][index_n] = (double*)malloc(2*sizeof(double));
+			}
+		}
+
         if (rank == 0) {
             allocate_inhom(N, nX_Node + (2 * order), &v, &zeta, &f_inhom, &f_conv, &f_1, &Q, num_species);
             initialize_inhom(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, nX_Node, x, dx, dt, &t, order, restart, inputFilename);
         } else {
-            allocate_inhom(N, nX_Node + (2 * order), &v, &zeta, &f_inhom, &f_conv, &f_1, &Q, num_species);
+            allocate_inhom(N, nX_Node + (2 * order), &v, &zeta,&f_inhom, &f_conv, &f_1, &Q, num_species);
             initialize_inhom_mpi(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, nX_Node, x, dx, dt, &t, order, restart, inputFilename);
         }
     }
@@ -158,7 +176,7 @@ int main(int argc, char **argv) {
 
 //Setup weights
 
-    if (weightgen == 0 && rank != 0 || homogFlag == 0) {
+    if ((weightgen == 0 && rank != 0) || homogFlag == 0) {
         printf("Preparing for precomputation of weights...\n");
 		if(homogFlag == 1){
         getBounds(&lower, &upper, N, &worker);
@@ -200,7 +218,7 @@ int main(int argc, char **argv) {
 
 //////////////////////////////////////////////
 //SPACE HOMOGENEOUS CASE                    //
-//////////////////////////////////////////////
+///////////////////////////////////////////////
     if(homogFlag == 0) {
 		write_streams(f_hom,0);
 
@@ -352,20 +370,34 @@ int main(int argc, char **argv) {
                 if (rank != 0) {
                     for (m = 0; m < num_species; m++) {
                         for (n = 0; n < num_species; n++) {
-                            ComputeQ(f_conv[m][l], f_conv[n][l], Q[n * num_species + m], conv_weights[n * num_species + m], lower, range);
+                            ComputeQ_mpi(f_conv[m][l], f_conv[n][l], qHat_mpi[n * num_species + m], conv_weights[n * num_species + m], lower, range);
                         }
                     }
                 }
 
                 if (rank == 0) {
-                    resetQ(Q, num_species,N);
+                    resetQ(qHat_mpi, num_species,N);
                 }
 
-			    qcopy(qbuffer,Q,num_species*num_species,N3,-1);
+			    qcopy(qbuffer,qHat_mpi,num_species*num_species,N3,-1);
 
-				MPI_Allreduce(MPI_IN_PLACE, qbuffer, num_species * num_species * N3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+				MPI_Allreduce(MPI_IN_PLACE, qbuffer, num_species * num_species * N3 * 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-				qcopy(qbuffer,Q,num_species*num_species,N3,1);
+				qcopy(qbuffer,qHat_mpi,num_species*num_species,N3,1);
+
+				for(int s_ = 0; s_ < num_species*num_species; s_ += 1){
+					for(int n_ = 0; n_ < N3; n_ += 1){
+						qHat[s_][n_][0] = qHat_mpi[s_][n_][0];
+						qHat[s_][n_][0] = qHat_mpi[s_][n_][1];
+					}
+				}
+				
+				for(int s_ = 0; s_ < num_species*num_species; s_ += 1) {
+					fft3D(qHat[s_], fftw_out[s_], 1);
+					for(int n_ = 0; n_ < N3; n_ += 1) {
+						Q[s_][n_] = fftw_out[s_][n_][0];
+					}
+				}	
 
                 conserveAllMoments(Q);
 
@@ -403,21 +435,35 @@ int main(int argc, char **argv) {
 					if(rank != 0) {
 					for (m = 0; m < num_species; m++)
                         for (n = 0; n < num_species; n++)
-                            ComputeQ(f_1[m][l], f_1[n][l], Q[n * num_species + m], conv_weights[n * num_species + m], lower, range);
+                            ComputeQ_mpi(f_1[m][l], f_1[n][l], qHat_mpi[n * num_species + m], conv_weights[n * num_species + m], lower, range);
 					}
 					
 					if(rank == 0){
-						resetQ(Q, num_species, N);
+						resetQ(qHat_mpi, num_species, N);
 					}
 
-					qcopy(qbuffer,Q,num_species*num_species,N3,-1);
+					qcopy(qbuffer,qHat_mpi,num_species*num_species,N3,-1);
 
 					// reduce only to rank 0 since there are no more computeQ
-					MPI_Reduce((const void*)&Q, (void*)&Q, num_species * num_species * N3, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+					MPI_Reduce(MPI_IN_PLACE,qbuffer, num_species * num_species * N3*2, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 					
 					if(rank == 0) {
 					
-					qcopy(qbuffer,Q,num_species*num_species,N3,-1);
+					qcopy(qbuffer,qHat_mpi,num_species*num_species,N3,-1);
+				
+					for(int s_ = 0; s_ < num_species*num_species; s_ += 1){
+						for(int n_ = 0; n_ < N3; n_ += 1){
+							qHat[s_][n_][0] = qHat_mpi[s_][n_][0];
+							qHat[s_][n_][0] = qHat_mpi[s_][n_][1];
+						}
+					}
+				
+					for(int s_ = 0; s_ < num_species*num_species; s_ += 1) {
+						fft3D(qHat[s_], fftw_out[s_], 1);
+						for(int n_ = 0; n_ < N3; n_ += 1) {
+							Q[s_][n_] = fftw_out[s_][n_][0];
+						}
+					}	
                     
 					conserveAllMoments(Q);
 
@@ -497,13 +543,11 @@ int main(int argc, char **argv) {
     if (rank == 0)
         printf("Wrapping up\n");
 
-    if (rank == 0)
-        close_streams(homogFlag);
+    if (rank == 0) close_streams(homogFlag);
 
-    if (homogFlag && rank == 0)
-        dealloc_trans();
+    if (homogFlag && rank == 0) dealloc_trans();
 
-	if(!homogFlag || homogFlag && rank != 0){
+	if(!homogFlag || (homogFlag && rank != 0)){
     for (i = 0; i < num_species; i++)
         dealloc_weights(range, conv_weights[i]);
 	}

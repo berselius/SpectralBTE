@@ -1,6 +1,5 @@
 #ifndef _INITIALIZE_H
 #define _INITIALIZE_H
-
 #include "species.h"
 
 void allocate_hom(int N, double **v, double **zeta, double ***f, double ***f1, double ***Q, int num_species);

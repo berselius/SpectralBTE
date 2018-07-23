@@ -35,6 +35,7 @@ void dealloc_coll();
 //Internal routines
 
 void ComputeQ(double *f, double *g, double *Q, double **conv_weights, int lower, int range);
+void ComputeQ_mpi(double *f, double *g, double **qHat_mpi , double **conv_weights, int lower, int range);
 
 void ComputeQ_maxPreserve(double *f, double *g, double *Q, double **conv_weights);
 

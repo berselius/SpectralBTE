@@ -168,7 +168,7 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat, in
   }
 
   //End of parallel section
-  fft3D(qHat, fftOut_f, inverse);
+  //fft3D(qHat, fftOut_f, inverse);
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
@@ -223,10 +223,18 @@ void ComputeQ(double *f, double *g, double *Q, double **conv_weights, int lower,
   }
 }
 
+void ComputeQ_mpi(double *f, double *g, double** qHat_mpi, double **conv_weights, int lower, int range)
+{
+  int index;
+  int N3 = N*N*N;
+  compute_Qhat(conv_weights, f, g, lower, range);
+  for(index = 0; index < N3; index+=1){
+	qHat_mpi[index][0]=qHat[index][0];
+	qHat_mpi[index][1]=qHat[index][1];
+  }
+}
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
-
-
 /*
 function fft3D
 --------------
