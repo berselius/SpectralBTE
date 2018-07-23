@@ -6,6 +6,7 @@
 #include <math.h>
 #include <omp.h>
 #include <mpi.h>
+#include <sys/time.h>
 
 #include "initializer.h"
 #include "input.h"
@@ -100,7 +101,12 @@ int main(int argc, char **argv) {
     int outputCount;
 
     double t1, t2;
-	double sum_check = 0;
+    
+	struct timeval tv1, tv2;
+
+    if(rank != 0){
+      gettimeofday(&tv1, NULL);
+    }
 
     if ((restart_time > 0) && (rank == 0)) {
         totTime_start = MPI_Wtime();
@@ -182,9 +188,7 @@ int main(int argc, char **argv) {
 		if(homogFlag == 1){
         getBounds(&lower, &upper, N, &worker);
 		range = upper - lower;
-		printf("RANK %d lower %d upper %d range %d\n",rank,lower,upper,range);
         alloc_weights(range, &conv_weights, num_species * num_species);
-		sum_check = 0;
 		} else {
 		lower = 0;
 		range = N*N*N;
@@ -199,19 +203,19 @@ int main(int argc, char **argv) {
                 for (j = 0; j < num_species; j++)
                     initialize_weights(lower, range, N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j * num_species + i], mixture[i], mixture[j]);
         }
-		for(int sx = 0; sx < num_species*num_species; sx += 1){
-			for(int sy = 0; sy < range; sy += 1){
-				for(int sz = 0; sz < N3; sz += 1){
-				sum_check += conv_weights[sx][sy][sz];
-}}}
-printf("RANK %d WEIGHT SUM %f\n",rank,sum_check);
-fflush(stdout);
     }
     else {
         printf("Not precomputing weights; The weights will be computed on the fly...\n");
     }
     outputCount = 0;
 
+    gettimeofday(&tv2, NULL);
+
+	if(rank != 0){
+    printf ("Weight Total time = %f seconds\n",
+         (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
+         (double) (tv2.tv_sec - tv1.tv_sec));
+	}
 //Set up conservation routines
 
     initialize_conservation(N, v[1] - v[0], v, mixture, num_species);
@@ -309,18 +313,6 @@ fflush(stdout);
         while (t < nT) {
             if(rank == 0) printf("In step %d of %d\n", t + 1, nT);
 			
-			sum_check = 0;
-			for(int sum_check_x = 0; sum_check_x < num_species; sum_check_x += 1) {
-			for(int sum_check_y = 0; sum_check_y < (nX_Node) + (2*order); sum_check_y += 1) {
-			for(int sum_check_z = 0; sum_check_z < N3; sum_check_z += 1) {
-					sum_check += f_inhom[sum_check_x][sum_check_y][sum_check_z];
-			}
-			}
-			}
-				
-			printf("SUM BEFORE ADVECTION STEP RANK %d (F_INHOM) %f\n", rank, sum_check);
-			fflush(stdout);
-				 
             ///////////////////////////
             //ADVECTION STEP         //
             ///////////////////////////
@@ -332,27 +324,9 @@ fflush(stdout);
                 }
             }
 
-			sum_check = 0;
-			for(int sum_check_x = 0; sum_check_x < num_species; sum_check_x += 1) {
-			for(int sum_check_y = 0; sum_check_y < (nX_Node) + (2*order); sum_check_y += 1) {
-			for(int sum_check_z = 0; sum_check_z < N3; sum_check_z += 1) {
-					sum_check += f_conv[sum_check_x][sum_check_y][sum_check_z];
-			}
-			}
-			}
-
-			printf("SUM AFTER ADVECTION STEP RANK %d (F_CONV) %f\n", rank, sum_check);
-			fflush(stdout);
 			
 			if(rank == 0) {	
 				fcopy(fbuffer,f_conv,num_species,(nX_Node+(2*order)),N3, -1);
-			sum_check = 0;
-			for(int sum_check_i = 0; sum_check_i < num_species*((nX_Node)+(2*order))*N3; sum_check_i += 1){
-				sum_check += fbuffer[sum_check_i];				
-			}
-
-			printf("SUM AFTER COPYT TO BUFFER STEP RANK %d (fbuffer) %f\n", rank, sum_check);
-			fflush(stdout);
 			}
 
             // broadcast f to all other ranks from rank 0
@@ -360,13 +334,6 @@ fflush(stdout);
 
 			if(rank != 0){
 				fcopy(fbuffer,f_conv,num_species,(nX_Node+(2*order)),N3, 1);				
-			sum_check = 0;
-			for(int sum_check_i = 0; sum_check_i < num_species*((nX_Node)+(2*order))*N3; sum_check_i += 1){
-				sum_check += fbuffer[sum_check_i];				
-			}
-
-			printf("SUM AFTER BROADCAST STEP RANK %d (fbuffer) %f\n", rank, sum_check);
-			fflush(stdout);
 			}		
 
             t1 = (double) clock() / (double) CLOCKS_PER_SEC;
@@ -407,28 +374,8 @@ fflush(stdout);
 						Q[s_][n_] = fftw_out[s_][n_][0];
 					}
 				}	
-			if(rank == 0 && l == order){
-			sum_check = 0;
-			for(int sum_check_x = 0; sum_check_x < num_species*num_species; sum_check_x += 1) {
-			for(int sum_check_z = 0; sum_check_z < N3; sum_check_z += 1) {
-					sum_check += Q[sum_check_x][sum_check_z];
-			}
-			}
-			printf("RANK %d Q after compute Q %f \n",rank,sum_check);
-			fflush(stdout);}
 
                 conserveAllMoments(Q);
-			if(rank == 0 && l == order){
-			sum_check = 0;
-			for(int sum_check_x = 0; sum_check_x < num_species*num_species; sum_check_x += 1) {
-			for(int sum_check_z = 0; sum_check_z < N3; sum_check_z += 1) {
-					sum_check += Q[sum_check_x][sum_check_z];
-			}
-			}
-			printf("RANK %d Q after conserve %f \n",rank,sum_check);
-			fflush(stdout);}
-
-
 
                 t2 = (double)clock() / (double)CLOCKS_PER_SEC;
                 //if(rank == 0) printf("Time elapsed: %g\n", t2 - t1);
@@ -461,8 +408,6 @@ fflush(stdout);
 
 				//The RK2 Part
                 if (order == 2) {
-					printf("RK2 PART\n");
-					fflush(stdout);
 					if(rank != 0) {
 					for (m = 0; m < num_species; m++)
                         for (n = 0; n < num_species; n++)
@@ -571,6 +516,14 @@ fflush(stdout);
 //////////////////////////////////////
 //DEALLOCATION AND WRAP UP          //
 //////////////////////////////////////
+	if(rank != 0){
+    	gettimeofday(&tv2, NULL);
+
+    	printf ("Total time = %f seconds\n",
+         (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
+         (double) (tv2.tv_sec - tv1.tv_sec));
+  	}
+
     if (rank == 0)
         printf("Wrapping up\n");
 

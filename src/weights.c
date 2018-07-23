@@ -258,7 +258,7 @@ void generate_conv_weights_iso(int lower, int range, double **conv_weights)
 	  for (m = 0; m < N; m++) {
 	    for (n = 0; n < N; n++) {
 
-		  index = lower+i;
+		  index = lower+t;
 		  i = index/(N*N);
 		  j = (index - (i*N*N))/(N);
 		  k = (index - (i*N*N) - (j*N));

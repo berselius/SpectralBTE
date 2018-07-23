@@ -121,7 +121,7 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat, in
   fft3D(fftIn_f, fftOut_f, noinverse);
   fft3D(fftIn_g, fftOut_g, noinverse);
 
-  //#pragma omp parallel for private(i,j,k,l,m,n,x,y,z,conv_weight_chunk)
+  //#pragma omp parallel for private(index,range,conv_weights,index1,index2,N,i,j,k,l,m,n,x,y,z,conv_weight_chunk)
   for (index = 0; index < range; index++) { // N * N * N
 	int newindex = index+lower;
     i = newindex / (N * N);
