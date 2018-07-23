@@ -409,6 +409,17 @@ int main(int argc, char **argv) {
 			fflush(stdout);}
 
                 conserveAllMoments(Q);
+			if(rank == 0 && l == order){
+			sum_check = 0;
+			for(int sum_check_x = 0; sum_check_x < num_species*num_species; sum_check_x += 1) {
+			for(int sum_check_z = 0; sum_check_z < N3; sum_check_z += 1) {
+					sum_check += Q[sum_check_x][sum_check_z];
+			}
+			}
+			printf("RANK %d Q after conserve %f \n",rank,sum_check);
+			fflush(stdout);}
+
+
 
                 t2 = (double)clock() / (double)CLOCKS_PER_SEC;
                 //if(rank == 0) printf("Time elapsed: %g\n", t2 - t1);
