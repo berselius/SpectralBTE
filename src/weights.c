@@ -72,7 +72,7 @@ void initialize_weights(int lower, int range, int nodes, double *eta, double Lv,
 
   printf("%g %g %g %g %s %s \n", diam_i, diam_j, mass_i, mass_j, species_i.name, species_j.name);
 
-  for (i = 0; i < N * N * N; i++) {
+  for (i = 0; i < range; i++) {
     conv_weights[i] = malloc(N * N * N * sizeof(double));
   }
 
@@ -252,7 +252,7 @@ void generate_conv_weights_iso(int lower, int range, double **conv_weights)
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
-//#pragma omp parallel for private(index,t,l,m,n)
+#pragma omp parallel for private(index,t,l,m,n)
   for (t = 0; t < range; t++) {
 	for (l = 0; l < N; l++) {
 	  for (m = 0; m < N; m++) {

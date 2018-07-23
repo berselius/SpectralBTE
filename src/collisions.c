@@ -2,7 +2,7 @@
 #include <fftw3.h>
 #include <stdlib.h>
 #include <omp.h>
-
+#include <mpi.h> //remove
 #include "constants.h"
 #include "collisions.h"
 #include "conserve.h"
@@ -121,14 +121,13 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat, in
   fft3D(fftIn_f, fftOut_f, noinverse);
   fft3D(fftIn_g, fftOut_g, noinverse);
 
-  #pragma omp parallel for private(i,j,k,l,m,n,x,y,z,conv_weight_chunk)
+  //#pragma omp parallel for private(i,j,k,l,m,n,x,y,z,conv_weight_chunk)
   for (index = 0; index < range; index++) { // N * N * N
 	int newindex = index+lower;
     i = newindex / (N * N);
     j = (newindex - i * N * N) / N;
     k = newindex - N * (j + i * N);
-    conv_weight_chunk = conv_weights[newindex];
-	
+    conv_weight_chunk = conv_weights[index];
     int n2 = N / 2;
 
 /*   for(index1 = 0; index1 < N * N * N; index1++) {

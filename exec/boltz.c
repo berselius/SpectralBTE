@@ -100,6 +100,7 @@ int main(int argc, char **argv) {
     int outputCount;
 
     double t1, t2;
+	double sum_check = 0;
 
     if ((restart_time > 0) && (rank == 0)) {
         totTime_start = MPI_Wtime();
@@ -180,8 +181,10 @@ int main(int argc, char **argv) {
         printf("Preparing for precomputation of weights...\n");
 		if(homogFlag == 1){
         getBounds(&lower, &upper, N, &worker);
-		range = upper - lower + 1;
+		range = upper - lower;
+		printf("RANK %d lower %d upper %d range %d\n",rank,lower,upper,range);
         alloc_weights(range, &conv_weights, num_species * num_species);
+		sum_check = 0;
 		} else {
 		lower = 0;
 		range = N*N*N;
@@ -196,6 +199,13 @@ int main(int argc, char **argv) {
                 for (j = 0; j < num_species; j++)
                     initialize_weights(lower, range, N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j * num_species + i], mixture[i], mixture[j]);
         }
+		for(int sx = 0; sx < num_species*num_species; sx += 1){
+			for(int sy = 0; sy < range; sy += 1){
+				for(int sz = 0; sz < N3; sz += 1){
+				sum_check += conv_weights[sx][sy][sz];
+}}}
+printf("RANK %d WEIGHT SUM %f\n",rank,sum_check);
+fflush(stdout);
     }
     else {
         printf("Not precomputing weights; The weights will be computed on the fly...\n");
@@ -299,7 +309,7 @@ int main(int argc, char **argv) {
         while (t < nT) {
             if(rank == 0) printf("In step %d of %d\n", t + 1, nT);
 			
-			double sum_check = 0;
+			sum_check = 0;
 			for(int sum_check_x = 0; sum_check_x < num_species; sum_check_x += 1) {
 			for(int sum_check_y = 0; sum_check_y < (nX_Node) + (2*order); sum_check_y += 1) {
 			for(int sum_check_z = 0; sum_check_z < N3; sum_check_z += 1) {
@@ -374,7 +384,6 @@ int main(int argc, char **argv) {
                         }
                     }
                 }
-
                 if (rank == 0) {
                     resetQ(qHat_mpi, num_species,N);
                 }
