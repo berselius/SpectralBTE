@@ -388,7 +388,7 @@ int main(int argc, char **argv) {
 				for(int s_ = 0; s_ < num_species*num_species; s_ += 1){
 					for(int n_ = 0; n_ < N3; n_ += 1){
 						qHat[s_][n_][0] = qHat_mpi[s_][n_][0];
-						qHat[s_][n_][0] = qHat_mpi[s_][n_][1];
+						qHat[s_][n_][1] = qHat_mpi[s_][n_][1];
 					}
 				}
 				
@@ -398,6 +398,15 @@ int main(int argc, char **argv) {
 						Q[s_][n_] = fftw_out[s_][n_][0];
 					}
 				}	
+			if(rank == 0 && l == order){
+			sum_check = 0;
+			for(int sum_check_x = 0; sum_check_x < num_species*num_species; sum_check_x += 1) {
+			for(int sum_check_z = 0; sum_check_z < N3; sum_check_z += 1) {
+					sum_check += Q[sum_check_x][sum_check_z];
+			}
+			}
+			printf("RANK %d Q after compute Q %f \n",rank,sum_check);
+			fflush(stdout);}
 
                 conserveAllMoments(Q);
 
@@ -432,6 +441,8 @@ int main(int argc, char **argv) {
 
 				//The RK2 Part
                 if (order == 2) {
+					printf("RK2 PART\n");
+					fflush(stdout);
 					if(rank != 0) {
 					for (m = 0; m < num_species; m++)
                         for (n = 0; n < num_species; n++)
