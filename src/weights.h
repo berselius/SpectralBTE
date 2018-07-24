@@ -31,6 +31,7 @@ isoFlag
   (WORK IN PROGRESS - I WILL SLOT THE MORE GENERAL ANISO CROSS SECTION HERE EVENTUALLY)
 conv_weights: pointer to memory allocated by alloc_weights
 *******************/
-void initialize_weights(int lower, int range, int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j);
+void initialize_weights(int lower, int range, int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j, int rank, int size);
 
+void write_weights(double **conv_weights, char buffer_weights[100], int N,int lower, int range, int rank, int size);
 #endif

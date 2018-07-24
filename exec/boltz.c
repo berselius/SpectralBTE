@@ -182,7 +182,34 @@ int main(int argc, char **argv) {
 			initialize_output_inhom(N, L_v, nX, nX_Node, x, dx, restart, inputFilename, outputChoices, mixture, num_species);
 
 //Setup weights
+//rank 0 write weights (uses MPI)
+    if (!isoFlag && rank == 0) {
+    char buffer_weights[100];
+	for(int i = 0; i < num_species;i++){
+		for(int j = 0; j < num_species;j++){
+	species species_i = mixture[i];
+	species species_j = mixture[j];
+    if (strcmp(species_i.name, "default") == 0) {
+      sprintf(buffer_weights, "Weights/N%d_isotropic_L_v%g_lambda%g.wts", N, L_v, lambda); //old style of naming
+    }
+    else {
+      sprintf(buffer_weights, "Weights/N%d_isotropic_L_v%g_HS_%s_%zd_%s_%zd.wts", N, L_v, species_i.name, species_i.id, species_j.name, species_j.id);
+    }
 
+    if(weightFlag == 0) {
+      FILE *file;
+      file = fopen(buffer_weights, "r");
+      if(file == NULL) {
+	  write_weights(conv_weights, buffer_weights, N,lower,range,numNodes,rank);
+      }
+    }
+    else {//weights forced to be regenerated
+      write_weights(conv_weights, buffer_weights, N,lower,range,numNodes,rank);
+    }
+	}
+	}
+	}
+//rank != 0 generate + write weights
     if ((weightgen == 0 && rank != 0) || homogFlag == 0) {
         printf("Preparing for precomputation of weights...\n");
 		if(homogFlag == 1){
@@ -201,7 +228,7 @@ int main(int argc, char **argv) {
         else {
             for (i = 0; i < num_species; i++)
                 for (j = 0; j < num_species; j++)
-                    initialize_weights(lower, range, N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j * num_species + i], mixture[i], mixture[j]);
+                    initialize_weights(lower, range, N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j * num_species + i], mixture[i], mixture[j],numNodes,rank);
         }
     }
     else {
@@ -229,7 +256,7 @@ int main(int argc, char **argv) {
 
     writeTime_start = MPI_Wtime();
     totTime_start = MPI_Wtime();
-
+	
 //////////////////////////////////////////////
 //SPACE HOMOGENEOUS CASE                    //
 ///////////////////////////////////////////////
@@ -304,7 +331,6 @@ int main(int argc, char **argv) {
         if (!restart && rank == 0) {
 			write_streams_inhom(f_inhom,0,order);
 		}
-
         if ((rank == 0) && (restart_time > 0)) {
             totTime = MPI_Wtime() - totTime_start;
             writeTime_start = MPI_Wtime();

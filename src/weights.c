@@ -25,9 +25,11 @@ static double mu_ij;
 static double *wtN;
 
 //Internal functions
-static int load(double **conv_weights, char buffer_weights[100], int N);
+static int load(double **conv_weights, char buffer_weights[100], int N, int lower, int range);
 
-static void write(double **conv_weights, char buffer_weights[100], int N);
+void write_weights(double **conv_weights, char buffer_weights[100], int N, int lower, int range, int size, int rank);
+
+void write_zeroD(double **conv_weights, char buffer_weights[100], int N);
 
 static void generate_conv_weights_iso(int lower, int range, double **conv_weights);
 
@@ -45,7 +47,7 @@ void alloc_weights(int range, double ****conv_weights, int total_species) {
 }
 
 // weightFlag = recompute weights even if they are already saved
-void initialize_weights(int lower, int range, int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j) {
+void initialize_weights(int lower, int range, int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j, int size, int rank) {
   char buffer_weights[100];
   int i;
 
@@ -84,25 +86,25 @@ void initialize_weights(int lower, int range, int nodes, double *eta, double Lv,
       sprintf(buffer_weights, "Weights/N%d_isotropic_L_v%g_HS_%s_%zd_%s_%zd.wts", N, L_v, species_i.name, species_i.id, species_j.name, species_j.id);
     }
 
-    /*if(weightFlag == 0) {
-      if(!load(conv_weights, buffer_weights, N)) {
+    if(weightFlag == 0) {
+      if(!load(conv_weights, buffer_weights, N,lower,range)) {
 	printf("Stored weights not found for this configuration, generating ...\n");
 	generate_conv_weights_iso(lower, range, conv_weights);
-	write(conv_weights, buffer_weights, N);
+	write_weights(conv_weights, buffer_weights, N,lower,range,size,rank);
       }
     }
     else {//weights forced to be regenerated
-      printf("Fresh version of weights being computed and stored for this configuration\n");*/
+      printf("Fresh version of weights being computed and stored for this configuration\n");
       generate_conv_weights_iso(lower, range, conv_weights);
       //dump the weights we've computed into a file
-      //write(conv_weights, buffer_weights, N);
-    //}
+      write_weights(conv_weights, buffer_weights, N,lower,range,size,rank);
+    }
   }
   else {
     sprintf(buffer_weights, "Weights/N%d_AnIso_L_v%g_lambda%g_Landau.wts", N, L_v, lambda);
     //sprintf(buffer_weights,"Weights/N%d_AnIso_L_v%g_lambda%g_glance0.0001_C.wts",N, L_v,lambda);
     if(weightFlag == 0) {
-      if(!load(conv_weights, buffer_weights, N)) {
+      if(!load(conv_weights, buffer_weights, N, lower, range)) {
 	printf("Please use the MPI Weight generator to build the weights for this anisotropic function\n");
 	exit(1);
       }
@@ -123,13 +125,14 @@ void initialize_weights(int lower, int range, int nodes, double *eta, double Lv,
  * output:
  *      1 if successful, 0 if file not found (exits if error reading a file that exists, might change later)
  */
-int load(double **conv_weights, char buffer_weights[100], int N) {
+int load(double **conv_weights, char buffer_weights[100], int N, int lower, int range) {
   FILE* fidWeights;
   int readFlag;
 
   if ((fidWeights = fopen(buffer_weights, "r"))) {
     printf("Loading weights from file %s\n", buffer_weights);
-    for (int i = 0; i < N * N * N; i++) {
+	fseek(fidWeights,sizeof(double)*N*N*N*lower,SEEK_SET);
+    for (int i = 0; i < range; i++) {
       readFlag = fread(conv_weights[i], sizeof(double), N * N * N, fidWeights);
       if (readFlag != N * N * N) {
 	printf("Error reading weight file\n");
@@ -152,7 +155,43 @@ int load(double **conv_weights, char buffer_weights[100], int N) {
  * output:
  *      void: simply exits if failure to store
  */
-void write(double **conv_weights, char buffer_weights[100], int N) {
+void write_weights(double **conv_weights, char buffer_weights[100], int N,int lower,int range,int size,int rank) {
+  double* conv_weights_buffer=(double*)malloc(sizeof(double)*N*N*N);
+  int expected_size;
+  MPI_Status *status;
+  if(rank == 0) {
+  FILE* fidWeights = fopen(buffer_weights, "w");
+  
+  for(int r = 1; r < size; r++){
+	MPI_Recv(&expected_size,1,MPI_INT,r,0,MPI_COMM_WORLD,status);
+  for (int i = 0; i < expected_size; i++) {
+	MPI_Recv(conv_weights_buffer,N*N*N,MPI_DOUBLE,r,i+1,MPI_COMM_WORLD,status);
+    fwrite(conv_weights_buffer, sizeof(double), N * N * N, fidWeights);
+  }
+  if (fflush(fidWeights) != 0) {
+    printf("Something is wrong with storing the weights");
+    exit(0);
+  }
+  free(conv_weights_buffer);
+  fclose(fidWeights);
+  }} else {
+	MPI_Send(&range,1,MPI_INT,0,0,MPI_COMM_WORLD);
+	for(int i = 0; i < range; i++){
+	MPI_Send(conv_weights[i],N*N*N,MPI_DOUBLE,0,i+1,MPI_COMM_WORLD);
+	}
+  }	
+}
+
+/*
+ *  * writes conv_weights into file
+ *   * args:
+ *    *      conv_weights: 2d array of weights
+ *     *      buffer_weights: name of file where weights are stored
+ *      *      N: number of velocity points 
+ *       * output:
+ *        *      void: simply exits if failure to store
+ *         */
+void write_zeroD(double **conv_weights, char buffer_weights[100], int N) {
   FILE* fidWeights = fopen(buffer_weights, "w");
   for (int i = 0; i < N * N * N; i++) {
     fwrite(conv_weights[i], sizeof(double), N * N * N, fidWeights);

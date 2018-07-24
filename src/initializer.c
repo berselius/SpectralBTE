@@ -470,7 +470,9 @@ void initialize_inhom_mpi(int N, int Ns, double L_v, double *v, double *zeta, do
   // hector look at this function, does it need to be refactored?
   if(restart){
     load_restart(f,t,inputfilename);
-  }
+  }else{
+	*t = 0;
+	}
 }
 
 void dealloc_inhom(int nX, int order, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, double **Q) {
