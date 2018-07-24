@@ -105,7 +105,7 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
 }
 
 static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat, int lower, int range) {
-  int i, j, k, index, index1, index2, l, m, n, x, y, z;
+/*  int i, j, k, index, index1, index2, l, m, n, x, y, z;
   double *conv_weight_chunk;
 
   for (index = 0; index < N * N * N; index++) {
@@ -121,7 +121,7 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat, in
   fft3D(fftIn_f, fftOut_f, noinverse);
   fft3D(fftIn_g, fftOut_g, noinverse);
 
-  //#pragma omp parallel for private(index,range,conv_weights,index1,index2,N,i,j,k,l,m,n,x,y,z,conv_weight_chunk)
+  #pragma omp parallel for  private(index,range,index1,index2,N,i,j,k,l,m,n,x,y,z,conv_weight_chunk)
   for (index = 0; index < range; index++) { // N * N * N
 	int newindex = index+lower;
     i = newindex / (N * N);
@@ -129,11 +129,12 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat, in
     k = newindex - N * (j + i * N);
     conv_weight_chunk = conv_weights[index];
     int n2 = N / 2;
-
+*/
 /*   for(index1 = 0; index1 < N * N * N; index1++) {
      l = index / (N * N);
      m = (index - i * N * N) / N;
      n = index - N * (j + i * N);*/
+/*
     for (l = 0; l < N; l++)
     for (m = 0; m < N; m++)
     for (n = 0; n < N; n++) {
@@ -165,9 +166,68 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat, in
       qHat[newindex][1] += conv_weight_chunk[index1]*(fftOut_g[index1][0]*fftOut_f[index2][1] + fftOut_g[index1][1]*fftOut_f[index2][0]);
     }
   }
+*/
+  int index, x, y, z;
+  double *conv_weight_chunk;
+
+  for (index = 0; index < N * N * N; index++) {
+    qHat[index][0] = 0.0;
+    qHat[index][1] = 0.0;
+    fftIn_f[index][0] = f_mat[index];
+    fftIn_f[index][1] = 0.0;
+    fftIn_g[index][0] = g_mat[index];
+    fftIn_g[index][1] = 0.0;
+  }
+
+  //move to foureir space
+  fft3D(fftIn_f, fftOut_f, noinverse);
+  fft3D(fftIn_g, fftOut_g, noinverse);
+
+  int zeta, zeta_x, zeta_y, zeta_z;
+  int xi, xi_x, xi_y, xi_z;
+  #pragma omp parallel for private(zeta_x, zeta_y, zeta_z, xi_x, xi_y, xi_z, x, y, z, conv_weight_chunk)
+  for (zeta = 0; zeta < range; zeta++) {
+	int newzeta = zeta+lower;
+    zeta_x = newzeta / (N * N);
+    zeta_y = (newzeta - zeta_x * N * N) / N;
+    zeta_z = newzeta - N * (zeta_y + zeta_x * N);
+    conv_weight_chunk = conv_weights[zeta];
+
+    int n2 = N / 2;
+
+   for(xi = 0; xi < N * N * N; xi++) {
+     xi_x = xi / (N * N);
+     xi_y = (xi - xi_x * N * N) / N;
+     xi_z = xi - N * (xi_y + xi_x * N);
+
+      x = zeta_x + n2 - xi_x;
+      y = zeta_y + n2 - xi_y;
+      z = zeta_z + n2 - xi_z;
+
+      if (x < 0)
+        x = N + x;
+      else if (x > N-1)
+        x = x - N;
+
+      if (y < 0)
+        y = N + y;
+      else if (y > N-1)
+        y = y - N;
+
+      if (z < 0)
+        z = N + z;
+      else if (z > N-1)
+        z = z - N;
+
+      index = z + N * (y + N * x);
+      //multiply the weighted fourier coeff product
+      qHat[newzeta][0] += conv_weight_chunk[xi]*(fftOut_g[xi][0]*fftOut_f[index][0] - fftOut_g[xi][1]*fftOut_f[index][1]);
+      qHat[newzeta][1] += conv_weight_chunk[xi]*(fftOut_g[xi][0]*fftOut_f[index][1] + fftOut_g[xi][1]*fftOut_f[index][0]);
+    }
+  }
 
   //End of parallel section
-  //fft3D(qHat, fftOut_f, inverse);
+  fft3D(qHat, fftOut_f, inverse);
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
