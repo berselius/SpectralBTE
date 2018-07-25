@@ -560,8 +560,7 @@ int main(int argc, char **argv) {
 	if(!homogFlag || (homogFlag && rank != 0)){
     for (i = 0; i < num_species; i++)
         dealloc_weights(range, conv_weights[i]);
-	}
-    free(conv_weights);
+	free(conv_weights);}
 	
     dealloc_coll();
     dealloc_conservation();
