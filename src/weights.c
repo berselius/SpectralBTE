@@ -53,9 +53,6 @@ void initialize_weights(int lower, int range, int nodes, double *eta, double Lv,
     char buffer_weights[100];
     int i;
 
-	printf("INSIDE INIT WEIGHTS RANK %d\n",rank);
-	fflush(stdout);
-
     N = nodes;
     zeta = eta;
     deta = eta[1] - eta[0];
@@ -77,7 +74,7 @@ void initialize_weights(int lower, int range, int nodes, double *eta, double Lv,
 
     //GL_table = gsl_integration_glfixed_table_alloc(64);
 
-    printf("RANK %d HOMOGFLAG %d %g %g %g %g %s %s \n", rank,homogFlag,diam_i, diam_j, mass_i, mass_j, species_i.name, species_j.name);
+    printf("%g %g %g %g %s %s \n", diam_i, diam_j, mass_i, mass_j, species_i.name, species_j.name);
     
     for (i = 0; i < range; i++) {
         conv_weights[i] = malloc(N * N * N * sizeof(double));
@@ -95,13 +92,9 @@ void initialize_weights(int lower, int range, int nodes, double *eta, double Lv,
                 printf("Stored weights not found for this configuration, generating RANK %d ...\n",rank);
                 generate_conv_weights_iso(lower, range, conv_weights);
                 if (homogFlag) {
-					printf("WRITE WEIGHTS INHOMOGENOUS RANK %d %d %d \n",rank,lower,range);
-					fflush(stdout);
                     write_weights_mpi(conv_weights, buffer_weights, N, lower, range, size, rank);
                 }
                 else {
-					printf("WRITE WEIGHTS HOMOGENEOUS RANK %d %d %d \n",rank,lower,range);
-					fflush(stdout);
                     write_weights(conv_weights, buffer_weights, N);
                 }
             }
@@ -194,13 +187,11 @@ void write_weights_mpi(double **conv_weights, char buffer_weights[100], int N, i
     int expected_size = 0;
     MPI_Status status;
 	int error;
-	printf("RANK %d size %d range %d lower %d N %d buffer %s\n",rank,size,range,lower,N,buffer_weights);
-	fflush(stdout);
+    FILE* fidWeights = fopen(buffer_weights, "a");
     if (rank == 0) {
-        FILE* fidWeights = fopen(buffer_weights, "w");
-
         for (int r = 1; r < size; r++) {
             MPI_Recv(&expected_size, 1, MPI_INT, r, 0, MPI_COMM_WORLD, &status);
+
             for (int i = 0; i < expected_size; i++) {
                 MPI_Recv(conv_weights_buffer, N * N * N, MPI_DOUBLE, r, i + 1, MPI_COMM_WORLD, &status);
                 fwrite(conv_weights_buffer, sizeof(double), N * N * N, fidWeights);
@@ -209,9 +200,9 @@ void write_weights_mpi(double **conv_weights, char buffer_weights[100], int N, i
                 perror("Something is wrong with storing the weights");
                 exit(0);
             }
-            free(conv_weights_buffer);
-            fclose(fidWeights);
         }
+        free(conv_weights_buffer);
+        fclose(fidWeights);
     } else {
         MPI_Send(&range, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
         for (int i = 0; i < range; i++) {
@@ -340,8 +331,6 @@ void generate_conv_weights_iso(int lower, int range, double **conv_weights)
                     j = (index - (i * N * N)) / (N);
                     k = (index - (i * N * N) - (j * N));
 
-                    //printf("rank %d : %d %d %d %d\n",rank,t,l,m,n);
-                    //fflush(stdout);
                     conv_weights[t][n + N * (m + N * l)] = wtN[l] * wtN[m] * wtN[n] * 0.25 * pow(0.5 * (diam_i + diam_j), 2) * gHat3(zeta[l], zeta[m], zeta[n], zeta[i], zeta[j], zeta[k]);
 
                 }

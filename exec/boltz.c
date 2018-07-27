@@ -132,8 +132,6 @@ int main(int argc, char **argv) {
     if (homogFlag == 1) {    //load mesh data
         make_mesh(&nX, &nX_Node, &dx_min, &x, &dx, order, meshFile);
     }
-    printf("DONE MAKING MESH RANK %d\n",rank);
-	fflush(stdout);
     double *fbuffer = malloc(sizeof(double) * num_species * (nX_Node + (2 * order)) * N3);
     double *qbuffer = malloc(sizeof(double) * num_species * num_species * N3 * 2);
 
@@ -207,8 +205,6 @@ int main(int argc, char **argv) {
             for (i = 0; i < num_species; i++)
                 for (j = 0; j < num_species; j++){
 					if(rank != 0) {
-					printf("RANK %d lower %d range %d\n",rank,lower,range);
-					fflush(stdout);	
                     initialize_weights(lower, range, N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j * num_species + i], mixture[i], mixture[j], numNodes, rank, homogFlag);
 					}else initialize_weights_mpi(N,L_v,lambda,mixture[i],mixture[j],weightFlag,numNodes);//need this outside as well
         		}
@@ -217,9 +213,6 @@ int main(int argc, char **argv) {
     else {
         printf("Not precomputing weights; The weights will be computed on the fly...\n");
     }
-    printf("DONE WITH WEIGHTS RANK %d\n",rank);
-	fflush(stdout);
-	MPI_Barrier(MPI_COMM_WORLD);
     outputCount = 0;
 
     gettimeofday(&tv2, NULL);
