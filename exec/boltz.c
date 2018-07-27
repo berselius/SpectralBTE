@@ -33,9 +33,9 @@ int main(int argc, char **argv) {
     int numNodes;
     int nX_Node;
     MPI_Comm worker;
-	int lower;
-	int upper;
-	int range;
+    int lower;
+    int upper;
+    int range;
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numNodes);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -74,8 +74,8 @@ int main(int argc, char **argv) {
     double ***f_1;      //levels - species, x-postion, v-position (for intermediate step in 2nd order time integrator)
     double **Q;         //array of collision operator results - levels - species, v-position
     double ***conv_weights; //array of convolution weights - levels - interaction index, zeta, xi
-	fftw_complex **qHat; // for fftw 
-	fftw_complex **fftw_out;
+    fftw_complex **qHat; // for fftw
+    fftw_complex **fftw_out;
     double ***qHat_mpi; // for mpi communication (not sure how to send fftw_complex)
 
     //Species data
@@ -84,9 +84,9 @@ int main(int argc, char **argv) {
     char **species_names;
 
     //timing stuff for restart
-    double totTime, totTime_start;
-    double writeTime, writeTime_start;
     int restart_flag;
+    double writeTime, writeTime_start;
+    double totTime, totTime_start;
 
     //command line arguments
     char *inputFilename = malloc(80 * sizeof(char));
@@ -100,12 +100,10 @@ int main(int argc, char **argv) {
     int i, j, k, l, m, n;
     int outputCount;
 
-    double t1, t2;
-    
-	struct timeval tv1, tv2;
+    struct timeval tv1, tv2;
 
-    if(rank != 0){
-      gettimeofday(&tv1, NULL);
+    if (rank != 0) {
+        gettimeofday(&tv1, NULL);
     }
 
     if ((restart_time > 0) && (rank == 0)) {
@@ -123,23 +121,21 @@ int main(int argc, char **argv) {
     }
 
     N3 = N * N * N;
-         //////////////////////////////////
-         //SETUP                         //
-         //////////////////////////////////
+    //////////////////////////////////
+    //SETUP                         //
+    //////////////////////////////////
 
-         //Allocating and initializing
+    //Allocating and initializing
 
-         load_and_allocate_spec(&mixture, num_species, species_names);
+    load_and_allocate_spec(&mixture, num_species, species_names);
 
     if (homogFlag == 1) {    //load mesh data
-        //if (rank == 0) {
-			make_mesh(&nX, &nX_Node, &dx_min, &x, &dx, order, meshFile);
-        	printf("Loading mesh\n");
-		//}
+        make_mesh(&nX, &nX_Node, &dx_min, &x, &dx, order, meshFile);
     }
-	
-	double *fbuffer = malloc(sizeof(double)*num_species*(nX_Node+(2*order))*N3);
-	double *qbuffer = malloc(sizeof(double)*num_species*num_species*N3*2);
+    printf("DONE MAKING MESH RANK %d\n",rank);
+	fflush(stdout);
+    double *fbuffer = malloc(sizeof(double) * num_species * (nX_Node + (2 * order)) * N3);
+    double *qbuffer = malloc(sizeof(double) * num_species * num_species * N3 * 2);
 
     if (rank == 0) printf("Initializing variables %d\n", homogFlag);
 
@@ -150,76 +146,58 @@ int main(int argc, char **argv) {
         t = 0;
     }
     else { // inhomogeneous case
-		qHat = (fftw_complex **)malloc(num_species*num_species*sizeof(fftw_complex*));
-		fftw_out = (fftw_complex **)malloc(num_species*num_species*sizeof(fftw_complex*));
-		for(int index_s = 0; index_s < num_species*num_species; index_s += 1){
-			qHat[index_s] = (fftw_complex *)malloc(N3*sizeof(fftw_complex));
-			fftw_out[index_s] = (fftw_complex *)malloc(N3*sizeof(fftw_complex));
-		}
+        qHat = (fftw_complex **)malloc(num_species * num_species * sizeof(fftw_complex*));
+        fftw_out = (fftw_complex **)malloc(num_species * num_species * sizeof(fftw_complex*));
+        for (int index_s = 0; index_s < num_species * num_species; index_s += 1) {
+            qHat[index_s] = (fftw_complex *)malloc(N3 * sizeof(fftw_complex));
+            fftw_out[index_s] = (fftw_complex *)malloc(N3 * sizeof(fftw_complex));
+        }
 
-		qHat_mpi = (double*** )malloc(num_species*num_species*sizeof(double**));
-		for(int index_s = 0; index_s < num_species*num_species; index_s += 1){
-			qHat_mpi[index_s] = (double**)malloc(N3*sizeof(double*));
-			for(int index_n = 0; index_n < N3; index_n += 1){
-				qHat_mpi[index_s][index_n] = (double*)malloc(2*sizeof(double));
-			}
-		}
+        qHat_mpi = (double*** )malloc(num_species * num_species * sizeof(double**));
+        for (int index_s = 0; index_s < num_species * num_species; index_s += 1) {
+            qHat_mpi[index_s] = (double**)malloc(N3 * sizeof(double*));
+            for (int index_n = 0; index_n < N3; index_n += 1) {
+                qHat_mpi[index_s][index_n] = (double*)malloc(2 * sizeof(double));
+            }
+        }
 
         if (rank == 0) {
             allocate_inhom(N, nX_Node + (2 * order), &v, &zeta, &f_inhom, &f_conv, &f_1, &Q, num_species);
             initialize_inhom(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, nX_Node, x, dx, dt, &t, order, restart, inputFilename);
         } else {
-            allocate_inhom(N, nX_Node + (2 * order), &v, &zeta,&f_inhom, &f_conv, &f_1, &Q, num_species);
+            allocate_inhom(N, nX_Node + (2 * order), &v, &zeta, &f_inhom, &f_conv, &f_1, &Q, num_species);
             initialize_inhom_mpi(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, nX_Node, x, dx, dt, &t, order, restart, inputFilename);
         }
     }
 
-//Setup output
-		// hector all ranks are doing this
-        if (homogFlag == 0)
-			initialize_output_hom(N, L_v, restart, inputFilename, outputChoices, mixture, v, num_species);
-        else
-			initialize_output_inhom(N, L_v, nX, nX_Node, x, dx, restart, inputFilename, outputChoices, mixture, num_species);
+    //Setup output
+    // hector all ranks are doing this
+    if (homogFlag == 0)
+        initialize_output_hom(N, L_v, restart, inputFilename, outputChoices, mixture, v, num_species);
+    else
+        initialize_output_inhom(N, L_v, nX, nX_Node, x, dx, restart, inputFilename, outputChoices, mixture, num_species);
 
+	
+	if(rank == 0) {
+    for (i = 0; i < num_species; i++){
+    	for (j = 0; j < num_species; j++){
+    		initialize_weights_mpi(N,L_v,lambda,mixture[i],mixture[j],weightFlag,numNodes);
+		}
+	}
+	}
 //Setup weights
-//rank 0 write weights (uses MPI)
-    if (!isoFlag && rank == 0) {
-    char buffer_weights[100];
-	for(int i = 0; i < num_species;i++){
-		for(int j = 0; j < num_species;j++){
-	species species_i = mixture[i];
-	species species_j = mixture[j];
-    if (strcmp(species_i.name, "default") == 0) {
-      sprintf(buffer_weights, "Weights/N%d_isotropic_L_v%g_lambda%g.wts", N, L_v, lambda); //old style of naming
-    }
-    else {
-      sprintf(buffer_weights, "Weights/N%d_isotropic_L_v%g_HS_%s_%zd_%s_%zd.wts", N, L_v, species_i.name, species_i.id, species_j.name, species_j.id);
-    }
-
-    if(weightFlag == 0) {
-      FILE *file;
-      file = fopen(buffer_weights, "r");
-      if(file == NULL) {
-	  write_weights(conv_weights, buffer_weights, N,lower,range,numNodes,rank);
-      }
-    }
-    else {//weights forced to be regenerated
-      write_weights(conv_weights, buffer_weights, N,lower,range,numNodes,rank);
-    }
-	}
-	}
-	}
 //rank != 0 generate + write weights
-    if ((weightgen == 0 && rank != 0) || homogFlag == 0) {
-        printf("Preparing for precomputation of weights...\n");
-		if(homogFlag == 1){
-        getBounds(&lower, &upper, N, &worker);
-		range = upper - lower;
-        alloc_weights(range, &conv_weights, num_species * num_species);
-		} else {
+    if (weightgen == 0) {
+        printf("Preparing for precomputation of weights RANK %d...\n",rank);
+        fflush(stdout);
 		lower = 0;
-		range = N*N*N;
-		alloc_weights(N*N*N, &conv_weights, num_species*num_species);
+        range = N * N * N;
+        if (homogFlag == 1 && rank != 0) {
+            getBounds(&lower, &upper, N, &worker);
+            range = upper - lower;
+            alloc_weights(range, &conv_weights, num_species * num_species);
+		} else if(homogFlag == 0){
+			 alloc_weights(range, &conv_weights, num_species * num_species);
 		}
 
         if (isoFlag == 1) { //load AnIso weights generated by the AnIso weight generator (seperate program)
@@ -227,22 +205,30 @@ int main(int argc, char **argv) {
         }
         else {
             for (i = 0; i < num_species; i++)
-                for (j = 0; j < num_species; j++)
-                    initialize_weights(lower, range, N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j * num_species + i], mixture[i], mixture[j],numNodes,rank);
-        }
+                for (j = 0; j < num_species; j++){
+					if(rank != 0) {
+					printf("RANK %d lower %d range %d\n",rank,lower,range);
+					fflush(stdout);	
+                    initialize_weights(lower, range, N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j * num_species + i], mixture[i], mixture[j], numNodes, rank, homogFlag);
+					}else initialize_weights_mpi(N,L_v,lambda,mixture[i],mixture[j],weightFlag,numNodes);//need this outside as well
+        		}
+		}
     }
     else {
         printf("Not precomputing weights; The weights will be computed on the fly...\n");
     }
+    printf("DONE WITH WEIGHTS RANK %d\n",rank);
+	fflush(stdout);
+	MPI_Barrier(MPI_COMM_WORLD);
     outputCount = 0;
 
     gettimeofday(&tv2, NULL);
 
-	if(rank != 0){
-    printf ("Weight Total time = %f seconds\n",
-         (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
-         (double) (tv2.tv_sec - tv1.tv_sec));
-	}
+    if (rank != 0) {
+        printf ("Weight Total time = %f seconds\n",
+                (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
+                (double) (tv2.tv_sec - tv1.tv_sec));
+    }
 //Set up conservation routines
 
     initialize_conservation(N, v[1] - v[0], v, mixture, num_species);
@@ -251,21 +237,20 @@ int main(int argc, char **argv) {
 //ALL SETUP COMPLETE                            //
 //////////////////////////////////////////////////
 
-    printf("Done with all setup, starting main loop RANK %d\n",rank);
+    printf("Done with all setup, starting main loop RANK %d\n", rank);
     fflush(stdout);
 
     writeTime_start = MPI_Wtime();
     totTime_start = MPI_Wtime();
-	
+
 //////////////////////////////////////////////
 //SPACE HOMOGENEOUS CASE                    //
 ///////////////////////////////////////////////
-    if(homogFlag == 0) {
-		write_streams(f_hom,0);
+    if (homogFlag == 0) {
+        write_streams(f_hom, 0);
 
         while (t < nT) {
-            if(rank == 0) printf("In step %d of %d\n", t + 1, nT);
-            t1 = omp_get_wtime();
+            if (rank == 0) printf("In step %d of %d\n", t + 1, nT);
 
             for (l = 0; l < num_species; l++) {
                 for (m = 0; m < num_species; m++) {
@@ -276,9 +261,6 @@ int main(int argc, char **argv) {
 
             //conserve
             conserveAllMoments(Q);
-
-            t2 = omp_get_wtime();
-            //printf("Time elapsed: %g\n", t2 - t1);
 
             if (order == 1) {
                 //update
@@ -318,7 +300,7 @@ int main(int argc, char **argv) {
 
             outputCount++;
             if (outputCount % dataFreq == 0) {
-				write_streams(f_hom,dt*(t+1));
+                write_streams(f_hom, dt * (t + 1));
                 outputCount = 0;
             }
             t = t + 1;
@@ -329,16 +311,16 @@ int main(int argc, char **argv) {
 /////////////////////////////////////////////
     else {
         if (!restart && rank == 0) {
-			write_streams_inhom(f_inhom,0,order);
-		}
+            write_streams_inhom(f_inhom, 0, order);
+        }
         if ((rank == 0) && (restart_time > 0)) {
             totTime = MPI_Wtime() - totTime_start;
             writeTime_start = MPI_Wtime();
             //printf("%g\n",totTime);
         }
         while (t < nT) {
-            if(rank == 0) printf("In step %d of %d\n", t + 1, nT);
-			
+            if (rank == 0) printf("In step %d of %d\n", t + 1, nT);
+
             ///////////////////////////
             //ADVECTION STEP         //
             ///////////////////////////
@@ -350,23 +332,21 @@ int main(int argc, char **argv) {
                 }
             }
 
-			
-			if(rank == 0) {	
-				fcopy(fbuffer,f_conv,num_species,(nX_Node+(2*order)),N3, -1);
-			}
+
+            if (rank == 0) {
+                fcopy(fbuffer, f_conv, num_species, (nX_Node + (2 * order)), N3, -1);
+            }
 
             // broadcast f to all other ranks from rank 0
-            int error = MPI_Bcast(fbuffer, num_species * N3 * (nX_Node + (2 * order)), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+            MPI_Bcast(fbuffer, num_species * N3 * (nX_Node + (2 * order)), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-			if(rank != 0){
-				fcopy(fbuffer,f_conv,num_species,(nX_Node+(2*order)),N3, 1);				
-			}		
-
-            t1 = (double) clock() / (double) CLOCKS_PER_SEC;
+            if (rank != 0) {
+                fcopy(fbuffer, f_conv, num_species, (nX_Node + (2 * order)), N3, 1);
+            }
 
             ////////////////////////
             //COLLISION STEP      //
-            //////////////////////// 
+            ////////////////////////
 
             for (l = order; l < (nX_Node + order); l++) {
 
@@ -378,35 +358,32 @@ int main(int argc, char **argv) {
                     }
                 }
                 if (rank == 0) {
-                    resetQ(qHat_mpi, num_species,N);
+                    resetQ(qHat_mpi, num_species, N);
                 }
 
-			    qcopy(qbuffer,qHat_mpi,num_species*num_species,N3,-1);
+                qcopy(qbuffer, qHat_mpi, num_species * num_species, N3, -1);
 
-				MPI_Allreduce(MPI_IN_PLACE, qbuffer, num_species * num_species * N3 * 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_Allreduce(MPI_IN_PLACE, qbuffer, num_species * num_species * N3 * 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-				qcopy(qbuffer,qHat_mpi,num_species*num_species,N3,1);
+                qcopy(qbuffer, qHat_mpi, num_species * num_species, N3, 1);
 
-				for(int s_ = 0; s_ < num_species*num_species; s_ += 1){
-					for(int n_ = 0; n_ < N3; n_ += 1){
-						qHat[s_][n_][0] = qHat_mpi[s_][n_][0];
-						qHat[s_][n_][1] = qHat_mpi[s_][n_][1];
-					}
-				}
-				
-				for(int s_ = 0; s_ < num_species*num_species; s_ += 1) {
-					fft3D(qHat[s_], fftw_out[s_], 1);
-					for(int n_ = 0; n_ < N3; n_ += 1) {
-						Q[s_][n_] = fftw_out[s_][n_][0];
-					}
-				}	
+                for (int s_ = 0; s_ < num_species * num_species; s_ += 1) {
+                    for (int n_ = 0; n_ < N3; n_ += 1) {
+                        qHat[s_][n_][0] = qHat_mpi[s_][n_][0];
+                        qHat[s_][n_][1] = qHat_mpi[s_][n_][1];
+                    }
+                }
+
+                for (int s_ = 0; s_ < num_species * num_species; s_ += 1) {
+                    fft3D(qHat[s_], fftw_out[s_], 1);
+                    for (int n_ = 0; n_ < N3; n_ += 1) {
+                        Q[s_][n_] = fftw_out[s_][n_][0];
+                    }
+                }
 
                 conserveAllMoments(Q);
 
-                t2 = (double)clock() / (double)CLOCKS_PER_SEC;
-                //if(rank == 0) printf("Time elapsed: %g\n", t2 - t1);
-				
-				// at the moment this will be done by all the ranks
+                // at the moment this will be done by all the ranks
                 for (m = 0; m < num_species; m++) {
                     if (order == 1)
                         for (i = 0; i < N; i++)
@@ -432,56 +409,56 @@ int main(int argc, char **argv) {
 
                 // no broadcast of fs because they have already been computed by each rank
 
-				//The RK2 Part
+                //The RK2 Part
                 if (order == 2) {
-					if(rank != 0) {
-					for (m = 0; m < num_species; m++)
-                        for (n = 0; n < num_species; n++)
-                            ComputeQ_mpi(f_1[m][l], f_1[n][l], qHat_mpi[n * num_species + m], conv_weights[n * num_species + m], lower, range);
-					}
-					
-					if(rank == 0){
-						resetQ(qHat_mpi, num_species, N);
-					}
+                    if (rank != 0) {
+                        for (m = 0; m < num_species; m++)
+                            for (n = 0; n < num_species; n++)
+                                ComputeQ_mpi(f_1[m][l], f_1[n][l], qHat_mpi[n * num_species + m], conv_weights[n * num_species + m], lower, range);
+                    }
 
-					qcopy(qbuffer,qHat_mpi,num_species*num_species,N3,-1);
+                    if (rank == 0) {
+                        resetQ(qHat_mpi, num_species, N);
+                    }
 
-					// reduce only to rank 0 since there are no more computeQ
-					MPI_Reduce(MPI_IN_PLACE,qbuffer, num_species * num_species * N3*2, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-					
-					if(rank == 0) {
-					
-					qcopy(qbuffer,qHat_mpi,num_species*num_species,N3,-1);
-				
-					for(int s_ = 0; s_ < num_species*num_species; s_ += 1){
-						for(int n_ = 0; n_ < N3; n_ += 1){
-							qHat[s_][n_][0] = qHat_mpi[s_][n_][0];
-							qHat[s_][n_][0] = qHat_mpi[s_][n_][1];
-						}
-					}
-				
-					for(int s_ = 0; s_ < num_species*num_species; s_ += 1) {
-						fft3D(qHat[s_], fftw_out[s_], 1);
-						for(int n_ = 0; n_ < N3; n_ += 1) {
-							Q[s_][n_] = fftw_out[s_][n_][0];
-						}
-					}	
-                    
-					conserveAllMoments(Q);
+                    qcopy(qbuffer, qHat_mpi, num_species * num_species, N3, -1);
 
-                    for (m = 0; m < num_species; m++) {
-                        for (i = 0; i < N; i++)
-                            for (j = 0; j < N; j++)
-                                for (k = 0; k < N; k++)
-                                    f_conv[m][l][k + N * (j + N * i)] = 0.5 * f_conv[m][l][k + N * (j + N * i)] + 0.5 * f_1[m][l][k + N * (j + N * i)];
+                    // reduce only to rank 0 since there are no more computeQ
+                    MPI_Reduce(MPI_IN_PLACE, qbuffer, num_species * num_species * N3 * 2, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-                        for (n = 0; n < num_species; n++)
+                    if (rank == 0) {
+
+                        qcopy(qbuffer, qHat_mpi, num_species * num_species, N3, -1);
+
+                        for (int s_ = 0; s_ < num_species * num_species; s_ += 1) {
+                            for (int n_ = 0; n_ < N3; n_ += 1) {
+                                qHat[s_][n_][0] = qHat_mpi[s_][n_][0];
+                                qHat[s_][n_][0] = qHat_mpi[s_][n_][1];
+                            }
+                        }
+
+                        for (int s_ = 0; s_ < num_species * num_species; s_ += 1) {
+                            fft3D(qHat[s_], fftw_out[s_], 1);
+                            for (int n_ = 0; n_ < N3; n_ += 1) {
+                                Q[s_][n_] = fftw_out[s_][n_][0];
+                            }
+                        }
+
+                        conserveAllMoments(Q);
+
+                        for (m = 0; m < num_species; m++) {
                             for (i = 0; i < N; i++)
                                 for (j = 0; j < N; j++)
                                     for (k = 0; k < N; k++)
-                                        f_conv[m][l][k + N * (j + N * i)] += 0.5 * dt * Q[n * num_species + m][k + N * (j + N * i)] / Kn;
+                                        f_conv[m][l][k + N * (j + N * i)] = 0.5 * f_conv[m][l][k + N * (j + N * i)] + 0.5 * f_1[m][l][k + N * (j + N * i)];
+
+                            for (n = 0; n < num_species; n++)
+                                for (i = 0; i < N; i++)
+                                    for (j = 0; j < N; j++)
+                                        for (k = 0; k < N; k++)
+                                            f_conv[m][l][k + N * (j + N * i)] += 0.5 * dt * Q[n * num_species + m][k + N * (j + N * i)] / Kn;
+                        }
                     }
-					}
                 }
             }
 
@@ -491,41 +468,42 @@ int main(int argc, char **argv) {
             if (order == 2 && rank == 0)
                 for (m = 0; m < num_species; m++)
                     advectTwo(f_conv[m], f_inhom[m], m);
-            
-			////////////////////////////////
+
+            ////////////////////////////////
             //RECORD DATA                 //
             ////////////////////////////////
             outputCount++;
-            if (outputCount % dataFreq == 0) {/*
-                if (restart_time > 0) {
-                    if ((rank == 0) && (restart_time > 0)) {
-                        writeTime = MPI_Wtime() - writeTime_start;
-                        totTime = MPI_Wtime() - totTime_start;
-                        writeTime_start = MPI_Wtime();
-                        //printf("%g %g\n",totTime,writeTime);
-                        if ((totTime + writeTime) > 0.95 * (double)restart_time) {
-                            printf("RESTART TIME REACHED - STORING CURRENT DISTRIBUTION DATA\n");
-                            restart_flag = 1;
-                            MPI_Bcast(&restart_flag, 1, MPI_INT, 0, MPI_COMM_WORLD);
-                            store_restart(f_inhom, t, inputFilename);
+            if (outputCount % dataFreq == 0) {
+                /*
+                    if (restart_time > 0) {
+                        if ((rank == 0) && (restart_time > 0)) {
+                            writeTime = MPI_Wtime() - writeTime_start;
+                            totTime = MPI_Wtime() - totTime_start;
+                            writeTime_start = MPI_Wtime();
+                            //printf("%g %g\n",totTime,writeTime);
+                            if ((totTime + writeTime) > 0.95 * (double)restart_time) {
+                                printf("RESTART TIME REACHED - STORING CURRENT DISTRIBUTION DATA\n");
+                                restart_flag = 1;
+                                MPI_Bcast(&restart_flag, 1, MPI_INT, 0, MPI_COMM_WORLD);
+                                store_restart(f_inhom, t, inputFilename);
+                            }
+                            else {
+                                restart_flag = 0;
+                                MPI_Bcast(&restart_flag, 1, MPI_INT, 0, MPI_COMM_WORLD);
+                            }
                         }
                         else {
-                            restart_flag = 0;
                             MPI_Bcast(&restart_flag, 1, MPI_INT, 0, MPI_COMM_WORLD);
+                            if (restart_flag == 1)
+                                store_restart(f_inhom, t, inputFilename);
                         }
-                    }
-                    else {
-                        MPI_Bcast(&restart_flag, 1, MPI_INT, 0, MPI_COMM_WORLD);
-                        if (restart_flag == 1)
-                            store_restart(f_inhom, t, inputFilename);
-                    }
-                    if (restart_flag == 1) {
-                        MPI_Barrier(MPI_COMM_WORLD);
-                        MPI_Finalize();
-                        return 0;
-                    }
-                }*/
-				write_streams_inhom(f_inhom,dt*(t+1),order);
+                        if (restart_flag == 1) {
+                            MPI_Barrier(MPI_COMM_WORLD);
+                            MPI_Finalize();
+                            return 0;
+                        }
+                    }*/
+                write_streams_inhom(f_inhom, dt * (t + 1), order);
                 outputCount = 0;
             }
             t = t + 1;
@@ -542,26 +520,27 @@ int main(int argc, char **argv) {
 //////////////////////////////////////
 //DEALLOCATION AND WRAP UP          //
 //////////////////////////////////////
-	if(rank != 0){
-    	gettimeofday(&tv2, NULL);
+    if (rank != 0) {
+        gettimeofday(&tv2, NULL);
 
-    	printf ("Total time = %f seconds\n",
-         (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
-         (double) (tv2.tv_sec - tv1.tv_sec));
-  	}
+        printf ("Total time = %f seconds\n",
+                (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 +
+                (double) (tv2.tv_sec - tv1.tv_sec));
+    }
 
     if (rank == 0)
         printf("Wrapping up\n");
 
-    if (rank == 0) close_streams(homogFlag);
+    if (rank == 0) close_streams();
 
     if (homogFlag && rank == 0) dealloc_trans();
 
-	if(!homogFlag || (homogFlag && rank != 0)){
-    for (i = 0; i < num_species; i++)
-        dealloc_weights(range, conv_weights[i]);
-	free(conv_weights);}
-	
+    if (!homogFlag || (homogFlag && rank != 0)) {
+        for (i = 0; i < num_species; i++)
+            dealloc_weights(range, conv_weights[i]);
+        free(conv_weights);
+    }
+
     dealloc_coll();
     dealloc_conservation();
     MPI_Finalize();
