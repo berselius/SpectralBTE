@@ -129,7 +129,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
       for(j=0;j<N;j++)
 	for(k=0;k<N;k++)
 	  {
-	    f[spec][k + N*(j + N*i)] = (exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/(2*K*Temp*Temp)))/(2.0*pow(2*M_PI*K*Temp*Temp,1.5)) * ( (5*K - 3)/K + 																  (1-K)*(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/(K*K*Temp*Temp));
+	    f[spec][k + N*(j + N*i)] = (exp(-(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/(2*K*Temp*Temp)))/(2.0*pow(2*M_PI*K*Temp*Temp,1.5)) * ( (5*K - 3)/K + (1-K)*(v[i]*v[i] + v[j]*v[j] + v[k]*v[k])/(K*K*Temp*Temp));
 	  }
 
     break;
@@ -142,8 +142,8 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
     pre = 0.5 / pow(2.0 * M_PI * sigma*sigma, 1.5);
     for(j=0;j<N;j++)
       for(k=0;k<N;k++)
-	for(i=0;i<N;i++)
-	  f[spec][k + N*(j + N*i)] = pre*(exp(-((v[i] - 2.0*sigma)*(v[i]-2.0*sigma) + v[j]*v[j] + v[k]*v[k])/(2.0*sigma*sigma)) + exp(-((v[i] + 2*sigma)*(v[i] + 2*sigma) + v[j]*v[j] + v[k]*v[k])/(2.0*sigma*sigma)));
+		for(i=0;i<N;i++)
+	  		f[spec][k + N*(j + N*i)] = pre*(exp(-((v[i] - 2.0*sigma)*(v[i]-2.0*sigma) + v[j]*v[j] + v[k]*v[k])/(2.0*sigma*sigma)) + exp(-((v[i] + 2*sigma)*(v[i] + 2*sigma) + v[j]*v[j] + v[k]*v[k])/(2.0*sigma*sigma)));
 
     break;
 
@@ -224,6 +224,7 @@ void allocate_inhom(int N, int nX, double **v, double **zeta, double ****f, doub
   *f_1    = (double ***)malloc(Ns*sizeof(double **));
   *Q = (double **)malloc(Ns*Ns*sizeof(double *));
 
+
   for(i=0;i<Ns;i++) {
     (*f)[i]      = (double **)malloc(nX*sizeof(double *));
     (*f_conv)[i] = (double **)malloc(nX*sizeof(double *));
@@ -243,8 +244,6 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
   double TWall = 1.0;
 
   printf("Initializing for inhomogeneous run\n");
-
-
   if(strcmp(mixture[0].name,"default") != 0)
     KB = KB_in_Joules_per_Kelvin;
   else
@@ -455,6 +454,9 @@ void initialize_inhom_mpi(int N, int Ns, double L_v, double *v, double *zeta, do
 
   // Initialize the moment routines
   initialize_moments(N, v, mixture);
+
+  printf("#################################################### RANK %d Ns: %d nX %d order %d (nX+2*order) %d\n",rank,Ns,nX,order,(nX+2*order));
+  fflush(stdout);
 
   for(i=0;i<Ns;i++)
     for(l=0;l<(nX+2*order);l++) {

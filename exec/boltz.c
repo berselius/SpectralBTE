@@ -100,6 +100,7 @@ int main(int argc, char **argv) {
     int i, j, k, l, m, n;
     int outputCount;
 
+    double t1, t2;
     struct timeval tv1, tv2;
 
     if (rank != 0) {
@@ -132,6 +133,8 @@ int main(int argc, char **argv) {
     if (homogFlag == 1) {    //load mesh data
         make_mesh(&nX, &nX_Node, &dx_min, &x, &dx, order, meshFile);
     }
+	printf("RANK %d fbuffer size %d\n",rank,num_species*(nX_Node+(2*order))*N3);
+	fflush(stdout);
     double *fbuffer = malloc(sizeof(double) * num_species * (nX_Node + (2 * order)) * N3);
     double *qbuffer = malloc(sizeof(double) * num_species * num_species * N3 * 2);
 
@@ -158,7 +161,6 @@ int main(int argc, char **argv) {
                 qHat_mpi[index_s][index_n] = (double*)malloc(2 * sizeof(double));
             }
         }
-
         if (rank == 0) {
             allocate_inhom(N, nX_Node + (2 * order), &v, &zeta, &f_inhom, &f_conv, &f_1, &Q, num_species);
             initialize_inhom(N, num_species, L_v, v, zeta, f_inhom, f_conv, f_1, mixture, initFlag, nX_Node, x, dx, dt, &t, order, restart, inputFilename);
@@ -176,7 +178,7 @@ int main(int argc, char **argv) {
         initialize_output_inhom(N, L_v, nX, nX_Node, x, dx, restart, inputFilename, outputChoices, mixture, num_species);
 
 	
-	if(rank == 0) {
+	if(rank == 0 && homogFlag == 1) {
     for (i = 0; i < num_species; i++){
     	for (j = 0; j < num_species; j++){
     		initialize_weights_mpi(N,L_v,lambda,mixture[i],mixture[j],weightFlag,numNodes);
@@ -205,7 +207,7 @@ int main(int argc, char **argv) {
             for (i = 0; i < num_species; i++)
                 for (j = 0; j < num_species; j++){
 					if(rank != 0) {
-                    initialize_weights(lower, range, N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j * num_species + i], mixture[i], mixture[j], numNodes, rank, homogFlag);
+                    	initialize_weights(lower, range, N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j * num_species + i], mixture[i], mixture[j], numNodes, rank, homogFlag);
 					}else initialize_weights_mpi(N,L_v,lambda,mixture[i],mixture[j],weightFlag,numNodes);//need this outside as well
         		}
 		}
@@ -244,6 +246,7 @@ int main(int argc, char **argv) {
 
         while (t < nT) {
             if (rank == 0) printf("In step %d of %d\n", t + 1, nT);
+			t1 = omp_get_wtime();
 
             for (l = 0; l < num_species; l++) {
                 for (m = 0; m < num_species; m++) {
@@ -254,6 +257,8 @@ int main(int argc, char **argv) {
 
             //conserve
             conserveAllMoments(Q);
+			t2 = omp_get_wtime();
+            printf("Time elapsed: %g\n",t2-t1);
 
             if (order == 1) {
                 //update
@@ -325,13 +330,15 @@ int main(int argc, char **argv) {
                 }
             }
 
+            t1 = (double) clock() / (double) CLOCKS_PER_SEC;
 
             if (rank == 0) {
                 fcopy(fbuffer, f_conv, num_species, (nX_Node + (2 * order)), N3, -1);
             }
 
+			
             // broadcast f to all other ranks from rank 0
-            MPI_Bcast(fbuffer, num_species * N3 * (nX_Node + (2 * order)), MPI_DOUBLE, 0, MPI_COMM_WORLD);
+            MPI_Bcast(fbuffer, (num_species * N3 * (nX_Node + (2 * order)))-9500, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
             if (rank != 0) {
                 fcopy(fbuffer, f_conv, num_species, (nX_Node + (2 * order)), N3, 1);
@@ -349,7 +356,8 @@ int main(int argc, char **argv) {
                             ComputeQ_mpi(f_conv[m][l], f_conv[n][l], qHat_mpi[n * num_species + m], conv_weights[n * num_species + m], lower, range);
                         }
                     }
-                }
+                }	
+
                 if (rank == 0) {
                     resetQ(qHat_mpi, num_species, N);
                 }
@@ -375,6 +383,10 @@ int main(int argc, char **argv) {
                 }
 
                 conserveAllMoments(Q);
+				
+				t2 = (double)clock() / (double)CLOCKS_PER_SEC;
+	            printf("Time elapsed: %g\n",t2-t1);
+				fflush(stdout);
 
                 // at the moment this will be done by all the ranks
                 for (m = 0; m < num_species; m++) {

@@ -98,7 +98,6 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
     printf("fopen_output_file  \n");
 	fflush(stdout);
     fopen_output_file(prefac, inputFile, mixture, option);
-
     printf("fopen_output_file done \n");
 	fflush(stdout);
 
