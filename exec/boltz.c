@@ -133,10 +133,8 @@ int main(int argc, char **argv) {
     if (homogFlag == 1) {    //load mesh data
         make_mesh(&nX, &nX_Node, &dx_min, &x, &dx, order, meshFile);
     }
-	printf("RANK %d fbuffer size %d\n",rank,num_species*(nX_Node+(2*order))*N3);
-	fflush(stdout);
-    double *fbuffer = malloc(sizeof(double) * num_species * (nX_Node + (2 * order)) * N3);
-    double *qbuffer = malloc(sizeof(double) * num_species * num_species * N3 * 2);
+    double *fbuffer = (double *)malloc(sizeof(double) * num_species * (nX_Node + (2 * order)) * N3);
+    double *qbuffer = (double *)malloc(sizeof(double) * num_species * num_species * N3 * 2);
 
     if (rank == 0) printf("Initializing variables %d\n", homogFlag);
 
@@ -323,6 +321,7 @@ int main(int argc, char **argv) {
             //ADVECTION STEP         //
             ///////////////////////////
             // rank 0
+            MPI_Barrier(MPI_COMM_WORLD);
             if (rank == 0) {
                 for (m = 0; m < num_species; m++) {
                     if (order == 1) advectOne(f_inhom[m], f_conv[m], m);
@@ -336,9 +335,8 @@ int main(int argc, char **argv) {
                 fcopy(fbuffer, f_conv, num_species, (nX_Node + (2 * order)), N3, -1);
             }
 
-			
             // broadcast f to all other ranks from rank 0
-            MPI_Bcast(fbuffer, (num_species * N3 * (nX_Node + (2 * order)))-9500, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+            MPI_Bcast(fbuffer, (num_species * (nX_Node + (2 * order)) * N3), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
             if (rank != 0) {
                 fcopy(fbuffer, f_conv, num_species, (nX_Node + (2 * order)), N3, 1);
@@ -386,7 +384,6 @@ int main(int argc, char **argv) {
 				
 				t2 = (double)clock() / (double)CLOCKS_PER_SEC;
 	            printf("Time elapsed: %g\n",t2-t1);
-				fflush(stdout);
 
                 // at the moment this will be done by all the ranks
                 for (m = 0; m < num_species; m++) {
