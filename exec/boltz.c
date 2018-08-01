@@ -133,8 +133,6 @@ int main(int argc, char **argv) {
     if (homogFlag == 1) {    //load mesh data
         make_mesh(&nX, &nX_Node, &dx_min, &x, &dx, order, meshFile);
     }
-	printf("RANK %d fbuffer size %d\n",rank,num_species*(nX_Node+(2*order))*N3);
-	fflush(stdout);
     double *fbuffer = malloc(sizeof(double) * num_species * (nX_Node + (2 * order)) * N3);
     double *qbuffer = malloc(sizeof(double) * num_species * num_species * N3 * 2);
 
@@ -233,7 +231,6 @@ int main(int argc, char **argv) {
 //////////////////////////////////////////////////
 
     printf("Done with all setup, starting main loop RANK %d\n", rank);
-    fflush(stdout);
 
     writeTime_start = MPI_Wtime();
     totTime_start = MPI_Wtime();
@@ -386,7 +383,6 @@ int main(int argc, char **argv) {
 				
 				t2 = (double)clock() / (double)CLOCKS_PER_SEC;
 	            printf("Time elapsed: %g\n",t2-t1);
-				fflush(stdout);
 
                 // at the moment this will be done by all the ranks
                 for (m = 0; m < num_species; m++) {
