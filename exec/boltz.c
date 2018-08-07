@@ -335,7 +335,7 @@ int main(int argc, char **argv) {
 
 			
             // broadcast f to all other ranks from rank 0
-            MPI_Bcast(fbuffer, (num_species * N3 * (nX_Node + (2 * order)))-9500, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+            MPI_Bcast(fbuffer, (num_species * N3 * (nX_Node + (2 * order))), MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
             if (rank != 0) {
                 fcopy(fbuffer, f_conv, num_species, (nX_Node + (2 * order)), N3, 1);
