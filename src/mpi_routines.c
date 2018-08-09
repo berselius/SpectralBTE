@@ -32,13 +32,14 @@ void getBounds(int* lower, int* upper, int N, MPI_Comm* worker) {
         *upper = *lower + blockSize;
 }
 
-void resetQ(double*** qHat_mpi, int num_species, int N){
+void resetQ(double*** qHat_mpi, int num_species, int N, int nx){
 		int N3 = N*N*N;
-    	for(int y_ = 0; y_ < num_species*num_species; y_ += 1){
+    	for(int y_ = 0; y_ < nx; y_ += 1){
+			for(int l_ = 0; l_ < num_species*num_species; l_ += 1){ 
     		for(int x_ = 0; x_ < N3; x_ += 1) {
-        		qHat_mpi[y_][x_][0] = 0;
-        		qHat_mpi[y_][x_][1] = 0;
+        		qHat_mpi[y_][l_][x_] = 0;
     		}
+			}
     	}	
 }
 
@@ -69,27 +70,27 @@ void fcopy(double* buffer, double*** f, int x, int y, int z, int direction){
 	}	
 }
 
-void qcopy(double* buffer, double*** q, int x, int y, int direction){
-    int one, two;
+void qcopy(double* buffer, double*** q, int x, int y, int z, int direction){
+    int one, two, three;
     int i,j,k;
-    int total = x*y*2;
+    int total = x*y*z;
 
     if(direction == 1){
     for(i = 0; i < x; i+=1){
-        one = i*y*2;
+        one = i*y*z;
         for(j = 0;  j < y; j+= 1){
-			two = j*2;
-			for( k = 0; k < 2; k += 1){
-                q[i][j][k] = buffer[one + two + k];
+			two = j*z;
+			for( k = 0; k < z; k += 1){
+                	q[i][j][k] = buffer[one + two + k];
 			}
         }
     }
     }
     else if(direction == -1){
         for(int index = 0; index < total; index+=1){
-            i = index/(y*2);
-            j = (index - i*y*2)/2;
-			k = (index - i*y*2 - j*2);
+            i = index/(z*y);
+            j = (index - i*z*y)/(z);
+			k = (index - i*y*z - j*z);
             buffer[index] = q[i][j][k];
         }
     }

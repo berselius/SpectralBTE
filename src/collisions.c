@@ -105,68 +105,6 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
 }
 
 static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat, int lower, int range) {
-/*  int i, j, k, index, index1, index2, l, m, n, x, y, z;
-  double *conv_weight_chunk;
-
-  for (index = 0; index < N * N * N; index++) {
-    qHat[index][0] = 0.0;
-    qHat[index][1] = 0.0;
-    fftIn_f[index][0] = f_mat[index];
-    fftIn_f[index][1] = 0.0;
-    fftIn_g[index][0] = g_mat[index];
-    fftIn_g[index][1] = 0.0;
-  }
-
-  //move to foureir space
-  fft3D(fftIn_f, fftOut_f, noinverse);
-  fft3D(fftIn_g, fftOut_g, noinverse);
-
-  #pragma omp parallel for  private(index,range,index1,index2,N,i,j,k,l,m,n,x,y,z,conv_weight_chunk)
-  for (index = 0; index < range; index++) { // N * N * N
-	int newindex = index+lower;
-    i = newindex / (N * N);
-    j = (newindex - i * N * N) / N;
-    k = newindex - N * (j + i * N);
-    conv_weight_chunk = conv_weights[index];
-    int n2 = N / 2;
-*/
-/*   for(index1 = 0; index1 < N * N * N; index1++) {
-     l = index / (N * N);
-     m = (index - i * N * N) / N;
-     n = index - N * (j + i * N);*/
-/*
-    for (l = 0; l < N; l++)
-    for (m = 0; m < N; m++)
-    for (n = 0; n < N; n++) {
-      index1 = n + N * (m + N * l);
-
-      x = i + n2 - l;
-      y = j + n2 - m;
-      z = k + n2 - n;
-
-      if (x < 0)
-        x = N + x;
-      else if (x > N-1)
-        x = x - N;
-
-      if (y < 0)
-        y = N + y;
-      else if (y > N-1)
-        y = y - N;
-
-      if (z < 0)
-        z = N + z;
-      else if (z > N-1)
-        z = z - N;
-
-      index2 = z + N * (y + N * x);
-      //multiply the weighted fourier coeff product
-      //hector qhat[index] and change all the functions here to the appropiate range
-      qHat[newindex][0] += conv_weight_chunk[index1]*(fftOut_g[index1][0]*fftOut_f[index2][0] - fftOut_g[index1][1]*fftOut_f[index2][1]);
-      qHat[newindex][1] += conv_weight_chunk[index1]*(fftOut_g[index1][0]*fftOut_f[index2][1] + fftOut_g[index1][1]*fftOut_f[index2][0]);
-    }
-  }
-*/
   int index, x, y, z;
   double *conv_weight_chunk;
 

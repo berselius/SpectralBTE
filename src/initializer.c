@@ -213,8 +213,8 @@ void dealloc_hom(double *v, double *zeta, double **f, double **Q) {
 }
 
 /*Space inhomogeneous case*/
-void allocate_inhom(int N, int nX, double **v, double **zeta, double ****f, double ****f_conv, double ****f_1, double ***Q, int Ns) {
-  int i,j;
+void allocate_inhom(int N, int nX, double **v, double **zeta, double ****f, double ****f_conv, double ****f_1, double ****Q, int Ns) {
+  int i,j,k;
 
   *v = (double *)malloc(N*sizeof(double));
   *zeta = (double *)malloc(N*sizeof(double));
@@ -222,15 +222,19 @@ void allocate_inhom(int N, int nX, double **v, double **zeta, double ****f, doub
   *f      = (double ***)malloc(Ns*sizeof(double **));
   *f_conv = (double ***)malloc(Ns*sizeof(double **));
   *f_1    = (double ***)malloc(Ns*sizeof(double **));
-  *Q = (double **)malloc(Ns*Ns*sizeof(double *));
+  *Q = (double ***)malloc(nX*sizeof(double **));
 
 
   for(i=0;i<Ns;i++) {
     (*f)[i]      = (double **)malloc(nX*sizeof(double *));
     (*f_conv)[i] = (double **)malloc(nX*sizeof(double *));
     (*f_1)[i]    = (double **)malloc(nX*sizeof(double *));
-    for(j=0;j<Ns;j++)
-      (*Q)[j*Ns + i] = malloc(N*N*N*sizeof(double));
+  }
+  for(i=0;i<nX;i++) {
+	(*Q)[i] = (double **)malloc(Ns*Ns*sizeof(double*));
+	for(j = 0; j < Ns*Ns; j++) {
+		(*Q)[i][j] = (double *)malloc(N*N*N*sizeof(double));
+	}	
   }
 }
 
@@ -455,9 +459,6 @@ void initialize_inhom_mpi(int N, int Ns, double L_v, double *v, double *zeta, do
   // Initialize the moment routines
   initialize_moments(N, v, mixture);
 
-  printf("#################################################### RANK %d Ns: %d nX %d order %d (nX+2*order) %d\n",rank,Ns,nX,order,(nX+2*order));
-  fflush(stdout);
-
   for(i=0;i<Ns;i++)
     for(l=0;l<(nX+2*order);l++) {
       f[i][l]      = malloc(N*N*N*sizeof(double));
@@ -477,14 +478,21 @@ void initialize_inhom_mpi(int N, int Ns, double L_v, double *v, double *zeta, do
 	}
 }
 
-void dealloc_inhom(int nX, int order, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, double **Q) {
+void dealloc_inhom(int nX, int order, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, double ***Q) {
   int i,j,l;
+  int index;
 
   free(v);
   free(zeta);
+  for(index = 0; index < nX; index += 1){
+	for(i = 0; i < numspec*numspec; i += 1){
+		free(Q[index][i]);
+	}
+	free(Q[index]);
+  }
+
   for(i=0;i<numspec;i++) {
     for(j=0;j<numspec;j++)
-      free(Q[j*numspec + i]);
     for(l=0;l<nX+2*order;l++) {
       free(f[i][l]);
       free(f_conv[i][l]);
