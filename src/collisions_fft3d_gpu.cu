@@ -4,6 +4,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#include "constants.h"
 #include "collisions_fft3d_gpu.h"
 
 extern "C" {
@@ -13,6 +14,7 @@ static cufftHandle plan;
 static double (*in_cuda)[2];
 static double (*out_cuda)[2];
 static double *wtN;
+static double *var_cuda;
 
 __global__ static void fft3D_get_v_domain(const double (*in)[2], const double delta, const double L, const double sign, const int N, const double scaling, double *wtN, cufftDoubleComplex *temp);
 __global__ static void fft3D_get_fourier_domain(double (*out)[2], const double *var, const double L, const double sign, const int N, cufftDoubleComplex *temp);
@@ -22,6 +24,7 @@ void initialize_collisions_support_gpu(const double *wtN_global, const int N){
   cudaMalloc((void***)&temp, N*N*N*sizeof(cufftDoubleComplex));
   cudaMalloc((void***)&in_cuda, N*N*N*sizeof(double[2]));
   cudaMalloc((void***)&out_cuda, N*N*N*sizeof(double[2]));
+  cudaMalloc((void**)&var_cuda, N*sizeof(double));
 
   // Set up plans for the FFTs
   cufftPlan3d(&plan, N, N, N, CUFFT_Z2Z);
@@ -53,6 +56,7 @@ void fft3D_gpu(const double (*in)[2], double (*out)[2], const double delta, cons
     cufftExecZ2Z(plan, temp, temp, CUFFT_INVERSE);
   }
 
+  cudaMemcpy(var_cuda, var, N*sizeof(double), cudaMemcpyHostToDevice);
   fft3D_get_fourier_domain<<<10, 1>>>(out_cuda, var, L_end, sign, N, temp);
   cudaMemcpy(out, out_cuda, N*N*N*sizeof(double[2]), cudaMemcpyDeviceToHost);
 }

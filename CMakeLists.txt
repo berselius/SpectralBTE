@@ -23,7 +23,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
 
 # enable C++11
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 
 # generate debugging symbols for release and debug
@@ -78,14 +78,19 @@ find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 set(SPECTRALBTE_EXTERNAL_LIBS "${SPECTRALBTE_EXTERNAL_LIBS};${CUDA_LIBRARIES}")
 set(SPECTRALBTE_EXTERNAL_LIBS "${SPECTRALBTE_EXTERNAL_LIBS};${CUDA_CUFFT_LIBRARIES}")
+set(SPECTRALBTE_EXTERNAL_LIBS "${SPECTRALBTE_EXTERNAL_LIBS};${CUDA_CUBLAS_LIBRARIES}")
+set(SPECTRALBTE_EXTERNAL_LIBS "${SPECTRALBTE_EXTERNAL_LIBS};${CUDA_cudadevrt_LIBRARY}")
 set(CUDA_SEPARABLE_COMPILATION On)
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_35,code=sm_35) # Tesla K40
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_37,code=sm_37) # Tesla K80
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_52,code=sm_52) # GeForce GTX TITAN X
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_60,code=sm_60) # Tesla P100
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_70,code=sm_70) # Tesla V100, GeForce TITAN V
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--ptxas-options=-v)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode=arch=compute_35,code=sm_35) # Tesla K40
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode=arch=compute_37,code=sm_37) # Tesla K80
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode=arch=compute_52,code=sm_52) # GeForce GTX TITAN X
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode=arch=compute_61,code=sm_61) # GTX 1080
+#set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode=arch=compute_60,code=sm_60) # Tesla P100
+#set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode=arch=compute_70,code=sm_70) # Tesla V100, GeForce TITAN V
+#set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--ptxas-options=-v)
 #set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};--maxrregcount 32)
+
+#set(CMAKE_C_LINK_EXECUTABLE "${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc ${CUDA_NVCC_FLAGS} -o boltz_cuda_ -rdc=true -Xcompiler -fopenmp")
 
 # add the src directory to the include list
 include_directories(src)
@@ -127,6 +132,8 @@ set_target_properties(SpectralBTE_static SpectralBTE
   PROPERTIES LINKER_LANGUAGE CXX
 )
 
+#set(SPECTRALBTE_EXTERNAL_LIBS "${SPECTRALBTE_EXTERNAL_LIBS};/projects/opt/centos7/cuda/9.0/lib64/libcudart.so")
+
 add_subdirectory(exec)
 add_subdirectory(tests)
 
@@ -143,6 +150,7 @@ message(STATUS "              CMAKE_C_FLAGS: " ${CMAKE_C_FLAGS})
 message(STATUS "         CMAKE_C_LINK_FLAGS: " ${CMAKE_C_LINK_FLAGS})
 message(STATUS "        CMAKE_C_FLAGS_DEBUG: " ${CMAKE_C_FLAGS_DEBUG})
 message(STATUS "      CMAKE_C_FLAGS_RELEASE: " ${CMAKE_C_FLAGS_RELEASE})
+message(STATUS "    CMAKE_C_LINK_EXECUTABLE: " ${CMAKE_C_LINK_EXECUTABLE})
 message(STATUS "")
 message(STATUS "  SPECTRALBTE_EXTERNAL_LIBS: " ${SPECTRALBTE_EXTERNAL_LIBS})
 message(STATUS "")

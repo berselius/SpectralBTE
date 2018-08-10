@@ -12,13 +12,41 @@ Requires linking of momentRoutines.h
 
 #ifndef _COLLISIONS_GPU_H
 #define _COLLISIONS_GPU_H
-#include <fftw3.h>
+
+#include <stdarg.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+/*******************
+function initialize_coll
+Initializes the collision routine parameters and allocates needed memory
+==============
+Inputs:
+modes: number of velocity nodes in each direction
+length: semi-length size of computational domain: [-L,L]
+vel: vector of the velocity grid points
+zeta: vector of the fourier space grid pts
+********************/
+void initialize_coll_gpu(int modes, double length, double *vel, double *zeta);
 
 /*********************
 function dealloc_coll
 deallocates all dynamically allocated memory for the collisions module
  ********************/
+void dealloc_coll_gpu();
 
-static void fft3D_cuda(const fftw_complex *in, fftw_complex *out, fftw_complex *temp, const fftw_plan p, const double delta, const double L_start, const double L_end, const double sign, const double *var, const double *wtN, const double scaling, int invert);
+
+//Internal routines
+
+void find_maxwellians_gpu(double *M_mat, double *g_mat, double *mat, const double *M_i, const double *v, const int N);
+
+void compute_Qhat_gpu(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftIn_f)[2], double (*fftOut_f)[2], double (*fftIn_g)[2], double (*fftOut_g)[2], struct FFTVars v, struct FFTVars eta, double *wtN, int N, double scale3);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

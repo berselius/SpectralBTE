@@ -3,6 +3,10 @@
 
 #include "species.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void initialize_moments(int nodes, double *v, species *mix);
 
 void initialize_moments_fast(int nodes, double *v);
@@ -28,5 +32,9 @@ void getHeatFlowVector(double *in, double *bulkV, double *out);
 double halfmoment(double *in);
 
 double thirdmoment(double *in);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

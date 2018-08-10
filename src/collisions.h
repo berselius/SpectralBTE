@@ -32,6 +32,13 @@ deallocates all dynamically allocated memory for the collisions module
 void dealloc_coll();
 
 
+struct FFTVars
+{
+  double d_var;
+  double L_var;
+  double *var;
+};
+
 //Internal routines
 
 void ComputeQ(double *f, double *g, double *Q, int weightgenFlag, ...);

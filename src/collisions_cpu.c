@@ -12,11 +12,12 @@
 #include "momentRoutines.h"
 #include "weights.h"
 
+#include "collisions.h"
 #include "collisions_cpu.h"
 #include "collisions_fft3d_cpu.h"
 #include "collisions_fft3d_gpu.h"
 
-void find_maxwellians(double *M_mat, double *g_mat, double *mat, const double *M_i, const double *v, const int N) {
+void find_maxwellians_cpu(double *M_mat, double *g_mat, double *mat, const double *M_i, const double *v, const int N) {
   int i, j, k, index;
   double rho, vel[3], T, prefactor;
 
@@ -35,7 +36,7 @@ void find_maxwellians(double *M_mat, double *g_mat, double *mat, const double *M
 }
 
 
-void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftIn_f)[2], double (*fftOut_f)[2], double (*fftIn_g)[2], double (*fftOut_g)[2], struct FFTVars v, struct FFTVars eta, double *wtN, int N, double scale3, int cudaFlag, int weightgenFlag, ...) {
+void compute_Qhat_cpu(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftIn_f)[2], double (*fftOut_f)[2], double (*fftIn_g)[2], double (*fftOut_g)[2], struct FFTVars v, struct FFTVars eta, double *wtN, int N, double scale3, int weightgenFlag, ...) {
   int index, x, y, z;
   double **conv_weights, *conv_weight_chunk;
 
@@ -58,17 +59,8 @@ void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftI
 
 
   // move to Fourier space
-  if (cudaFlag == 0) { // Use CPU version
-    fft3D_cpu(fftIn_f, fftOut_f, v.d_var, eta.L_var, v.L_var, 1.0, eta.var, wtN);
-    fft3D_cpu(fftIn_g, fftOut_g, v.d_var, eta.L_var, v.L_var, 1.0, eta.var, wtN);
-  }
-/*  else { // Use GPU version
-    double *eta_cuda;
-    cudaMalloc((void**)&eta_cuda, N*sizeof(double));
-    cudaMemcpy(eta_cuda, eta, N*sizeof(double), cudaMemcpyHostToDevice);
-    fft3D_gpu(fftIn_f, fftOut_f, dv, L_eta, L_v, 1.0, eta_cuda, scale3, N);
-    fft3D_gpu(fftIn_g, fftOut_g, dv, L_eta, L_v, 1.0, eta_cuda, scale3, N);
-  }*/
+  fft3D_cpu(fftIn_f, fftOut_f, v.d_var, eta.L_var, v.L_var, 1.0, eta.var, wtN);
+  fft3D_cpu(fftIn_g, fftOut_g, v.d_var, eta.L_var, v.L_var, 1.0, eta.var, wtN);
 
   int zeta, zeta_x, zeta_y, zeta_z;
   int xi, xi_x, xi_y, xi_z;
@@ -117,6 +109,18 @@ void compute_Qhat(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftI
       if (weightgenFlag == 0) {
         cweight = conv_weight_chunk[xi];
       }
+      /*else if (lambda == 0) {
+        p = 0.5 * zeta_mod + xizeta_mod;
+        q = 0.5 * zeta_mod - xizeta_mod;
+        term1 = (q*q*(p*r0*sin(p*r0) + cos(p*r0) - 1) - p*p*(q*r0*sin(q*r0) + cos(q*r0) - 1)) / (zeta_mod*xizeta_mod*p*p*q*q);
+        term2 = ((2 - r0*r0*xi_mod*xi_mod)*cos(r0*xi_mod) + 2*r0*xi_mod*sin(r0*xi_mod) - 2) / (xi_mod*xi_mod*xi_mod*xi_mod);
+        cweight = weights_prefactor * (term1 - term2);
+      }
+      else if (lambda == 1) {
+        term1 = (q*sin(p*r0) - p*sin(q*r0)) / (zeta_mod*xizeta_mod*p*q);
+        term2 = (sin(xi_mod*r0) - xi_mod*r0*cos(xi_mod*r0)) / (xi_mod*xi_mod*xi_mod);
+        cweight = weights_prefactor * (term1 - term2);
+      }*/
       else {
         //Assume iso-case
         cweight = wtN[xi_x] * wtN[xi_y] * wtN[xi_z] * prefactor * gHat3(eta.var[xi_x], eta.var[xi_y], eta.var[xi_z], eta.var[zeta_x], eta.var[zeta_y], eta.var[zeta_z]);

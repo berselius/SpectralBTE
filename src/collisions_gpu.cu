@@ -1,64 +1,137 @@
-#include <math.h>
-#include <fftw3.h>
 #include <stdlib.h>
 #include <omp.h>
 #include <stdarg.h>
 #include <time.h>
-#include <cufftw.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 
 #include "constants.h"
 #include "collisions.h"
 #include "conserve.h"
 #include "momentRoutines.h"
 #include "weights.h"
-#include "collisions_gpu.h"
 
-static int inverse = 1;
-static int noinverse = 0;
+#include "collisions.h"
+#include "collisions_cpu.h"
+#include "collisions_fft3d_gpu.h"
 
-static void fft3D_cuda(const fftw_complex *in, fftw_complex *out, fftw_complex *temp, const fftw_plan p, const double delta, const double L_start, const double L_end, const double sign, const double *var, const double *wtN, const double scaling, int invert) {
+extern "C"{
+
+void find_maxwellians_gpu(double *M_mat, double *g_mat, double *mat, const double *M_i, const double *v, const int N) {
   int i, j, k, index;
-  double sum, prefactor, factor;
-  prefactor = scaling * delta * delta * delta;
+  double rho, vel[3], T, prefactor;
 
-  //shift the 'v' terms in the exponential to reflect our velocity domain
+  rho = getDensity(mat, 0);
+  getBulkVelocity(mat, vel, rho, 0);
+  T = getTemperature(mat, vel, rho, 0);
+  prefactor = rho * pow(0.5 / (M_PI * T), 1.5);
+  #pragma omp parallel for private(i, j, k, M_mat, g_mat)
   for (index = 0; index < N * N * N; index++) {
-    i = index / (N * N);
-    j = (index - i * N * N) / N;
-    k = index - N * (j + i * N);
-    sum = sign * (double)(i + j + k) * L_start * delta;
-
-    factor = prefactor * wtN[i] * wtN[j] * wtN[k];
-
-    // dv correspond to the velocity space scaling - ensures that the FFT is properly scaled, since fftw does no scaling at all
-    temp[index][0] = factor * (cos(sum) * in[index][0] - sin(sum) * in[index][1]);
-    temp[index][1] = factor * (cos(sum) * in[index][1] + sin(sum) * in[index][0]);
-  }
-
-  cufftHandle p_cuda;
-  cufftComplex *temp_cuda;
-  cudaMalloc((void**)&temp_cuda, sizeof(cufftComplex) * N * N * N);
-  cufftplan3d(&p_cuda, N, N, N, CUFFT_Z2Z);
-
-  //computes fft
-  cudaMemcpy(temp_cuda, temp, sizeof(cufftComplex) * N * N * N, cudaMemcpyHostToDevice);
-  if (invert == noinverse) {
-    cufftExecZ2Z(p_cuda, temp_cuda, temp_cuda, CUFFT_FORWARD);
-  }
-  else {
-    cufftExecZ2Z(p_cuda, temp_cuda, temp_cuda, CUFFT_BACKWARD);
-  }
-  cudaMemcpy(temp, temp_cuda, sizeof(fftw_complex) * N * N * N, cudaMemcpyDeviceToHost);
-
-  //shifts the 'eta' tersm to reflect our fourier domain
-  for (index = 0; index < N * N * N; index++) {
-    i = index / (N * N);
-    j = (index - i * N * N) / N;
-    k = index - N * (j + i * N);
-    sum = sign * L_end * (var[i] + var[j] + var[k]);
- 
-    out[index][0] = cos(sum)*temp[index][0] - sin(sum)*temp[index][1];
-    out[index][1] = cos(sum)*temp[index][1] + sin(sum)*temp[index][0];
+    j = index / (N * N);
+    i = (index - j * N * N) / N;
+    k = index - N * (i + N * j);
+    M_mat[index] = prefactor * exp(-(0.5/T) *((v[i]-vel[0])*(v[i]-vel[0]) + (v[j]-vel[1])*(v[j]-vel[1]) + (v[k]-vel[2])*(v[k]-vel[2])));
+    g_mat[index] = mat[index] - M_i[index];
   }
 }
 
+
+void compute_Qhat_gpu(double *f_mat, double *g_mat, double (*qHat)[2], double (*fftIn_f)[2], double (*fftOut_f)[2], double (*fftIn_g)[2], double (*fftOut_g)[2], struct FFTVars v, struct FFTVars eta, double *wtN, int N, double scale3, int weightgenFlag, ...) {
+  int index, x, y, z;
+  double **conv_weights, *conv_weight_chunk;
+
+  if (weightgenFlag == 0) {
+     va_list args;
+     va_start(args, weightgenFlag);
+     conv_weights = va_arg(args, double **);
+     va_end(args);
+   }
+
+  #pragma omp parallel for private(qHat, fftIn_f, fftIn_g)
+  for (index = 0; index < N * N * N; index++) {
+    qHat[index][0] = 0.0;
+    qHat[index][1] = 0.0;
+    fftIn_f[index][0] = f_mat[index];
+    fftIn_f[index][1] = 0.0;
+    fftIn_g[index][0] = g_mat[index];
+    fftIn_g[index][1] = 0.0;
+  }
+
+
+  // move to Fourier space
+  fft3D_gpu(fftIn_f, fftOut_f, v.d_var, eta.L_var, v.L_var, 1.0, eta.var, scale3, N);
+  fft3D_gpu(fftIn_g, fftOut_g, v.d_var, eta.L_var, v.L_var, 1.0, eta.var, scale3, N);
+
+  int zeta, zeta_x, zeta_y, zeta_z;
+  int xi, xi_x, xi_y, xi_z;
+  double cweight, prefactor;
+  if (weightgenFlag == 1) {
+    prefactor = 0.0625 * (diam_i + diam_j) * (diam_i + diam_j);
+  }
+  #pragma omp parallel for private(zeta_x, zeta_y, zeta_z, xi_x, xi_y, xi_z, x, y, z, index, conv_weight_chunk, cweight)
+  for (zeta = 0; zeta < N * N * N; zeta++) {
+    zeta_x = zeta / (N * N);
+    zeta_y = (zeta - zeta_x * N * N) / N;
+    zeta_z = zeta - N * (zeta_y + zeta_x * N);
+    if (weightgenFlag == 0) {
+      conv_weight_chunk = conv_weights[zeta];
+    }
+
+    int n2 = N / 2;
+
+   #pragma omp simd
+   for(xi = 0; xi < N * N * N; xi++) {
+     xi_x = xi / (N * N);
+     xi_y = (xi - xi_x * N * N) / N;
+     xi_z = xi - N * (xi_y + xi_x * N);
+
+      x = zeta_x + n2 - xi_x;
+      y = zeta_y + n2 - xi_y;
+      z = zeta_z + n2 - xi_z;
+
+      if (x < 0)
+        x = N + x;
+      else if (x > N-1)
+        x = x - N;
+
+      if (y < 0)
+        y = N + y;
+      else if (y > N-1)
+        y = y - N;
+
+      if (z < 0)
+        z = N + z;
+      else if (z > N-1)
+        z = z - N;
+
+      index = z + N * (y + N * x);
+
+      if (weightgenFlag == 0) {
+        cweight = conv_weight_chunk[xi];
+      }
+      /*else if (lambda == 0) {
+        p = 0.5 * zeta_mod + xizeta_mod;
+        q = 0.5 * zeta_mod - xizeta_mod;
+        term1 = (q*q*(p*r0*sin(p*r0) + cos(p*r0) - 1) - p*p*(q*r0*sin(q*r0) + cos(q*r0) - 1)) / (zeta_mod*xizeta_mod*p*p*q*q);
+        term2 = ((2 - r0*r0*xi_mod*xi_mod)*cos(r0*xi_mod) + 2*r0*xi_mod*sin(r0*xi_mod) - 2) / (xi_mod*xi_mod*xi_mod*xi_mod);
+        cweight = weights_prefactor * (term1 - term2);
+      }
+      else if (lambda == 1) {
+        term1 = (q*sin(p*r0) - p*sin(q*r0)) / (zeta_mod*xizeta_mod*p*q);
+        term2 = (sin(xi_mod*r0) - xi_mod*r0*cos(xi_mod*r0)) / (xi_mod*xi_mod*xi_mod);
+        cweight = weights_prefactor * (term1 - term2);
+      }*/
+      else {
+        //Assume iso-case
+        cweight = wtN[xi_x] * wtN[xi_y] * wtN[xi_z] * prefactor * gHat3(eta.var[xi_x], eta.var[xi_y], eta.var[xi_z], eta.var[zeta_x], eta.var[zeta_y], eta.var[zeta_z]);
+      }
+      //multiply the weighted fourier coeff product
+      qHat[zeta][0] += cweight * (fftOut_g[xi][0]*fftOut_f[index][0] - fftOut_g[xi][1]*fftOut_f[index][1]);
+      qHat[zeta][1] += cweight * (fftOut_g[xi][0]*fftOut_f[index][1] + fftOut_g[xi][1]*fftOut_f[index][0]);
+    }
+  }
+
+  //End of parallel section
+  fft3D_gpu(qHat, fftOut_f, eta.d_var, v.L_var, eta.L_var, -1.0, v.var, scale3, N);
+}
+}

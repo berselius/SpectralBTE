@@ -9,6 +9,10 @@ weights.h - contains frontend for generating anisotropic weights
 
 #include "species.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static double diam_i;
 static double diam_j;
 
@@ -49,5 +53,9 @@ void dealloc_weights(int N, double **conv_weights);
 double ghat(double r, void *args);
 
 double gHat3(double ki1, double ki2, double ki3, double zeta1, double zeta2, double zeta3);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

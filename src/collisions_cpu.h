@@ -16,12 +16,6 @@ Requires linking of momentRoutines.h
 #include <stdarg.h>
 
 
-struct FFTVars
-{
-  double d_var;
-  double L_var;
-  double *var;
-};
 
 /*******************
 function initialize_coll

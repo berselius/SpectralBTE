@@ -96,6 +96,7 @@ void factorMatrixIntoLU(int nElem, double det)
 	m = malloc(nElem*sizeof(double));	
 	
 	det = 1.0;
+	#pragma omp parallel for
 	for(i=0;i<nElem;i++)
 	{
 		s[i] = fabs(CCt[i][0]);
@@ -105,7 +106,6 @@ void factorMatrixIntoLU(int nElem, double det)
 			s[i] = fabs(CCt[i][j]);
 		}
 	}
-
 	for(k=0;k<nElem-1;k++)
 	{
 		c[k] = fabs(CCt[k][k]/s[k]);

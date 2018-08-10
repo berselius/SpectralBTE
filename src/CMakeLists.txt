@@ -3,7 +3,7 @@ set(lib_SOURCES
   boundaryConditions.c
   collisions.c
   collisions_cpu.c
-  collisions_support_cpu.c
+  collisions_fft3d_cpu.c
   conserve.c
   function_timer.c
   gauss_legendre.c
@@ -20,6 +20,7 @@ set(lib_SOURCES
 
 set(lib_CUDA_SOURCES
   collisions_fft3d_gpu.cu
+  collisions_gpu.cu
 )
 
 add_SpectralBTE_library(lib "${lib_SOURCES}")
