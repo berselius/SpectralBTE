@@ -21,6 +21,12 @@ If running on Cori then load the following modules
 * cray-fftw
 * openmpi
 
+If running on TACC machines then load the following modules
+
+* cmake
+* gsl
+* fftw3
+
 ## Building the code
 
 The code uses CMake. First create a build directory and change into it
@@ -32,6 +38,17 @@ Now run CMake
 
 This assumes the build directory is immediately below the root direction,
 otherwise run `cmake /path/to/root`.
+
+---
+If building on TACC machines, there are extra environment variables that you need to pull into cmake for fftw. I've written a small script that sets them. Also, it's best to keep your source in your home directory and your builds in your work directory. Thus, do
+
+`cdw`
+`mkdir build`
+`/path/to/root/cmake_tacc /path/to/root`
+
+For example
+`~/SpectralBTE/cmake_tacc ~/SpectralBTE/`
+---
 
 Now build with
 `make -j4`
