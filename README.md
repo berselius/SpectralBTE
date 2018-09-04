@@ -45,9 +45,16 @@ Now run CMake
 This assumes the build directory is immediately below the root direction,
 otherwise run `cmake /path/to/root`.
 
-If on TACC machines, there are extra environment variables that you need to pass to cmake. Copy `cmake_tacc.sh` to your build directory and run
+---
+If building on TACC machines, there are extra environment variables that you need to pull into cmake for fftw. I've written a small script that sets them. Also, it's best to keep your source in your home directory and your builds in your work directory. Thus, do
 
-`./cmake_tacc.sh /path/to/root`
+`cdw`
+`mkdir build`
+`/path/to/root/cmake_tacc /path/to/root`
+
+For example
+`~/SpectralBTE/cmake_tacc ~/SpectralBTE/`
+---
 
 Now build with
 `make -j4`
