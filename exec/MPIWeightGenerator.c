@@ -20,6 +20,10 @@ L_v: Semi-length of velocity domain [-L_v,L_v]
 #include "MPIcollisionRoutines.h"
 #include <mpi.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 int N;
 int GL = 64;
 double glance, glancecons;

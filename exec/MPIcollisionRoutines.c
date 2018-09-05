@@ -3,6 +3,7 @@
 #include <omp.h>
 #include <stdio.h>
 #include <gsl/gsl_integration.h>
+#include <gsl/gsl_sf_bessel.h>
 #include "gauss_legendre.h"
 #include <mpi.h>
 #include <gsl/gsl_errno.h>
@@ -52,7 +53,7 @@ double ghat_theta(double theta, void* args) {
   //Rutherford xsec
   //double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) / (-M_PI*log(sin(0.5*glance)));
 
-  return bcos*(cos(intargs.arg7*(1-cos(theta)) - intargs.arg6) * j0(intargs.arg8*sin(theta)) - intargs.arg9);
+  return bcos*(cos(intargs.arg7*(1-cos(theta)) - intargs.arg6) * gsl_sf_bessel_J0(intargs.arg8*sin(theta)) - intargs.arg9);
 }
 
 //Computes the Taylor expansion portion
