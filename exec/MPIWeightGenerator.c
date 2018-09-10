@@ -19,10 +19,7 @@ L_v: Semi-length of velocity domain [-L_v,L_v]
 #include <omp.h>
 #include "MPIcollisionRoutines.h"
 #include <mpi.h>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include <gsl/gsl_math.h>
 
 int N;
 int GL = 64;
