@@ -179,7 +179,7 @@ This reads the specified file looking for the following keywords. A 1 in the lin
 * `slice` - slice of the distribution function at v_2 = v_3 = N/2
 * `entropy` - Boltzmann entropy at each grid point. Negative distribution function values are set to zero.
 
-## Instructions for `WeightGen_`
+## Instructions for `weights_`
 
 This generates the precomputed weights for anisotropic cross sections (e.g. Coulomb interactions).
 
@@ -187,7 +187,7 @@ This generates the precomputed weights for anisotropic cross sections (e.g. Coul
 
 This is run using
 
-`mpirun -n <number of tasks> WeightGen_ N glance beta lambda L_v`
+`mpirun -n <number of tasks> weights_ N glance beta lambda L_v`
 
 where
 
