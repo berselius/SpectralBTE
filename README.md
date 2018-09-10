@@ -80,6 +80,8 @@ If you tell the code to dump restart information, it will be stored in the resta
 
 ### To execute the code
 
+(see below for details on running MPI jobs on TACC)
+
 Use `mpirun` to run the code, as
 
 `mpirun -n <num_tasks> boltz_ input_file output_flags`
@@ -94,6 +96,11 @@ Use `mpirun` to run the code, as
 * Set `OMP_NUM_THREADS` to the number of cores on one node
 * For 1D/inhomogenous problems, the number of MPI ranks must evenly divide the number of spatial grid cells.
   * Past computational studies suggest that the most efficient way to set up the problem is to run with *one MPI rank per socket* and to set `OMP_NUM_THREADS` to be the number of cores per socket.
+
+### Running on TACC
+
+TACC has a special mpirun command called `ibrun` that looks at your allocation and does all the memory mapping stuff for you (e.g. binding optimally to cores, etc). When you submit your job, if you did e.g. with the options `-N 2 -n 4` in the batch script, `ibrun` will automatically bind to the four sockets. 
+
 
 ### Input file setup
 
