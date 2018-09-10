@@ -119,7 +119,7 @@ double ghat_phi(double phi, void* args) {
   //Coulomb case
   result2 = C*(2.0/M_PI)*log(glance)/log(sin(0.5*glance));
   
-  return intargs.arg5*j0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
+  return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
 }
 
 
@@ -211,7 +211,7 @@ double ghatL2(double theta, void* args) {
   double *dargs = (double *)args;
   double r = dargs[4];
 
-  return sin(theta)*j0(r*dargs[0]*sin(theta))*(-r*r*dargs[1]*sin(theta)*sin(theta)*cos(r*dargs[2]*cos(theta)) + 4*r*dargs[3]*sin(r*dargs[2]*cos(theta))*cos(theta));
+  return sin(theta)*gsl_sf_bessel_J0(r*dargs[0]*sin(theta))*(-r*r*dargs[1]*sin(theta)*sin(theta)*cos(r*dargs[2]*cos(theta)) + 4*r*dargs[3]*sin(r*dargs[2]*cos(theta))*cos(theta));
 }
 
 double ghatL(double r, void* args) {
