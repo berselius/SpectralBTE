@@ -33,7 +33,7 @@ void write_weights(double **conv_weights, char buffer_weights[100], int N);
 
 void initialize_weights_mpi(double nodes,double Lv, double lam,species species_i, species species_j, int weightFlag, int size);
 
-static void generate_conv_weights_iso(int lower, int range, double **conv_weights);
+static void generate_conv_weights_iso(int lower, int range, double **conv_weights, int weightrestart);
 
 static double ghat(double r, void *args);
 
@@ -49,7 +49,7 @@ void alloc_weights(int range, double ****conv_weights, int total_species) {
 }
 
 // weightFlag = recompute weights even if they are already saved
-void initialize_weights(int lower, int range, int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j, int size, int rank, int homogFlag) {
+void initialize_weights(int lower, int range, int nodes, double *eta, double Lv, double lam, int weightFlag, int isoFlag, double **conv_weights, species species_i, species species_j, int size, int rank, int homogFlag, int weightrestart) {
     char buffer_weights[100];
     int i;
 
@@ -90,7 +90,7 @@ void initialize_weights(int lower, int range, int nodes, double *eta, double Lv,
         if (weightFlag == 0) {
             if (!load(conv_weights, buffer_weights, N, lower, range)) {
                 printf("Stored weights not found for this configuration, generating RANK %d ...\n",rank);
-                generate_conv_weights_iso(lower, range, conv_weights);
+                generate_conv_weights_iso(lower, range, conv_weights, weightrestart);
                 if (homogFlag) {
                     write_weights_mpi(conv_weights, buffer_weights, N, lower, range, size, rank);
                 }
@@ -101,7 +101,7 @@ void initialize_weights(int lower, int range, int nodes, double *eta, double Lv,
         }
         else {//weights forced to be regenerated
             printf("Fresh version of weights being computed and stored for this configuration\n");
-            generate_conv_weights_iso(lower, range, conv_weights);
+            generate_conv_weights_iso(lower, range, conv_weights, weightrestart);
             //dump the weights we've computed into a file
             if (homogFlag) {
                 write_weights_mpi(conv_weights, buffer_weights, N, lower, range, size, rank);
@@ -232,6 +232,33 @@ void write_weights(double **conv_weights, char buffer_weights[100], int N) {
     fclose(fidWeights);
 }
 
+void write_tmp_weights(double **conv_weights, int N, int range, int curr, int rank){
+    char tmp_weights_filename[100];
+    sprintf(tmp_weights_filename,"tmp_weights/%d.wt",rank);
+
+    FILE* fidweights;
+
+    if((fidweights = fopen(tmp_weights_filename,"w"))){
+        fwrite(&curr, sizeof(int), 1, fidweights);
+        for(int i = 0; i < range; i += 1){
+	    fwrite(conv_weights[i], sizeof(double), N*N*N, fidweights);
+	}
+    }
+}
+
+void read_tmp_weights(double **conv_weights, int N, int range, int* curr, int rank){
+    char tmp_weights_filename[100];
+    FILE* fidweights;
+    sprintf(tmp_weights_filename,"tmp_weights/%d.wt",rank);
+    
+    if((fidweights = fopen(tmp_weights_filename,"r"))){
+        fread(curr, sizeof(int), 1, fidweights);
+        for(int i = 0; i < range; i += 1){
+	    fread(conv_weights[i], sizeof(double), N*N*N,fidweights);
+	}
+    }
+}
+
 void dealloc_weights(int range, double **conv_weights) {
     for (int i = 0; i < range; i++) {
         free(conv_weights[i]);
@@ -313,15 +340,22 @@ double gHat3(double ki1, double ki2, double ki3, double zeta1, double zeta2, dou
 }
 
 //this generates the convolution weights G
-void generate_conv_weights_iso(int lower, int range, double **conv_weights)
+void generate_conv_weights_iso(int lower, int range, double **conv_weights, int restart)
 {
     int t, i, j, k, l, m, n;
     int index;
     int rank;
+    int curr = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    if(restart) {
+	printf("--------------------------------------------");
+	read_tmp_weights(conv_weights,N,range,&curr,rank);
+    }
+
     #pragma omp parallel for private(index,t,l,m,n)
-    for (t = 0; t < range; t++) {
+    for (t = curr; t < range; t++) {
+	//printf("%d\n",t);
         for (l = 0; l < N; l++) {
             for (m = 0; m < N; m++) {
                 for (n = 0; n < N; n++) {
@@ -336,5 +370,8 @@ void generate_conv_weights_iso(int lower, int range, double **conv_weights)
                 }
             }
         }
+	printf("%d\n",t);
+	write_tmp_weights(conv_weights,N,range,t,rank);
+	//if(t == 32) conv_weights[range+100000];
     }
 }

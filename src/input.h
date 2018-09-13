@@ -1,7 +1,7 @@
 #ifndef _INPUT_H
 #define _INPUT_H
 
-void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt, int *nT, int *order, int *dataFreq, int *restart, double *restart_time, int *initFlag, int *bcFlag, int *homogFlag, int *weightFlag, int *isoFlag, char **meshFile, int *num_species, char ***species_names,char *inputFilename);
+void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt, int *nT, int *order, int *dataFreq, int *restart, double *restart_time, int *initFlag, int *bcFlag, int *homogFlag, int *weightFlag, int *isoFlag, char **meshFile, int *num_species, char ***species_names,char *inputFilename, int *weightrestart);
 
 void set_default_values(int *N, double *L_v, double *Kn, double *lambda, double *dt, int *nT, int *order, int *dataFreq, int *restart, double *restart_time, int *bcFlag, int *homogFlag, int *weightFlag, int *num_species, int *isoFlag, char **meshFile);
 

@@ -7,7 +7,7 @@
  *  This function reads the input file
  */
 
-void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt, int *nT, int *order, int *dataFreq, int *restart, double *restart_time, int *initFlag, int *bcFlag, int *homogFlag, int *weightFlag, int *isoFlag, char **meshFile, int *num_species, char ***species_names, char *inputFilename) {
+void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt, int *nT, int *order, int *dataFreq, int *restart, double *restart_time, int *initFlag, int *bcFlag, int *homogFlag, int *weightFlag, int *isoFlag, char **meshFile, int *num_species, char ***species_names, char *inputFilename, int *weightrestart) {
   int i;
   char   line[80] = {"dummy"};
   char   input_path[100] = {"./input/"};
@@ -67,6 +67,9 @@ void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt, int
     /*Flag to activate restart*/
     if (strcmp(line,"Restart") == 0)
       *restart = read_int(input_file);
+
+    if (strcmp(line, "Weight_restart") == 0) 
+	*weightrestart = read_int(input_file);
 
     /*Time till restart, if needed*/
     if (strcmp(line,"Restart_time") == 0)

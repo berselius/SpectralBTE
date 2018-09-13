@@ -52,6 +52,7 @@ int main(int argc, char **argv) {
     int dataFreq;
     int restart;
     double restart_time;
+    int weightrestart;
     int initFlag;
     int bcFlag;
     int homogFlag;
@@ -113,7 +114,7 @@ int main(int argc, char **argv) {
     }
 
     //load data from input file
-    read_input(&N, &L_v, &Kn, &lambda, &dt, &nT, &order, &dataFreq, &restart, &restart_time, &initFlag, &bcFlag, &homogFlag, &weightFlag, &isoFlag, &meshFile, &num_species, &species_names, inputFilename);
+    read_input(&N, &L_v, &Kn, &lambda, &dt, &nT, &order, &dataFreq, &restart, &restart_time, &initFlag, &bcFlag, &homogFlag, &weightFlag, &isoFlag, &meshFile, &num_species, &species_names, inputFilename, &weightrestart);
 
     if (rank) {
         MPI_Comm_split(MPI_COMM_WORLD, 1, rank, &worker);
@@ -205,7 +206,7 @@ int main(int argc, char **argv) {
             for (i = 0; i < num_species; i++)
                 for (j = 0; j < num_species; j++){
 					if(rank != 0) {
-                    	initialize_weights(lower, range, N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j * num_species + i], mixture[i], mixture[j], numNodes, rank, homogFlag);
+                    	initialize_weights(lower, range, N, zeta, L_v, lambda, weightFlag, isoFlag, conv_weights[j * num_species + i], mixture[i], mixture[j], numNodes, rank, homogFlag, weightrestart);
 					}else initialize_weights_mpi(N,L_v,lambda,mixture[i],mixture[j],weightFlag,numNodes);//need this outside as well
         		}
 		}
