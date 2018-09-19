@@ -90,9 +90,9 @@ add_library(SpectralBTE_static
 )
 
 # create shared library that can be used to link other C++ applications
-add_library(SpectralBTE SHARED
-  ${SPECTRALBTE_LIBS}
-)
+#add_library(SpectralBTE SHARED
+#  ${SPECTRALBTE_LIBS}
+#)
 
 add_subdirectory(exec)
 add_subdirectory(tests)

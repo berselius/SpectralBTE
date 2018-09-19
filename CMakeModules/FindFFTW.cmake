@@ -13,10 +13,9 @@ endif(FFTW_INCLUDES)
 find_path(FFTW_INCLUDES fftw3.h)
 
 find_library(FFTW_LIB NAMES fftw3)
-find_library(FFTW_OMP_LIB NAMES fftw3_omp)
 
-if(FFTW_LIB AND FFTW_OMP_LIB)
-  set(FFTW_LIBRARIES "${FFTW_OMP_LIB};${FFTW_LIB}")
+if(FFTW_LIB)
+  set(FFTW_LIBRARIES "${FFTW_LIB}")
 else()
   set(FFTW_LIBRARIES "NOTFOUND")
 endif()
