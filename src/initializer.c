@@ -6,6 +6,7 @@
 #include "momentRoutines.h"
 #include "transportroutines.h"
 #include "mesh_setup.h"
+#include "boundaryConditions.h"
 #include "restart.h"
 #include <mpi.h>
 #include "species.h"
@@ -281,6 +282,15 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
       f_1[i][l]    = malloc(N*N*N*sizeof(double));
     }
 
+  //set some defaults
+  rho_l = 1.0;
+  ux_l = 0.0;
+  T_l = 1.0;
+  
+  rho_r = 1.0;
+  ux_r = 0.0;
+  T_r = 1.0;
+  
   //Initialize F based on initial conditions...
 
   init_restart(nX, order, N, Ns, mixture);
@@ -293,15 +303,6 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
   }
   else {
     *t = 0;
-
-    //set some defaults
-    rho_l = 1.0;
-    ux_l = 0.0;
-    T_l = 1.0;
-
-    rho_r = 1.0;
-    ux_r = 0.0;
-    T_r = 1.0;
 
     switch(initFlag) {
     case 0:
@@ -340,12 +341,12 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
       break;
     case 6:
       rho_l = 1.0;
-      ux_l = 1.2972;
-      T_l = 1.0;
+      ux_l = 387.21;
+      T_l = 300.0;
 
-      rho_r = 1.297;
-      ux_r = 1.0;
-      T_r = 1.195;
+      rho_r = 1.279;
+      ux_r = 298.48;
+      T_r = 258.4;
 
       printf("Shock problem: left rho:%g ux:%g T:%g, right rho:%g ux:%g T:%g\n",rho_l,ux_l,T_l,rho_r,ux_r,T_r);
       break;
@@ -416,7 +417,7 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 	      for(k=0;k<N;k++) {
 		f[m][l][k + N*(j + N*i)] = rho_r*exp(-((v[i]-ux_r)*(v[i]-ux_r) + v[j]*v[j] + v[k]*v[k])/T_r)/((T_r*M_PI)*sqrt(T_r*M_PI));
 	      }
-	}
+	}      
 	break;
       }
     }
@@ -424,6 +425,10 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
     }
   }
 
+  if(initFlag == 6) 
+    initializeBC_shock(N,v,mixture,rho_l, rho_r, ux_l, ux_r, T_l, T_r);
+  else
+    initializeBC(N,v,mixture);
 }
 
 void dealloc_inhom(int nX, int order, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, double **Q) {

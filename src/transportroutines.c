@@ -54,8 +54,6 @@ void initialize_transport(int numV, int numX, double lv, double *xnodes, double 
   dx = dxnodes;
 
   mixture = mix;
-
-  initializeBC(N,v,mixture);
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
@@ -113,7 +111,7 @@ void upwindOne(double **f, double **f_conv, int id) {
       //MPI_Get_count(&status, MPI_DOUBLE, &numamt);
       //printf("%d got %d\n",rank,numamt);
     }
-    else {
+    else { // BOUNDARY CASES
       if(ICChoice == 3 || ICChoice == 5) { // Heat Transfer or Poiseuille
 	setDiffuseReflectionBC(f[1], f[0], T0, 0, id);
       }
@@ -156,17 +154,15 @@ void upwindOne(double **f, double **f_conv, int id) {
   if(ICChoice == 6) {
     if(numNodes != 1) {
       if(rank == 0) {
-	MPI_Send(f[1],N*N*N,MPI_DOUBLE,numNodes-1,0,MPI_COMM_WORLD);
-	MPI_Recv(f[0],N*N*N,MPI_DOUBLE,numNodes-1,1,MPI_COMM_WORLD,&status);
+	setMaxwellBC(f[0],0,id);
       }
       if(rank == numNodes-1) {
-	MPI_Recv(f[nX+1],N*N*N,MPI_DOUBLE,0,0,MPI_COMM_WORLD,&status);
-	MPI_Send(f[nX]  ,N*N*N,MPI_DOUBLE,0,1,MPI_COMM_WORLD);
+	setMaxwellBC(f[nX+1],1,id);
       }
     }
     else {
-      f[0]    = f[nX];
-      f[nX+1] = f[1];
+      setMaxwellBC(f[0],0,id);
+      setMaxwellBC(f[nX+1],1,id);
     }
       
   }
