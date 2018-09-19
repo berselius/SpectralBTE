@@ -341,12 +341,12 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
       break;
     case 6:
       rho_l = 1.0;
-      ux_l = 387.21;
-      T_l = 300.0;
+      ux_l = 1.549;
+      T_l = 1.0;
 
       rho_r = 1.279;
-      ux_r = 298.48;
-      T_r = 258.4;
+      ux_r = 1.194;
+      T_r = 0.865;
 
       printf("Shock problem: left rho:%g ux:%g T:%g, right rho:%g ux:%g T:%g\n",rho_l,ux_l,T_l,rho_r,ux_r,T_r);
       break;
