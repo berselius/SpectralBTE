@@ -127,10 +127,11 @@ The input file parser reads the file line by line looking for keywords that set 
      * 4: Steady state test (initial condition is a Maxwellians)
      * 5: Perturbed Maxwellian
   * For 1D/space inhomogenous problem
-    * 0: Shock wave (reflection BCs)
+    * 0: Nondimensional shock wave (reflection BCs)
     * 1: Sudden heating problem (diffuse reflection BC at one wall, reflection at the other)
     * 2: Two Maxwellian problem (reflection BCs)
     * 3: Heat transfer between two plates (diffuse reflection BCs at each wall)
+    * 6: Dimensional shock wave - half maxwellians imposed at boundaries
 * `SpaceInhom` - 0 or 1. If 0, this is a 0D-3V problem. If 1, this is a 1D-3V problem. (default: 0)
 * `Recompute_weights` - 0 or 1. If set to 1, this tells the code to recompute the convolution weights even if they already exist in the Weights directory. (default: 0)
 * `Anisotropic` - 0 or 1. If set to 1, this means that we are solving with an anisotropic cross section (e.g. for plasmas). The code checks to see if the weights exist, if they do not the code exits and reminds you that you need to use the separate `WeightGen_` program to precompute these as it is very intensive calculation. (default: 0)
