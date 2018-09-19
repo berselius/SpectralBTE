@@ -1,9 +1,8 @@
 # INPUT FILE FOR CONSERVATIVE SPECTRAL CODE
-# This solves a Mach 1.2 shock
 #----------------------------------------------------------
 # Number of nodes in each direction in velocity space
 N
-24
+16
 #----------------------------------------------------------
 # Velocity domain cutoff
 L_v
@@ -11,7 +10,7 @@ L_v
 #----------------------------------------------------------
 # knudsen number
 Knudsen
-1.52
+0.048
 #----------------------------------------------------------
 # exponent of differential cross section (lambda)
 Lambda
@@ -19,11 +18,11 @@ Lambda
 #----------------------------------------------------------
 # Timestep
 Time_step
-0.1
+0.001
 #----------------------------------------------------------
 # Number of steps
 Number_of_time_steps
-5000
+10
 #----------------------------------------------------------
 # Spatial order of accuracy
 Space_order
@@ -31,7 +30,7 @@ Space_order
 #----------------------------------------------------------
 # Data writing frequency - number of timesteps between output snaphot
 Data_writing_frequency
-100
+1
 #----------------------------------------------------------
 # Flag telling whether this is restarting from a previous code
 Restart
@@ -61,7 +60,7 @@ Anisotropic
 #----------------------------------------------------------
 # Location of the mesh file - note this is stored in "meshes" directory
 mesh_file
-shock1p2.mesh
+Shock1p2.mesh
 # Number of species
 num_species
 1
