@@ -188,7 +188,7 @@ This generates the precomputed weights for anisotropic cross sections (e.g. Coul
 
 This is run using
 
-`mpirun -n <number of tasks> weights_ N glance beta lambda L_v`
+`mpirun -n <number of tasks> weights_ N glance beta lambda L_v lambda_d Z m`
 
 where
 

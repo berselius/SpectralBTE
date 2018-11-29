@@ -2,6 +2,7 @@
 #include <math.h>
 #include <omp.h>
 #include <stdio.h>
+#include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_integration.h>
 #include "gauss_legendre.h"
 #include <mpi.h>
@@ -9,7 +10,7 @@
 
 //kludgy, but whatever...
 extern int GL, rank, numNodes, N;
-extern double glance, lambda, lambda_d, L_v, *eta;
+extern double glance, lambda,Z, lambda_d, L_v, *eta;
 
 struct integration_args {
   double arg0; //zetalen
@@ -52,7 +53,7 @@ double r = intargs.arg3;
   //Rutherford xsec
   //double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) / (-M_PI*log(sin(0.5*glance)));
   double bcos = pow(C_1, 2)/(4* pow(r,4)*pow(sin(0.5*theta),4)); 
-  return bcos*(cos(intargs.arg7*(1-cos(theta)) - intargs.arg6) * j0(intargs.arg8*sin(theta)) - intargs.arg9);
+  return bcos*(cos(intargs.arg7*(1-cos(theta)) - intargs.arg6) * gsl_sf_bessel_J0(intargs.arg8*sin(theta)) - intargs.arg9);
 }
 
 //Computes the Taylor expansion portion
@@ -121,7 +122,7 @@ double ghat_phi(double phi, void* args) {
   //Coulomb case
   result2 = C*(2.0/M_PI)*log(theta_m)/log(sin(0.5*theta_m));
   
-  return intargs.arg5*j0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
+  return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
 }
 
 
@@ -213,7 +214,7 @@ double ghatL2(double theta, void* args) {
   double *dargs = (double *)args;
   double r = dargs[4];
 
-  return sin(theta)*j0(r*dargs[0]*sin(theta))*(-r*r*dargs[1]*sin(theta)*sin(theta)*cos(r*dargs[2]*cos(theta)) + 4*r*dargs[3]*sin(r*dargs[2]*cos(theta))*cos(theta));
+  return sin(theta)*gsl_sf_bessel_J0(r*dargs[0]*sin(theta))*(-r*r*dargs[1]*sin(theta)*sin(theta)*cos(r*dargs[2]*cos(theta)) + 4*r*dargs[3]*sin(r*dargs[2]*cos(theta))*cos(theta));
 }
 
 double ghatL(double r, void* args) {
@@ -256,7 +257,7 @@ void generate_conv_weights(double **conv_weights)
 {
   int i, j, k, l, m, n, z;
 
-  double glancecons = 8.0*glance/M_PI;
+  //double glancecons = 8.0*glance/M_PI;
 
  gsl_set_error_handler_off();
 

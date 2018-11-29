@@ -58,13 +58,6 @@ int main(int argc, char *argv[])
   Z = (double)atof(argv[7]); //charge state
   m = (double)atof(argv[8]); //mass of particle
 
-
- 
- // C_1 = (1.602 * pow(10, -38)) / (4 * M_PI * 8.854*pow(10, -12) * 9.109*pow(10,-31) );
- // lambda_d = 1;
- // theta_m = 2*atan(C_1/(pow(arg3,2)* lambda_d));
-  
-
 if((N*N*N % numNodes) != 0) {
     printf("Error: numNodes must divide N^3\n");
     exit(0);
