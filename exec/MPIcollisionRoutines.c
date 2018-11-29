@@ -29,6 +29,10 @@ struct integration_args {
 };
 
 const double eightPi = 8.0/M_PI;
+const double C_1 = (1.602*10^(-19))^2 / (4 * pi * 8.854*10^(-12) *9.109*10^(-31)); 
+double lambda_d = ; 
+double theta_m = 2*arctan(C_1/(pow(arg3,2)* lambda_d));
+
 
 double ghat_theta(double theta, void* args) {
   struct integration_args intargs = *((struct integration_args *)args);
@@ -48,10 +52,10 @@ double ghat_theta(double theta, void* args) {
   */
 
   //eps-linear cross section
-  double bcos = eightPi*(glance/(theta*theta))*pow(theta,-2.0);
+  // double bcos = eightPi*(glance/(theta*theta))*pow(theta,-2.0);
   //Rutherford xsec
   //double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) / (-M_PI*log(sin(0.5*glance)));
-
+  double bcos = pow(C_1, 2)/(4* pow(arg3,4)*pow(sin(0.5*theta),4)); 
   return bcos*(cos(intargs.arg7*(1-cos(theta)) - intargs.arg6) * j0(intargs.arg8*sin(theta)) - intargs.arg9);
 }
 
