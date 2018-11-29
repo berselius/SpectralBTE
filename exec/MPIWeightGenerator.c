@@ -29,7 +29,7 @@ double glance, glancecons;
 int rank, numNodes;
 
 double *v, L_v, *eta, L_eta, h_v, h_eta;
-double lambda, beta;
+double lambda, beta, Z, m, lambda_d;
 
 
 int main(int argc, char *argv[])
@@ -54,9 +54,18 @@ int main(int argc, char *argv[])
   beta = (double)atof(argv[3]); // 1 = elastic; 0.5 = sticky inelastic
   lambda = (double)atof(argv[4]); // = 0: MM; = 1: HS  (\lambda variable hard potentials)
   L_v = (double)atof(argv[5]); // Size of domain
+  lambda_d = (double)atof(argv[6]); //Debye length
+  Z = (double)atof(argv[7]); //charge state
+  m = (double)atof(argv[8]); //mass of particle
 
-  //check to make sure we have a legit MPI setup
-  if((N*N*N % numNodes) != 0) {
+
+ 
+ // C_1 = (1.602 * pow(10, -38)) / (4 * M_PI * 8.854*pow(10, -12) * 9.109*pow(10,-31) );
+ // lambda_d = 1;
+ // theta_m = 2*atan(C_1/(pow(arg3,2)* lambda_d));
+  
+
+if((N*N*N % numNodes) != 0) {
     printf("Error: numNodes must divide N^3\n");
     exit(0);
   }

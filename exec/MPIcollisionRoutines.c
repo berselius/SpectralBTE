@@ -9,7 +9,7 @@
 
 //kludgy, but whatever...
 extern int GL, rank, numNodes, N;
-extern double glance, lambda, L_v, *eta;
+extern double glance, lambda, lambda_d, L_v, *eta;
 
 struct integration_args {
   double arg0; //zetalen
@@ -29,14 +29,10 @@ struct integration_args {
 };
 
 const double eightPi = 8.0/M_PI;
-const double C_1 = (1.602*10^(-19))^2 / (4 * pi * 8.854*10^(-12) *9.109*10^(-31)); 
-double lambda_d = ; 
-double theta_m = 2*arctan(C_1/(pow(arg3,2)* lambda_d));
-
+double C_1 = (1.602e-38) / (4.0 * M_PI * 8.854e-12 * 9.109e-31 ); 
 
 double ghat_theta(double theta, void* args) {
   struct integration_args intargs = *((struct integration_args *)args);
-
   /*
     Just to remind ourselves...
   double arg0; //zetalen
@@ -50,12 +46,12 @@ double ghat_theta(double theta, void* args) {
   double arg8; //0.5 r sinphi zetalen 
   double arg9; //cos(r cosphi zetadot)
   */
-
+double r = intargs.arg3;
   //eps-linear cross section
   // double bcos = eightPi*(glance/(theta*theta))*pow(theta,-2.0);
   //Rutherford xsec
   //double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) / (-M_PI*log(sin(0.5*glance)));
-  double bcos = pow(C_1, 2)/(4* pow(arg3,4)*pow(sin(0.5*theta),4)); 
+  double bcos = pow(C_1, 2)/(4* pow(r,4)*pow(sin(0.5*theta),4)); 
   return bcos*(cos(intargs.arg7*(1-cos(theta)) - intargs.arg6) * j0(intargs.arg8*sin(theta)) - intargs.arg9);
 }
 
@@ -70,11 +66,12 @@ double ghat_theta2(double theta, void* args) {
   double zetalen = dargs[3];
   double zetadot = dargs[4];
 
+double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
   double c1 = 0.5*r*zetalen*cosphi;
   double c2 = 0.5*r*zetalen*sinphi;
   double c3 = r*zetadot*cosphi;
 
-  return eightPi*( ((glance/theta)/theta)*(-0.25*c2*c2*cos(c3) + 0.5*c1*sin(c3)));
+  return eightPi*( ((theta_m/theta)/theta)*(-0.25*c2*c2*cos(c3) + 0.5*c1*sin(c3)));
   //return (8.0/M_PI)*( ((glance/theta)/theta)*(-0.25*c2*c2*cos(c3) + 0.5*c1*sin(c3)) + (glance/192.0)*(-8.0*(3.0*c2*c2 +1)*c1*sin(c3) -24.0*c1*c1*cos(c3) + c2*c2*(3.0*c2 + 16.0)*cos(c3)));
 }
 
@@ -99,7 +96,9 @@ double ghat_phi(double phi, void* args) {
   double arg8; //0.5 r sinphi zetalen 
   double arg9; //cos(r cosphi zetadot)
   */
-
+ 
+ double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
+ 
   intargs.arg4 = cos(phi);
   intargs.arg5 = sin(phi);
   intargs.arg6 = r * intargs.arg4 * intargs.arg1;
@@ -109,7 +108,7 @@ double ghat_phi(double phi, void* args) {
 
   F_th.params = &intargs;
   
-  gsl_integration_cquad(&F_th ,sqrt(glance),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL);  //"good" part
+  gsl_integration_cquad(&F_th ,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL);  //"good" part
 
   //analytically solve the singular part with Taylor expansion
   double c1 = 0.5*r*intargs.arg0*intargs.arg4;
@@ -120,7 +119,7 @@ double ghat_phi(double phi, void* args) {
   //Linear case
   //result2 = C*eightPi*(1 - sqrt(glance));
   //Coulomb case
-  result2 = C*(2.0/M_PI)*log(glance)/log(sin(0.5*glance));
+  result2 = C*(2.0/M_PI)*log(theta_m)/log(sin(0.5*theta_m));
   
   return intargs.arg5*j0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
 }
@@ -259,7 +258,7 @@ void generate_conv_weights(double **conv_weights)
 
   double glancecons = 8.0*glance/M_PI;
 
-  gsl_set_error_handler_off();
+ gsl_set_error_handler_off();
 
   //zeta iteration
   #pragma omp parallel for private(i,j,k,l,m,n,z)
