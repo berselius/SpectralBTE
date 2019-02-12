@@ -179,6 +179,22 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 
     break;
 
+  case 6:
+    printf("Cutout Maxwellian\n");
+    double n_cutout = 1e26;
+    double T_cutout_K = 11000;
+    double m_cutout = mixture[spec].mass;
+    
+    for(j=0;j<N;j++)
+      for(k=0;k<N;k++)
+	for(i=0;i<N;i++) {
+	  double v2 = v[i]*v[i] + v[j]*v[j] + v[k]*v[k];
+	  f[spec][k + N*(j + N*i)] = v2 * n_cutout*pow(m_cutout / (2.0 * M_PI * KB * T_cutout_K),1.5) * exp(-0.5*m_cutout*v2 / KB / T_cutout_K);
+	}
+
+    break;
+    
+
     /*
   case 6:
     printf("Bump on Tail \n");
