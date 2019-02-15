@@ -80,9 +80,9 @@ if((N*N*N % numNodes) != 0) {
   //convolution weight info
   char buffer_weights[100];
   if(glance == 0)
-    sprintf(buffer_weights,"Weights/N%d_Aniso_L_v%g_lambda%g_Landau.wts",N,L_v,lambda);
+    sprintf(buffer_weights,"../Weights/N%d_Aniso_L_v%g_lambda%g_Landau.wts",N,L_v,lambda);
   else
-    sprintf(buffer_weights,"Weights/N%d_AnIso_L_v%g_lambda%g_glance%g.wts",N,L_v,lambda,glance);
+    sprintf(buffer_weights,"../Weights/N%d_AnIso_L_v%g_lambda%g_glance%g.wts",N,L_v,lambda,glance);
 
   //generate convolution weights - only do an even chunk of them
   conv_weights = malloc((N*N*N/numNodes)*sizeof(double *));
