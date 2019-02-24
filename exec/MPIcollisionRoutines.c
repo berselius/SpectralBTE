@@ -284,7 +284,7 @@ void generate_conv_weights(double **conv_weights)
     for(l=0;l<N;l++)
       for(m=0;m<N;m++) {
 	for(n=0;n<N;n++) {
-          if(glance == 0) {
+          if(glance == 0) 
             conv_weights[z%(N*N*N/numNodes)][n + N*(m + N*l)] = gHat3L(eta[i], eta[j], eta[k],eta[l], eta[m], eta[n]);
 	  else  
 	    conv_weights[z%(N*N*N/numNodes)][n + N*(m + N*l)] = gHat3(eta[i], eta[j], eta[k],eta[l], eta[m], eta[n]);
