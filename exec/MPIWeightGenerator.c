@@ -25,6 +25,7 @@ L_v: Semi-length of velocity domain [-L_v,L_v]
 int N;
 int GL = 64;
 double glance, glancecons;
+double Gamma_couple = 0.5;
 
 int rank, numNodes;
 
