@@ -137,6 +137,7 @@ double ghat_r(double r, void* args) {
 
   F_ph.params = &intargs;
 
+ // I_2 = \int_0^\pi F_ph dph
   int status;
   status = gsl_integration_qag(&F_ph,0,M_PI,1e-6,1e-6,6,1000,intargs.w_ph,&result,&error);
   if (status == GSL_EMAXITER) {
