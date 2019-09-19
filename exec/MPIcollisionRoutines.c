@@ -35,6 +35,7 @@ double C_1 = (1.602e-38) / (4.0 * M_PI * 8.854e-12 * 9.109e-31 );
 
 double ghat_theta(double theta, void* args) {
   struct integration_args intargs = *((struct integration_args *)args);
+	// I_3,1 = \int_\sqrt(\theta_m)^\pi ghat_theta dth
   /*
     Just to remind ourselves...
   double arg0; //zetalen
