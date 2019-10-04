@@ -11,6 +11,7 @@
 //kludgy, but whatever...
 extern int GL, rank, numNodes, N;
 extern double glance, lambda,Z, lambda_d, L_v, *eta;
+extern double Gamma_couple;
 
 struct integration_args {
   double arg0; //zetalen
@@ -34,6 +35,7 @@ double C_1 = (1.602e-38) / (4.0 * M_PI * 8.854e-12 * 9.109e-31 );
 
 double ghat_theta(double theta, void* args) {
   struct integration_args intargs = *((struct integration_args *)args);
+	// I_3,1 = \int_\sqrt(\theta_m)^\pi ghat_theta dth
   /*
     Just to remind ourselves...
   double arg0; //zetalen
@@ -137,6 +139,7 @@ double ghat_r(double r, void* args) {
 
   F_ph.params = &intargs;
 
+ // I_2 = \int_0^\pi F_ph dph
   int status;
   status = gsl_integration_qag(&F_ph,0,M_PI,1e-6,1e-6,6,1000,intargs.w_ph,&result,&error);
   if (status == GSL_EMAXITER) {
@@ -215,14 +218,21 @@ double ghatL2(double theta, void* args) {
   double *dargs = (double *)args;
   double r = dargs[4];
 
-  return sin(theta)*gsl_sf_bessel_J0(r*dargs[0]*sin(theta))*(-r*r*dargs[1]*sin(theta)*sin(theta)*cos(r*dargs[2]*cos(theta)) + 4*r*dargs[3]*sin(r*dargs[2]*cos(theta))*cos(theta));
+  return sin(theta)*gsl_sf_bessel_J0(r*dargs[0]*sin(theta))*(-r*dargs[1]*sin(theta)*sin(theta)*cos(r*dargs[2]*cos(theta)) + 4*r*dargs[3]*sin(dargs[2]*cos(theta))*cos(theta));
+}
+
+double ghatL_couple(double r, void* args) {
+  double *dargs = (double *)args;
+  dargs[4] = r;
+
+  return pow(r,lambda+3)*log(1 + pow(Gamma_couple,-3.0)*pow(r,4)) / log(1 + pow(Gamma_couple,-3.0)) *gauss_legendre(GL,ghatL2,dargs,0,M_PI);
 }
 
 double ghatL(double r, void* args) {
   double *dargs = (double *)args;
   dargs[4] = r;
 
-  return pow(r,lambda+2)*gauss_legendre(GL,ghatL2,dargs,0,M_PI);
+  return pow(r,lambda+3) * gauss_legendre(GL,ghatL2,dargs,0,M_PI);
 }
 
 double gHat3L(double zeta1, double zeta2, double zeta3, double xi1, double xi2, double xi3) {
@@ -249,7 +259,11 @@ double gHat3L(double zeta1, double zeta2, double zeta3, double xi1, double xi2, 
     args[2] = 0.0;
   args[3] = zetalen;
 
-  result = 2.0*M_PI*gauss_legendre(GL, ghatL, args, 0, L_v);
+  if(Gamma_couple == 0)
+    result = 2.0*M_PI*gauss_legendre(GL, ghatL, args, 0, L_v);
+  else
+    result = 2.0*M_PI*gauss_legendre(GL, ghatL_couple, args, 0, L_v);
+    
   return result;
 }
 
@@ -273,8 +287,8 @@ void generate_conv_weights(double **conv_weights)
     for(l=0;l<N;l++)
       for(m=0;m<N;m++) {
 	for(n=0;n<N;n++) {
-          if(glance == 0)
-	    conv_weights[z%(N*N*N/numNodes)][n + N*(m + N*l)] = gHat3L(eta[i], eta[j], eta[k],eta[l], eta[m], eta[n]);
+          if(glance == 0) {
+            conv_weights[z%(N*N*N/numNodes)][n + N*(m + N*l)] = gHat3L(eta[i], eta[j], eta[k],eta[l], eta[m], eta[n]);
 	  else  
 	    conv_weights[z%(N*N*N/numNodes)][n + N*(m + N*l)] = gHat3(eta[i], eta[j], eta[k],eta[l], eta[m], eta[n]);
 	  if(isnan(conv_weights[z%(N*N*N/numNodes)][n + N*(m + N*l)]))
