@@ -52,7 +52,7 @@ double r = intargs.arg3;
   // double bcos = eightPi*(glance/(theta*theta))*pow(theta,-2.0);
   //Rutherford xsec
   //double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) / (-M_PI*log(sin(0.5*glance)));
-  double bcos = pow(C_1, 2)/(4* pow(r,4)*pow(sin(0.5*theta),4)); 
+  double bcos = pow(C_1, 2)/(4*pow(sin(0.5*theta),4)); 
   return bcos*(cos(intargs.arg7*(1-cos(theta)) - intargs.arg6) * gsl_sf_bessel_J0(intargs.arg8*sin(theta)) - intargs.arg9);
 }
 
@@ -109,7 +109,7 @@ double ghat_phi(double phi, void* args) {
 
   F_th.params = &intargs;
   
-  gsl_integration_cquad(&F_th ,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL);  //"good" part
+  gsl_integration_cquad(&F_th ,theta_m ,M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL);  //"good" part
 
   //analytically solve the singular part with Taylor expansion
   double c1 = 0.5*r*intargs.arg0*intargs.arg4;
@@ -120,11 +120,12 @@ double ghat_phi(double phi, void* args) {
   //Linear case
   //result2 = C*eightPi*(1 - sqrt(glance));
   //Coulomb case
-  result2 = C*(2.0/M_PI)*log(theta_m)/log(sin(0.5*theta_m));
+  // result2 = C*(2.0/M_PI)*log(theta_m)/log(sin(0.5*theta_m));
   
-  return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
-}
 
+  //return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
+ return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 );
+}
 
 double ghat_r(double r, void* args) {
   struct integration_args intargs = *((struct integration_args *)args);
