@@ -110,20 +110,16 @@ double ghat_phi(double phi, void* args) {
   intargs.arg9 = cos(r * intargs.arg4 * intargs.arg1);
 
   F_th.params = &intargs;
-  
-  gsl_integration_cquad(&F_th ,theta_m ,M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL);  //"good" part
 
-  //analytically solve the singular part with Taylor expansion
-  double c1 = 0.5*r*intargs.arg0*intargs.arg4;
-  double c2 = 0.5*r*intargs.arg0*intargs.arg5;
-  double c3 = r*intargs.arg1*intargs.arg4;
-  double C = (-0.25*c2*c2*cos(c3) + 0.5*c1*sin(c3));
+  double B = 0.5*r*intargs.arg0*intargs.arg4;
+  double C = 0.5*r*intargs.arg0*intargs.arg5;
+  double A = r*intargs.arg1*intargs.arg4;
+  double Cons = (C*C*cos(A) + B*sin(A));
 
-  //Linear case
-  //result2 = C*eightPi*(1 - sqrt(glance));
-  //Coulomb case
-  // result2 = C*(2.0/M_PI)*log(theta_m)/log(sin(0.5*theta_m));
-  
+  if(theta_m > 10e-3)
+   gsl_integration_cquad(&F_th ,theta_m ,M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); 
+  else 
+    result1 = Cons*(2.0/M_PI)*log(theta_m);
 
   //return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
  return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 );
@@ -289,8 +285,8 @@ void generate_conv_weights(double **conv_weights)
 	for(n=0;n<N;n++) {
           if(glance == 0) {
             conv_weights[z%(N*N*N/numNodes)][n + N*(m + N*l)] = gHat3L(eta[i], eta[j], eta[k],eta[l], eta[m], eta[n]);
-	  else  
-	    conv_weights[z%(N*N*N/numNodes)][n + N*(m + N*l)] = gHat3(eta[i], eta[j], eta[k],eta[l], eta[m], eta[n]);
+	  }else{  
+	    conv_weights[z%(N*N*N/numNodes)][n + N*(m + N*l)] = gHat3(eta[i], eta[j], eta[k],eta[l], eta[m], eta[n]);}
 	  if(isnan(conv_weights[z%(N*N*N/numNodes)][n + N*(m + N*l)]))
 	    printf("%g %g %g %g %g %g\n",eta[i],eta[j],eta[k],eta[l],eta[m],eta[n]);
 	}
