@@ -121,7 +121,7 @@ double ghat_phi(double phi, void* args) {
   gsl_integration_cquad(&F_th,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); //computes result1
   
   if(theta_m > 10e-3)
-   { result2 = gsl_integration_cquad(&F_th,theta_m,sqrt(theta_m),1e-6,1e-6,intargs.w_th,&result1,NULL,NULL);}
+   { gsl_integration_cquad(&F_th,theta_m,sqrt(theta_m),1e-6,1e-6,intargs.w_th,&result2,NULL,NULL);}
   else 
     {result2 = 2.0*C_1*C_1*Cons*log(theta_m);}   //add taylor expansion for small theta_m values
 
