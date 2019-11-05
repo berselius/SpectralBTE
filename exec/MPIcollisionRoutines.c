@@ -118,13 +118,15 @@ double ghat_phi(double phi, void* args) {
   double A = r*intargs.arg1*intargs.arg4;
   double Cons = (C*C*cos(A) + B*sin(A));
 
+  gsl_integration_cquad(&F_th,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); //computes result1
+  
   if(theta_m > 10e-3)
-   gsl_integration_cquad(&F_th ,theta_m ,M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); 
+   { result2 = gsl_integration_cquad(&F_th,theta_m,sqrt(theta_m),1e-6,1e-6,intargs.w_th,&result1,NULL,NULL);}
   else 
-    result1 = Cons*(2.0/M_PI)*log(theta_m);
+    {result2 = 2.0*C_1*C_1*Cons*log(theta_m);}   //add taylor expansion for small theta_m values
 
   //return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
- return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 );
+ return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
 }
 
 double ghat_r(double r, void* args) {
