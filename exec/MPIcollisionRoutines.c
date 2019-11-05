@@ -54,7 +54,7 @@ double r = intargs.arg3;
   // double bcos = eightPi*(glance/(theta*theta))*pow(theta,-2.0);
   //Rutherford xsec
   //double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) / (-M_PI*log(sin(0.5*glance)));
-  double bcos = pow(C_1, 2)/(4*pow(sin(0.5*theta),4)); 
+  double bcos = pow(C_1, 2)*cos(0.5*theta)/(4*pow(sin(0.5*theta),3)); 
   return bcos*(cos(intargs.arg7*(1-cos(theta)) - intargs.arg6) * gsl_sf_bessel_J0(intargs.arg8*sin(theta)) - intargs.arg9);
 }
 
@@ -70,6 +70,7 @@ double ghat_theta2(double theta, void* args) {
   double zetadot = dargs[4];
 
 double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
+//double theta_m = 2;
   double c1 = 0.5*r*zetalen*cosphi;
   double c2 = 0.5*r*zetalen*sinphi;
   double c3 = r*zetadot*cosphi;
@@ -101,7 +102,8 @@ double ghat_phi(double phi, void* args) {
   */
  
  double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
- 
+ //double theta_m = 2;
+
   intargs.arg4 = cos(phi);
   intargs.arg5 = sin(phi);
   intargs.arg6 = r * intargs.arg4 * intargs.arg1;
