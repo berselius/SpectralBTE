@@ -70,8 +70,10 @@ double ghat_theta2(double theta, void* args) {
   double zetadot = dargs[4];
 
 double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
-//double theta_m = 2;
-  double c1 = 0.5*r*zetalen*cosphi;
+//double theta_m = 10e-5;
+//printf("theta_m = %g \n", theta_m);  
+
+double c1 = 0.5*r*zetalen*cosphi;
   double c2 = 0.5*r*zetalen*sinphi;
   double c3 = r*zetadot*cosphi;
 
@@ -81,7 +83,7 @@ double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
 
 double ghat_phi(double phi, void* args) {
   struct integration_args intargs = *((struct integration_args *)args);
-  double result1,result2;
+  double result, result1, result2;
 
   gsl_function F_th = intargs.F_th;
     
@@ -101,8 +103,11 @@ double ghat_phi(double phi, void* args) {
   double arg9; //cos(r cosphi zetadot)
   */
  
- double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
- //double theta_m = 2;
+//double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
+double theta_m = 3e-7;
+//printf("theta_m = %g \n", theta_m);
+//printf("lambda_d = %g \n", lambda_d);
+//printf("C_1 = %g \n", C_1);
 
   intargs.arg4 = cos(phi);
   intargs.arg5 = sin(phi);
@@ -116,17 +121,20 @@ double ghat_phi(double phi, void* args) {
   double B = 0.5*r*intargs.arg0*intargs.arg4;
   double C = 0.5*r*intargs.arg0*intargs.arg5;
   double A = r*intargs.arg1*intargs.arg4;
-  double Cons = (C*C*cos(A) + B*sin(A));
+  double Cons = (C*C/2.0*cos(A)+ B*sin(A));
 
-  gsl_integration_cquad(&F_th,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); //computes result1
+ // gsl_integration_cquad(&F_th,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); //computes result1
   
   if(theta_m > 10e-3)
-   { gsl_integration_cquad(&F_th,theta_m,sqrt(theta_m),1e-6,1e-6,intargs.w_th,&result2,NULL,NULL);}
+   {    gsl_integration_cquad(&F_th,theta_m,M_PI,1e-6,1e-6,intargs.w_th,&result,NULL,NULL);}  //"good" part gets stored in "result"
   else 
-    {result2 = 2.0*C_1*C_1*Cons*log(theta_m);}   //add taylor expansion for small theta_m values
+    {   gsl_integration_cquad(&F_th,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); //stored in "result1"
+	result2 = C_1*C_1*Cons*log(theta_m);
+        result = result1 + result2; }
+//printf("taylor expansion computed at theta_m = %g and yielded a result2= %g \n", theta_m, result2);}   //add taylor expansion for small theta_m values
 
   //return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
- return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
+ return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result);
 }
 
 double ghat_r(double r, void* args) {
@@ -201,7 +209,7 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2, d
   int status;
 
   status = gsl_integration_qag(&F_r,0,L_v,1e-6,1e-6,6,1000,w_r,&result,&error);
-
+//printf("test \n");
   if (status == GSL_EMAXITER) {
     printf("r integration failed %g %g %g\n",zetalen,xizeta/zetalen,xiperp);
     exit(-1);
