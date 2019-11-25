@@ -50,11 +50,12 @@ double ghat_theta(double theta, void* args) {
   double arg9; //cos(r cosphi zetadot)
   */
 double r = intargs.arg3;
+double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
   //eps-linear cross section
   // double bcos = eightPi*(glance/(theta*theta))*pow(theta,-2.0);
   //Rutherford xsec
   //double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) / (-M_PI*log(sin(0.5*glance)));
-  double bcos = pow(C_1, 2)*cos(0.5*theta)/(4*pow(sin(0.5*theta),3)); 
+  double bcos = pow(C_1, 2)*cos(0.5*theta)/(4*pow(sin(0.5*theta),3)) / log(sin(0.5*theta_m)); 
   return bcos*(cos(intargs.arg7*(1-cos(theta)) - intargs.arg6) * gsl_sf_bessel_J0(intargs.arg8*sin(theta)) - intargs.arg9);
 }
 
@@ -103,8 +104,8 @@ double ghat_phi(double phi, void* args) {
   double arg9; //cos(r cosphi zetadot)
   */
  
-//double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
-double theta_m = 3e-7;
+double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
+//double theta_m = 3e-7;
 //printf("theta_m = %g \n", theta_m);
 //printf("lambda_d = %g \n", lambda_d);
 //printf("C_1 = %g \n", C_1);
@@ -121,15 +122,15 @@ double theta_m = 3e-7;
   double B = 0.5*r*intargs.arg0*intargs.arg4;
   double C = 0.5*r*intargs.arg0*intargs.arg5;
   double A = r*intargs.arg1*intargs.arg4;
-  double Cons = (C*C/2.0*cos(A)+ B*sin(A));
+  double Cons = (C*C/2.0*cos(A)- B*sin(A));
 
  // gsl_integration_cquad(&F_th,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); //computes result1
   
-  if(theta_m > 10e-3)
+  if(theta_m > 1e-4)
    {    gsl_integration_cquad(&F_th,theta_m,M_PI,1e-6,1e-6,intargs.w_th,&result,NULL,NULL);}  //"good" part gets stored in "result"
   else 
     {   gsl_integration_cquad(&F_th,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); //stored in "result1"
-	result2 = C_1*C_1*Cons*log(theta_m);
+	result2 = C_1*C_1*Cons*log(theta_m)/ log(sin(0.5*theta_m));
         result = result1 + result2; }
 //printf("taylor expansion computed at theta_m = %g and yielded a result2= %g \n", theta_m, result2);}   //add taylor expansion for small theta_m values
 
@@ -149,7 +150,7 @@ double ghat_r(double r, void* args) {
 
  // I_2 = \int_0^\pi F_ph dph
   int status;
-  status = gsl_integration_qag(&F_ph,0,M_PI,1e-6,1e-6,6,1000,intargs.w_ph,&result,&error);
+  status = gsl_integration_qags(&F_ph,0,M_PI,1e-6,1e-6,6,intargs.w_ph,&result,&error);
   if (status == GSL_EMAXITER) {
     printf("phi integration failed %g %g %g\n",intargs.arg0, intargs.arg1, intargs.arg2);
     exit(-1);
@@ -170,7 +171,9 @@ ki, eta: wavenumbers for the convolution weight
 double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2, double xi3) {
   double result, error;
   //double args[3];
-  gsl_integration_workspace *w_r  = gsl_integration_workspace_alloc(1000);
+  //gsl_integration_workspace *w_r  = gsl_integration_workspace_alloc(10000);
+  gsl_integration_cquad_workspace *w_r  = gsl_integration_cquad_workspace_alloc(10000);
+  
   gsl_function F_r, F_th, F_ph;
   F_r.function = &ghat_r;
   F_th.function = &ghat_theta;
@@ -199,7 +202,7 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2, d
   intargs.arg2 = xiperp;
   intargs.w_th = gsl_integration_cquad_workspace_alloc(1000);
   intargs.F_th = F_th;
-  intargs.w_ph = gsl_integration_workspace_alloc(1000);
+  intargs.w_ph = gsl_integration_workspace_alloc(10000);
   intargs.F_ph = F_ph;
 
 
@@ -208,14 +211,18 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2, d
 
   int status;
 
-  status = gsl_integration_qag(&F_r,0,L_v,1e-6,1e-6,6,1000,w_r,&result,&error);
+// status = gsl_integration_qags(&F_r,0,L_v,1e-6,1e-6,6,w_r,&result,&error);
+  status = gsl_integration_cquad(&F_r,0,L_v,1e-6,1e-6,w_r,&result, NULL, NULL);
+
 //printf("test \n");
   if (status == GSL_EMAXITER) {
-    printf("r integration failed %g %g %g\n",zetalen,xizeta/zetalen,xiperp);
+    printf("r integration failed %g %g %g %g %g %g %g %g %g \n",zeta1, zeta2, zeta3, xi1, xi2, xi3, zetalen,xizeta/zetalen,xiperp);
     exit(-1);
   }
 
-  gsl_integration_workspace_free(w_r);
+ // gsl_integration_workspace_free(w_r);
+  gsl_integration_cquad_workspace_free(w_r);
+  
   gsl_integration_cquad_workspace_free(intargs.w_th);
   gsl_integration_workspace_free(intargs.w_ph);
 
