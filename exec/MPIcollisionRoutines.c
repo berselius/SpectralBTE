@@ -26,6 +26,8 @@ struct integration_args {
   double arg9; //cos(r cosphi zetadot)
   gsl_integration_cquad_workspace *w_th;
   gsl_function F_th;
+  gsl_integration_cquad_workspace *w_thE;
+  gsl_function F_thE;
   gsl_integration_workspace *w_ph;
   gsl_function F_ph;
 };
@@ -55,8 +57,38 @@ double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
   // double bcos = eightPi*(glance/(theta*theta))*pow(theta,-2.0);
   //Rutherford xsec
   //double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) / (-M_PI*log(sin(0.5*glance)));
-  double bcos = pow(C_1, 2)*cos(0.5*theta)/(4*pow(sin(0.5*theta),3)) / log(sin(0.5*theta_m)); 
+  double bcos = pow(C_1, 2)*cos(0.5*theta)/(4*pow(sin(0.5*theta),3)); // / log(sin(0.5*theta_m)); 
   return bcos*(cos(intargs.arg7*(1-cos(theta)) - intargs.arg6) * gsl_sf_bessel_J0(intargs.arg8*sin(theta)) - intargs.arg9);
+}
+
+double ghat_theta_expan(double theta, void* args) {
+  struct integration_args intargs = *((struct integration_args *)args);
+    // I_3,1 = \int_\sqrt(\theta_m)^\pi ghat_theta dth
+  /*
+    Just to remind ourselves...
+  double arg0; //zetalen
+  double arg1; //xizeta/zetalen
+  double arg2; //xiperp
+  double arg3; //r
+  double arg4; //cosphi
+  double arg5; //sinphi
+  double arg6; //r cosphi zetadot
+  double arg7; //0.5 r cosphi zetalen
+  double arg8; //0.5 r sinphi zetalen
+  double arg9; //cos(r cosphi zetadot)
+  */
+double r = intargs.arg3;
+double B = 0.5*intargs.arg0*intargs.arg4;    //note: no 'r' included in this definition of B as it is factored out in the below expansion
+double C = 0.5*r*intargs.arg0*intargs.arg5;
+double A = r*intargs.arg1*intargs.arg4;
+    
+//double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
+  //eps-linear cross section
+  // double bcos = eightPi*(glance/(theta*theta))*pow(theta,-2.0);
+  //Rutherford xsec
+  //double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) / (-M_PI*log(sin(0.5*glance)));
+  double bcos = pow(C_1, 2)*cos(0.5*theta)/(4*pow(sin(0.5*theta),2)); // / log(sin(0.5*theta_m));
+  return bcos*( -B*sin(A) - r*B*B*sin(0.5*theta)*cos(A) + 2.0/3.0*r*r*B*B*B*sin(0.5*theta)*sin(0.5*theta)*sin(A));
 }
 
 //Computes the Taylor expansion portion
@@ -87,6 +119,7 @@ double ghat_phi(double phi, void* args) {
   double result, result1, result2;
 
   gsl_function F_th = intargs.F_th;
+  gsl_function F_thE = intargs.F_thE;
     
   double r = intargs.arg3;
 
@@ -118,6 +151,7 @@ double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
   intargs.arg9 = cos(r * intargs.arg4 * intargs.arg1);
 
   F_th.params = &intargs;
+  F_thE.params = &intargs;
 
   double B = 0.5*r*intargs.arg0*intargs.arg4;
   double C = 0.5*r*intargs.arg0*intargs.arg5;
@@ -125,13 +159,24 @@ double theta_m = 2*atan(C_1/(pow(r,2)*lambda_d));
   double Cons = (C*C/2.0*cos(A)- B*sin(A));
 
  // gsl_integration_cquad(&F_th,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); //computes result1
-  
+    if(r > 1e-3)
+{
   if(theta_m > 1e-4)
    {    gsl_integration_cquad(&F_th,theta_m,M_PI,1e-6,1e-6,intargs.w_th,&result,NULL,NULL);}  //"good" part gets stored in "result"
   else 
-    {   gsl_integration_cquad(&F_th,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); //stored in "result1"
-	result2 = C_1*C_1*Cons*log(theta_m)/ log(sin(0.5*theta_m));
+   {    gsl_integration_cquad(&F_th,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); //stored in "result1"
+        result2 = C_1*C_1*Cons*log(theta_m); // /log(sin(0.5*theta_m));
         result = result1 + result2; }
+}
+  else{
+      if(theta_m > 1e-4)
+       {    gsl_integration_cquad(&F_thE,theta_m,M_PI,1e-6,1e-6,intargs.w_th,&result,NULL,NULL);}  //"good" part gets stored in "result"
+      else
+       {    gsl_integration_cquad(&F_thE,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_th,&result1,NULL,NULL); //stored in "result1"
+            result2 = C_1*C_1*Cons*log(theta_m); // /log(sin(0.5*theta_m));
+            result = result1 + result2; }
+  }
+
 //printf("taylor expansion computed at theta_m = %g and yielded a result2= %g \n", theta_m, result2);}   //add taylor expansion for small theta_m values
 
   //return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1 + result2);
@@ -174,9 +219,10 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2, d
   //gsl_integration_workspace *w_r  = gsl_integration_workspace_alloc(10000);
   gsl_integration_cquad_workspace *w_r  = gsl_integration_cquad_workspace_alloc(10000);
   
-  gsl_function F_r, F_th, F_ph;
+  gsl_function F_r, F_th, F_ph, F_thE;
   F_r.function = &ghat_r;
   F_th.function = &ghat_theta;
+  F_thE.function = &ghat_theta_expan;
   F_ph.function = &ghat_phi;
 
   struct integration_args intargs;
@@ -202,6 +248,8 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2, d
   intargs.arg2 = xiperp;
   intargs.w_th = gsl_integration_cquad_workspace_alloc(1000);
   intargs.F_th = F_th;
+  intargs.w_thE = gsl_integration_cquad_workspace_alloc(1000);
+  intargs.F_thE = F_thE;
   intargs.w_ph = gsl_integration_workspace_alloc(10000);
   intargs.F_ph = F_ph;
 
@@ -224,6 +272,7 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2, d
   gsl_integration_cquad_workspace_free(w_r);
   
   gsl_integration_cquad_workspace_free(intargs.w_th);
+ gsl_integration_cquad_workspace_free(intargs.w_thE);
   gsl_integration_workspace_free(intargs.w_ph);
 
   return 4*M_PI*M_PI*result;
