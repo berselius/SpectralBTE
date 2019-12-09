@@ -235,7 +235,7 @@ ki, eta: wavenumbers for the convolution weight
  */
 
 double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2, double xi3) {
-  double result, error;
+  double result, result1, result2, error;
   //double args[3];
   //gsl_integration_workspace *w_r  = gsl_integration_workspace_alloc(10000);
   gsl_integration_cquad_workspace *w_r  = gsl_integration_cquad_workspace_alloc(10000);
@@ -291,25 +291,18 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2, d
   F_r.params = &intargs;
   F_rE.params = &intargs;
 
-  int status;
-  if(r > 1e-3)
-  {
-       status = gsl_integration_cquad(&F_r,0,L_v,1e-6,1e-6,w_r,&result, NULL, NULL);
-  }
-  else
-  {
-       status = gsl_integration_cquad(&F_rE,0,L_v,1e-6,1e-6,w_rE,&result, NULL, NULL);
-  }
+  int status, status1;
+   
+   status = gsl_integration_cquad(&F_rE,0,1e-3,1e-6,1e-6,w_rE,&result1, NULL, NULL);
+   status1 = gsl_integration_cquad(&F_r,1e-3,L_v,1e-6,1e-6,w_r,&result2, NULL, NULL);
     
-    
-// status = gsl_integration_qags(&F_r,0,L_v,1e-6,1e-6,6,w_r,&result,&error);
-//  status = gsl_integration_cquad(&F_r,0,L_v,1e-6,1e-6,w_r,&result, NULL, NULL);
-
-//printf("test \n");
   if (status == GSL_EMAXITER) {
+    printf("(expansion)r integration failed %g %g %g %g %g %g %g %g %g \n",zeta1, zeta2, zeta3, xi1, xi2, xi3, zetalen,xizeta/zetalen,xiperp);
+    exit(-1);}
+  if (status1 == GSL_EMAXITER) {
     printf("r integration failed %g %g %g %g %g %g %g %g %g \n",zeta1, zeta2, zeta3, xi1, xi2, xi3, zetalen,xizeta/zetalen,xiperp);
-    exit(-1);
-  }
+    exit(-1);}
+  result = result1 + result2;
 
  // gsl_integration_workspace_free(w_r);
   gsl_integration_cquad_workspace_free(w_r);
