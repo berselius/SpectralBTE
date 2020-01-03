@@ -293,8 +293,8 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2, d
 
   int status, status1;
    
-   status = gsl_integration_cquad(&F_rE,0,1e-3,1e-6,1e-6,w_rE,&result1, NULL, NULL);
-   status1 = gsl_integration_cquad(&F_r,1e-3,L_v,1e-6,1e-6,w_r,&result2, NULL, NULL);
+   status = gsl_integration_cquad(&F_r,0,1e3,1e-6,1e-6,w_r,&result1, NULL, NULL);
+   status1 = gsl_integration_cquad(&F_rE,1e3,L_v,1e-6,1e-6,w_rE,&result2, NULL, NULL);
     
   if (status == GSL_EMAXITER) {
     printf("(expansion)r integration failed %g %g %g %g %g %g %g %g %g \n",zeta1, zeta2, zeta3, xi1, xi2, xi3, zetalen,xizeta/zetalen,xiperp);
