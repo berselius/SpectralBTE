@@ -78,9 +78,13 @@ double r = intargs.arg3;
 double B = 0.5*intargs.arg0*intargs.arg4;    //note: no 'r' included in this definition of B as it is factored out in the below expansion
 double C = 0.5*r*intargs.arg0*intargs.arg5;
 double A = r*intargs.arg1*intargs.arg4;
+    
+double AA = intargs.arg0*sin(0.5*theta)*sin(0.5*theta)*intargs.arg4;
+double BB = intargs.arg1*intargs.arg4;
+    double CC = 0.5*intargs.arg0*intargs.arg5*sin(theta);
 
-  double bcos = pow(C_1, 2)*cos(0.5*theta)/(4*sin(0.5*theta)); // / log(sin(0.5*theta_m));
-  return bcos*( -B*sin(A) - r*B*B*pow(sin(0.5*theta),2)*cos(A) + 2.0/3.0*r*r*B*B*B*pow(sin(0.5*theta),4)*sin(A));
+  double bcos = pow(C_1, 2)*cos(0.5*theta)/(2*pow(sin(0.5*theta),3)); // / log(sin(0.5*theta_m));
+  return bcos*r*(-0.5*AA*AA + AA*BB - 0.25*CC*CC);
 }
 
 //Computes the Taylor expansion portion
@@ -173,12 +177,12 @@ double ghat_phiE(double phi, void* args) {
   double Cons = (C*C/2.0*cos(A)- B*sin(A));
 
 
-  if(theta_m > 1e-4)
-  {    gsl_integration_cquad(&F_thE,theta_m,M_PI,1e-6,1e-6,intargs.w_thE,&result,NULL,NULL);}  //"good" part gets stored in "result"
-  else
-  {    gsl_integration_cquad(&F_thE,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_thE,&result1,NULL,NULL); //stored in "result1"
-       result2 = C_1*C_1*Cons*log(theta_m); // /log(sin(0.5*theta_m));
-       result = result1 + result2; }
+  //if(theta_m > 1e-4)
+      gsl_integration_cquad(&F_thE,theta_m,M_PI,1e-6,1e-6,intargs.w_thE,&result,NULL,NULL);  //"good" part gets stored in "result"
+  //else
+  //{    gsl_integration_cquad(&F_thE,sqrt(theta_m),M_PI,1e-6,1e-6,intargs.w_thE,&result1,NULL,NULL); //stored in "result1"
+     //  result2 = C_1*C_1*Cons*log(theta_m); // /log(sin(0.5*theta_m));
+     //  result = result1 + result2; }
     
  return intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result);
 }
