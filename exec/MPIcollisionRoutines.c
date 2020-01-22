@@ -140,16 +140,15 @@ double ghat_phi(double phi, void *args) {
   double B = 0.5 * r * intargs.arg0 * intargs.arg4;
   double C = 0.5 * r * intargs.arg0 * intargs.arg5;
   double A = r * intargs.arg1 * intargs.arg4;
-  double Cons = (C * C / 2.0 * cos(A) - B * sin(A));
 
   if (theta_m > 1e-4) {
     gsl_integration_cquad(&F_th, theta_m, M_PI, 1e-6, 1e-6, intargs.w_th,
                           &result, NULL, NULL);
-  } //"good" part gets stored in "result"
+  } // computes full integral, gets stored in "result"
   else {
     gsl_integration_cquad(&F_th, sqrt(theta_m), M_PI, 1e-6, 1e-6, intargs.w_th,
                           &result1, NULL, NULL); // stored in "result1"
-    result2 = Cons * log(theta_m);   // /log(sin(0.5*theta_m));
+    result2 = (0.5*C*C*cos(A) - B*sin(A))* log(theta_m);   // 
     result = result1 + result2;
   }
 
@@ -188,7 +187,6 @@ double ghat_phiE(double phi, void *args) {
   double B = 0.5 * r * intargs.arg0 * intargs.arg4;
   double C = 0.5 * r * intargs.arg0 * intargs.arg5;
   double A = r * intargs.arg1 * intargs.arg4;
-  double Cons = (C * C / 2.0 * cos(A) - B * sin(A));
 
   if (theta_m > 1e-4) {
     gsl_integration_cquad(&F_thE, theta_m, M_PI, 1e-6, 1e-6, intargs.w_thE,
@@ -198,7 +196,7 @@ double ghat_phiE(double phi, void *args) {
     gsl_integration_cquad(&F_thE, sqrt(theta_m), M_PI, 1e-6, 1e-6,
                           intargs.w_thE, &result1, NULL,
                           NULL);               // stored in "result1"
-    result2 = Cons * log(theta_m); // /log(sin(0.5*theta_m));
+    result2 = (0.5*C*C*cos(A) - B*sin(A)) * log(theta_m); // 
     result = result1 + result2;
   }
 
