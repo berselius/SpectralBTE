@@ -125,6 +125,8 @@ double ghat_phi(double phi, void *args) {
   gsl_function F_th = intargs.F_th;
   gsl_function F_thE = intargs.F_thE;
 
+  int status;
+
   double r = intargs.arg3;
 
   double theta_m = 2 * atan(C_1 / (pow(r, 2) * lambda_d));
@@ -145,14 +147,28 @@ double ghat_phi(double phi, void *args) {
   double Cons = (C * C / 2.0 * cos(A) - B * sin(A));
 
   if (theta_m > 1e-4) {
-    gsl_integration_cquad(&F_th, theta_m, M_PI, 1e-6, 1e-6, intargs.w_th,
+    status = gsl_integration_cquad(&F_th, theta_m, M_PI, 1e-6, 1e-6, intargs.w_th,
                           &result, NULL, NULL);
   } //"good" part gets stored in "result"
   else {
-    gsl_integration_cquad(&F_th, sqrt(theta_m), M_PI, 1e-6, 1e-6, intargs.w_th,
+    status = gsl_integration_cquad(&F_th, sqrt(theta_m), M_PI, 1e-6, 1e-6, intargs.w_th,
                           &result1, NULL, NULL); // stored in "result1"
     result2 = C_1 * C_1 * Cons * log(theta_m);   // /log(sin(0.5*theta_m));
     result = result1 + result2;
+  }
+
+  if(status) {
+    if(status == GSL_EMAXITER)
+      printf("Max iterations reached\n");
+    else if(status == GSL_EROUND)
+      printf("Roundoff error detected\n");
+    else if(status == GSL_ESING)
+      printf("Nonintegrable singularity detected\n");
+    else if(status == GSL_EDIVERGE)
+      printf("Integral appears to be divergent\n");
+    else if(status == GSL_EDOM)
+      printf("Input argument error\n");
+    exit(37);
   }
 
   // printf("taylor expansion computed at theta_m = %g and yielded a result2= %g
@@ -223,12 +239,18 @@ double ghat_r(double r, void *args) {
   int status;
   status = gsl_integration_qags(&F_ph, 0, M_PI, 1e-6, 1e-6, 6, intargs.w_ph,
                                 &result, &error);
-  if (status == GSL_EMAXITER) {
-    printf("phi integration failed %g %g %g %g %g %g %g %g %g %g\n",
-           intargs.arg3, intargs.arg11, intargs.arg12, intargs.arg13,
-           intargs.arg0, intargs.arg14, intargs.arg15, intargs.arg16,
-           intargs.arg1, intargs.arg2);
-    exit(-1);
+  
+  if(status) {
+    if (status == GSL_EMAXITER) {
+      printf("phi integration failed %g %g %g %g %g %g %g %g %g %g\n",
+	     intargs.arg3, intargs.arg11, intargs.arg12, intargs.arg13,
+	     intargs.arg0, intargs.arg14, intargs.arg15, intargs.arg16,
+	     intargs.arg1, intargs.arg2);
+    }
+    else {
+      printf("Some other error occured in phi integration\n");
+    }
+    exit(37);
   }
 
   return pow(r, lambda + 2) * result;
