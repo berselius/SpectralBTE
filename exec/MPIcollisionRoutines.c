@@ -229,7 +229,7 @@ double ghat_r(double r, void *args) {
 
   // I_2 = \int_0^\pi F_ph dph
   int status;
-  status = gsl_integration_qag(&F_ph, 0, M_PI, 1e-6, 1e-6, 6, intargs.w_ph,
+  status = gsl_integration_qag(&F_ph, 0, M_PI, 1e-6, 1e-6, 10000, 6, intargs.w_ph,
                                 &result, &error);
   
   if(status) {
@@ -260,7 +260,7 @@ double ghat_rE(double r, void *args) {
 
   // I_2 = \int_0^\pi F_ph dph
   int status;
-  status = gsl_integration_qags(&F_phE, 0, M_PI, 1e-6, 1e-6, 6, intargs.w_phE,
+  status = gsl_integration_qag(&F_phE, 0, M_PI, 1e-6, 1e-6, 10000, 6, intargs.w_phE,
                                 &result, &error);
   if (status == GSL_EMAXITER) {
     printf("(expansion)phi integration failed %g %g %g %g %g %g %g %g %g %g\n",
