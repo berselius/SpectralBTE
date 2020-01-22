@@ -60,8 +60,8 @@ double ghat_theta(double theta, void *args) {
   double arg8; //0.5 r sinphi zetalen
   double arg9; //cos(r cosphi zetadot)
   */
-  double r = intargs.arg3;
-  double theta_m = 2 * atan(C_1 / (pow(r, 2) * lambda_d));
+
+  //double theta_m = 2 * atan(C_1 / (pow(r, 2) * lambda_d));
   // eps-linear cross section
   // double bcos = eightPi*(glance/(theta*theta))*pow(theta,-2.0);
   // Rutherford xsec
@@ -81,7 +81,7 @@ double ghat_thetaE(double theta, void *args) {
   double B = 0.5 * intargs.arg0 *
              intargs.arg4; // note: no 'r' included in this definition of B as
                            // it is factored out in the below expansion
-  double C = 0.5 * r * intargs.arg0 * intargs.arg5;
+  //double C = 0.5 * r * intargs.arg0 * intargs.arg5;
   double A = r * intargs.arg1 * intargs.arg4;
 
   double bcos =  cos(0.5 * theta) / (4 * sin(0.5 * theta)); // / log(sin(0.5*theta_m));
@@ -121,7 +121,6 @@ double ghat_phi(double phi, void *args) {
   double result, result1, result2;
 
   gsl_function F_th = intargs.F_th;
-  gsl_function F_thE = intargs.F_thE;
 
   int status;
 
@@ -137,7 +136,6 @@ double ghat_phi(double phi, void *args) {
   intargs.arg9 = cos(r * intargs.arg4 * intargs.arg1);
 
   F_th.params = &intargs;
-  F_thE.params = &intargs;
 
   double B = 0.5 * r * intargs.arg0 * intargs.arg4;
   double C = 0.5 * r * intargs.arg0 * intargs.arg5;
@@ -183,7 +181,6 @@ double ghat_phiE(double phi, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
   double result, result1, result2;
 
-  gsl_function F_th = intargs.F_th;
   gsl_function F_thE = intargs.F_thE;
 
   double r = intargs.arg3;
@@ -197,7 +194,6 @@ double ghat_phiE(double phi, void *args) {
   intargs.arg8 = 0.5 * r * intargs.arg5 * intargs.arg0;
   intargs.arg9 = cos(r * intargs.arg4 * intargs.arg1);
 
-  F_th.params = &intargs;
   F_thE.params = &intargs;
 
   double B = 0.5 * r * intargs.arg0 * intargs.arg4;
@@ -287,7 +283,7 @@ ki, eta: wavenumbers for the convolution weight
 
 double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
              double xi3) {
-  double result, result1, result2, error;
+  double result, result1, result2;
   // double args[3];
   // gsl_integration_workspace *w_r  = gsl_integration_workspace_alloc(10000);
   gsl_integration_cquad_workspace *w_r =
@@ -338,8 +334,6 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
   intargs.F_ph = F_ph;
   intargs.w_phE = gsl_integration_workspace_alloc(10000);
   intargs.F_phE = F_phE;
-
-  double r = intargs.arg3;
 
   F_r.params = &intargs;
   F_rE.params = &intargs;
