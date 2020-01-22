@@ -94,7 +94,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
   case 0:
     printf("Isotropic problem\n");
     sigma = 0.3*L_v;
-    S = 10.0;
+    S = 1.0;
     for(j=0;j<N;j++)
       for(k=0;k<N;k++)
 	for(i=0;i<N;i++)
@@ -181,9 +181,9 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 
   case 6:
     printf("Cutout Maxwellian\n");
-    double n_cutout = 1e26;
-    double T_cutout_K = 11000;
-    double m_cutout = mixture[spec].mass;
+    double n_cutout = 1.0;
+    double T_cutout_K = 1.0;
+    double m_cutout = 1.0;
     
     for(j=0;j<N;j++)
       for(k=0;k<N;k++)
