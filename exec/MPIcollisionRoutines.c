@@ -67,8 +67,7 @@ double ghat_theta(double theta, void *args) {
   // Rutherford xsec
   // double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) /
   // (-M_PI*log(sin(0.5*glance)));
-  double bcos = pow(C_1, 2) * cos(0.5 * theta) /
-                (4 * pow(sin(0.5 * theta), 3)); // / log(sin(0.5*theta_m));
+  double bcos = cos(0.5 * theta) / (4 * pow(sin(0.5 * theta), 3)); // / log(sin(0.5*theta_m));
   return bcos * (cos(intargs.arg7 * (1 - cos(theta)) - intargs.arg6) *
                      gsl_sf_bessel_J0(intargs.arg8 * sin(theta)) -
                  intargs.arg9);
@@ -85,8 +84,7 @@ double ghat_thetaE(double theta, void *args) {
   double C = 0.5 * r * intargs.arg0 * intargs.arg5;
   double A = r * intargs.arg1 * intargs.arg4;
 
-  double bcos = pow(C_1, 2) * cos(0.5 * theta) /
-                (4 * sin(0.5 * theta)); // / log(sin(0.5*theta_m));
+  double bcos =  cos(0.5 * theta) / (4 * sin(0.5 * theta)); // / log(sin(0.5*theta_m));
   return bcos *
          (-B * sin(A) - r * B * B * pow(sin(0.5 * theta), 2) * cos(A) +
           2.0 / 3.0 * r * r * B * B * B * pow(sin(0.5 * theta), 4) * sin(A));
@@ -151,7 +149,7 @@ double ghat_phi(double phi, void *args) {
   else {
     gsl_integration_cquad(&F_th, sqrt(theta_m), M_PI, 1e-6, 1e-6, intargs.w_th,
                           &result1, NULL, NULL); // stored in "result1"
-    result2 = C_1 * C_1 * Cons * log(theta_m);   // /log(sin(0.5*theta_m));
+    result2 = Cons * log(theta_m);   // /log(sin(0.5*theta_m));
     result = result1 + result2;
   }
 
@@ -200,7 +198,7 @@ double ghat_phiE(double phi, void *args) {
     gsl_integration_cquad(&F_thE, sqrt(theta_m), M_PI, 1e-6, 1e-6,
                           intargs.w_thE, &result1, NULL,
                           NULL);               // stored in "result1"
-    result2 = C_1 * C_1 * Cons * log(theta_m); // /log(sin(0.5*theta_m));
+    result2 = Cons * log(theta_m); // /log(sin(0.5*theta_m));
     result = result1 + result2;
   }
 
@@ -344,7 +342,7 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
            zeta3, xi1, xi2, xi3, zetalen, xizeta / zetalen, xiperp);
     exit(-1);
   }
-  result = result1 + result2;
+  result = pow(C_1, 2)*(result1 + result2);
 
   // gsl_integration_workspace_free(w_r);
   gsl_integration_cquad_workspace_free(w_r);
