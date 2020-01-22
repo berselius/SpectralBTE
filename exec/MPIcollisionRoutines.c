@@ -124,6 +124,8 @@ double ghat_phi(double phi, void *args) {
 
   int status;
 
+  int status;
+
   double r = intargs.arg3;
 
   double theta_m = 2 * atan(C_1 / (pow(r, 2) * lambda_d));
