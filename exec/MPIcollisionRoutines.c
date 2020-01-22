@@ -124,8 +124,6 @@ double ghat_phi(double phi, void *args) {
 
   int status;
 
-  int status;
-
   double r = intargs.arg3;
 
   double theta_m = 2 * atan(C_1 / (pow(r, 2) * lambda_d));
@@ -231,15 +229,15 @@ double ghat_r(double r, void *args) {
 
   // I_2 = \int_0^\pi F_ph dph
   int status;
-  status = gsl_integration_qags(&F_ph, 0, M_PI, 1e-6, 1e-6, 6, intargs.w_ph,
+  status = gsl_integration_qag(&F_ph, 0, M_PI, 1e-6, 1e-6, 6, intargs.w_ph,
                                 &result, &error);
   
   if(status) {
     if (status == GSL_EMAXITER) {
-      printf("phi integration failed %g %g %g %g %g %g %g %g %g %g\n",
+      printf("phi integration failed %g %g %g %g %g %g %g %g %g %g result %g error %g\n",
 	     intargs.arg3, intargs.arg11, intargs.arg12, intargs.arg13,
 	     intargs.arg0, intargs.arg14, intargs.arg15, intargs.arg16,
-	     intargs.arg1, intargs.arg2);
+	     intargs.arg1, intargs.arg2, result, error);
     }
     else {
       printf("Some other error occured in phi integration\n");
