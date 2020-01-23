@@ -391,8 +391,9 @@ double ghatL_couple(double r, void *args) {
 double ghatL(double r, void *args) {
   double *dargs = (double *)args;
   dargs[4] = r;
-
-  return pow(r, lambda + 3) * gauss_legendre(GL, ghatL2, dargs, 0, M_PI);
+  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
+	
+  return pow(r, lambda + 3) * theta_m* gauss_legendre(GL, ghatL2, dargs, 0, M_PI);
 }
 
 double gHat3L(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
