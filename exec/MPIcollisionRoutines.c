@@ -366,7 +366,7 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
   gsl_integration_workspace_free(intargs.w_ph);
   gsl_integration_workspace_free(intargs.w_phE);
 
-  return 4 * M_PI * M_PI * result;
+  return sqrt(2 * M_PI)  * result;
 }
 
 double ghatL2(double theta, void *args) {
