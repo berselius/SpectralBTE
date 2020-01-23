@@ -374,7 +374,7 @@ double ghatL2(double theta, void *args) {
   double r = dargs[4];
 
   return sin(theta) * gsl_sf_bessel_J0(r * dargs[0] * sin(theta)) *
-         (-r * dargs[1] * sin(theta) * sin(theta) *
+         (-r*r * dargs[1] * sin(theta) * sin(theta) *
               cos(r * dargs[2] * cos(theta)) +
           4 * r * dargs[3] * sin(dargs[2] * cos(theta)) * cos(theta));
 }
