@@ -67,7 +67,7 @@ double ghat_theta(double theta, void *args) {
   // Rutherford xsec
   // double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) /
   // (-M_PI*log(sin(0.5*glance)));
-  double bcos = cos(0.5 * theta) / (4 * pow(sin(0.5 * theta), 3)); // / log(sin(0.5*theta_m));
+  double bcos = cos(0.5 * theta) / (pow(sin(0.5 * theta), 3)); // / log(sin(0.5*theta_m));
   return bcos * (cos(intargs.arg7 * (1 - cos(theta)) - intargs.arg6) *
                      gsl_sf_bessel_J0(intargs.arg8 * sin(theta)) -
                  intargs.arg9);
@@ -84,7 +84,7 @@ double ghat_thetaE(double theta, void *args) {
   //double C = 0.5 * r * intargs.arg0 * intargs.arg5;
   double A = r * intargs.arg1 * intargs.arg4;
 
-  double bcos =  cos(0.5 * theta) / (4 * sin(0.5 * theta)); // / log(sin(0.5*theta_m));
+  double bcos =  cos(0.5 * theta) / (sin(0.5 * theta)); // / log(sin(0.5*theta_m));
   return bcos *
          (-B * sin(A) - r * B * B * pow(sin(0.5 * theta), 2) * cos(A) +
           2.0 / 3.0 * r * r * B * B * B * pow(sin(0.5 * theta), 4) * sin(A));
@@ -366,7 +366,7 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
   gsl_integration_workspace_free(intargs.w_ph);
   gsl_integration_workspace_free(intargs.w_phE);
 
-  return sqrt(2 * M_PI)  * result;
+  return 2.0 * sqrt(2 * M_PI)  * result;
 }
 
 double ghatL2(double theta, void *args) {
