@@ -42,7 +42,7 @@ struct integration_args {
 };
 
 const double eightPi = 8.0 / M_PI;
-double C_1 = (1.602e-38) / (4.0 * M_PI * 8.854e-12 * 9.109e-31);
+double C_1 = (1.602e-38) / (8.0 * M_PI * 8.854e-12 * 9.109e-31);
 
 double ghat_theta(double theta, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
@@ -391,9 +391,11 @@ double ghatL_couple(double r, void *args) {
 double ghatL(double r, void *args) {
   double *dargs = (double *)args;
   dargs[4] = r;
-  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
-	
-  return pow(r, lambda + 3) * theta_m* gauss_legendre(GL, ghatL2, dargs, 0, M_PI);
+  
+double gamma = M_PI*C_1*C_1;
+double C_L = 0.5*gamma*log(1 + lambda_d*lambda_d*pow(r,4))/(4*C_1*C_1));	
+  
+return pow(r, lambda + 3) * C_L * gauss_legendre(GL, ghatL2, dargs, 0, M_PI);
 }
 
 double gHat3L(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
@@ -421,9 +423,9 @@ double gHat3L(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
   args[3] = zetalen;
 
   if (Gamma_couple == 0)
-    result = 2.0 * M_PI * gauss_legendre(GL, ghatL, args, 0, L_v);
+    result = 1.0/sqrt(2.0 * M_PI) * gauss_legendre(GL, ghatL, args, 0, L_v);
   else
-    result = 2.0 * M_PI * gauss_legendre(GL, ghatL_couple, args, 0, L_v);
+    result = 1.0/sqrt(2.0 * M_PI) * gauss_legendre(GL, ghatL_couple, args, 0, L_v);
 
   return result;
 }
