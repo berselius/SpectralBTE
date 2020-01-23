@@ -101,7 +101,7 @@ double ghat_theta2(double theta, void *args) {
   double zetalen = dargs[3];
   double zetadot = dargs[4];
 
-  double theta_m = 2 * atan(C_1 / (pow(r, 2) * lambda_d));
+  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
   // double theta_m = 10e-5;
   // printf("theta_m = %g \n", theta_m);
 
@@ -126,7 +126,7 @@ double ghat_phi(double phi, void *args) {
 
   double r = intargs.arg3;
 
-  double theta_m = 2 * atan(C_1 / (pow(r, 2) * lambda_d));
+  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
 
   intargs.arg4 = cos(phi);
   intargs.arg5 = sin(phi);
@@ -185,7 +185,7 @@ double ghat_phiE(double phi, void *args) {
 
   double r = intargs.arg3;
 
-  double theta_m = 2 * atan(C_1 / (pow(r, 2) * lambda_d));
+  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
 
   intargs.arg4 = cos(phi);
   intargs.arg5 = sin(phi);
