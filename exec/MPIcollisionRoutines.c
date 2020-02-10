@@ -392,13 +392,9 @@ double ghatL(double r, void *args) {
   double *dargs = (double *)args;
   dargs[4] = r;
   
-<<<<<<< HEAD
-double gamma = M_PI*C_1*C_1;
-double C_L = 0.5*gamma*log(1 + (lambda_d*lambda_d*pow(r,4))/(4*C_1*C_1) );	
-=======
   double gamma = M_PI*C_1*C_1;
   double C_L = 0.5*gamma*log(1 + lambda_d*lambda_d*pow(r,4)/(4*C_1*C_1));	
->>>>>>> 412e31417b849b3778e556a6f5526d406bfedc18
+
   
   return pow(r, lambda + 2) * C_L * gauss_legendre(GL, ghatL2, dargs, 0, M_PI);
 }
