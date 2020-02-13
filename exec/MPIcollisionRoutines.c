@@ -101,8 +101,10 @@ double ghat_theta2(double theta, void *args) {
   double zetalen = dargs[3];
   double zetadot = dargs[4];
 
-  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
-  // double theta_m = 10e-5;
+  double u = 1.69e11;
+  double theta_m = 2 * atan(2*C_1 / (pow(u, 2) * lambda_d));
+  
+// double theta_m = 10e-5;
   // printf("theta_m = %g \n", theta_m);
 
   double c1 = 0.5 * r * zetalen * cosphi;
@@ -125,8 +127,8 @@ double ghat_phi(double phi, void *args) {
   int status;
 
   double r = intargs.arg3;
-
-  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
+ double u = 1.69e11;
+  double theta_m = 2 * atan(2*C_1 / (pow(u, 2) * lambda_d));
 
   intargs.arg4 = cos(phi);
   intargs.arg5 = sin(phi);
@@ -184,8 +186,8 @@ double ghat_phiE(double phi, void *args) {
   gsl_function F_thE = intargs.F_thE;
 
   double r = intargs.arg3;
-
-  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
+  double u = 1.69e11;
+  double theta_m = 2 * atan(2*C_1 / (pow(u, 2) * lambda_d));
 
   intargs.arg4 = cos(phi);
   intargs.arg5 = sin(phi);
@@ -391,14 +393,10 @@ double ghatL_couple(double r, void *args) {
 double ghatL(double r, void *args) {
   double *dargs = (double *)args;
   dargs[4] = r;
-  
-<<<<<<< HEAD
+ 
+double u = 1.69e11; 
 double gamma = M_PI*C_1*C_1;
-double C_L = 0.5*gamma*log(1 + (lambda_d*lambda_d*pow(r,4))/(4*C_1*C_1) );	
-=======
-  double gamma = M_PI*C_1*C_1;
-  double C_L = 0.5*gamma*log(1 + lambda_d*lambda_d*pow(r,4)/(4*C_1*C_1));	
->>>>>>> 412e31417b849b3778e556a6f5526d406bfedc18
+double C_L = 0.5*gamma*log(1 + (lambda_d*lambda_d*pow(u,4))/(4*C_1*C_1) );	
   
   return pow(r, lambda + 2) * C_L * gauss_legendre(GL, ghatL2, dargs, 0, M_PI);
 }
