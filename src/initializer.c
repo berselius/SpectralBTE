@@ -181,9 +181,9 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 
   case 6:
     printf("Cutout Maxwellian\n");
-    double n_cutout = 1.0;
-    double T_cutout_K = 1.0;
-    double m_cutout = 1.0;
+    double n_cutout = 1.0e23;
+    double T_cutout_K = 11000.0;
+    double m_cutout = 9.1e-31;
     
     for(j=0;j<N;j++)
       for(k=0;k<N;k++)
