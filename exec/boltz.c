@@ -173,6 +173,7 @@ int main(int argc, char **argv) {
       if((fidWeights = fopen(buffer_weights,"r"))) {
 	printf("Opened %s\n", buffer_weights);
 	for(i=0;i<N*N*N;i++) {
+	  conv_weights[0][i] = malloc(N*N*N*sizeof(double));
 	  readFlag = (int) fread(conv_weights[0][i],sizeof(double),N*N*N,fidWeights);
 	  if(readFlag != N*N*N) {
 	    printf("Readflag %d\n", readFlag);
