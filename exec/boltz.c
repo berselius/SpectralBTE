@@ -92,6 +92,7 @@ int main(int argc, char **argv) {
   if(argc == 4) {
       weight_file_specified = 1;
       strcpy(weightFilename,argv[3]);
+      printf("The weight file is specified to be %s\n", weightFilename);
   }
 
 
@@ -159,24 +160,34 @@ int main(int argc, char **argv) {
       char buffer_weights[256];
       int readFlag;
 
+      if(num_species > 1) {
+	printf("Error - weight file loading only implemented for single species\n");
+	exit(1);
+      }
+
       printf("Loading weights stored in %s \n", weightFilename);
-      sprintf(buffer_weights,"Weights/%s",weightFilename); 
+      sprintf(buffer_weights,"Weights/%s",weightFilename);       
+
+      alloc_weights(N, &conv_weights, 1);
       
       if((fidWeights = fopen(buffer_weights,"r"))) {
-          for(i=0;i<N*N*N;i++) { 
-              readFlag = (int) fread(conv_weights[i],sizeof(double),N*N*N,fidWeights);
-              if(readFlag != N*N*N) {
-                  printf("Error reading weight file\n");
-                  exit(1);
-              } 
-          }     
-          fclose(fidWeights);
-      }
+	printf("Opened %s\n", buffer_weights);
+	for(i=0;i<N*N*N;i++) {
+	  readFlag = (int) fread(conv_weights[0][i],sizeof(double),N*N*N,fidWeights);
+	  if(readFlag != N*N*N) {
+	    printf("Readflag %d\n", readFlag);
+	    printf("Error reading weight file\n");
+	    exit(1);
+	  } 
+	}
+	fclose(fidWeights);
+      }     
       else {
-          printf("Error opening weight file %s, please check the name\n", weightFilename);
-          exit(1);
+	printf("Error opening weight file %s, please check the name\n", weightFilename);
+	exit(1);
       }
   }
+   
   else {
 
       if (weightgen == 0) {
