@@ -121,7 +121,7 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
 	strcat(topline,tmpbuff);
       }
       if(entFlag) {
-	sprintf(tmpbuff,"Pos/neg_energy_ratio ");
+	sprintf(tmpbuff,"Entropy");
 	strcat(topline,tmpbuff);
       }
       if(sliceFlag) {
@@ -158,7 +158,7 @@ static void fopen_output_file(const char* prefac, char* inputFile, species* mixt
 //This version is for homogeneous case
 void write_streams(double **f, double time) {
     int i, l;
-    double density, kinTemp, bulkV[3], energy[2];
+    double density, kinTemp, bulkV[3], entropy;
     
     //We will print everything to this buffer
     char line[1028];
@@ -175,7 +175,7 @@ void write_streams(double **f, double time) {
       }
       getBulkVelocity(f[i], bulkV, density, 0);
       kinTemp = getTemperature(f[i], bulkV, density, 0);
-      getEnergy(f[i], energy);
+      entropy = getEntropy(f[i]);
       
       sprintf(line, "%le ", time);
 
@@ -197,7 +197,7 @@ void write_streams(double **f, double time) {
 	strcat(line,buff);
       }
       if (entFlag) {
-	sprintf(buff, " %le ", energy[1] / energy[0]);
+	sprintf(buff, " %le ", entropy);
 	strcat(line,buff);
       }
       if (sliceFlag) {
