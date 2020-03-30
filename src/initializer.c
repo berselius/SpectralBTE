@@ -52,8 +52,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 
   int spec;
 
-
-  if(strcmp(mixture[0].name,"default") != 0)
+  if(strcmp(mixture[0].name,"default") == 0)
     KB = KB_in_Joules_per_Kelvin;
   else
     KB = 1.;
