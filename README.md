@@ -89,6 +89,11 @@ Use `mpirun` to run the code, as
 * The code will look for the specified `input_file` in `input/`. See below and in the examples firectory for details on writing input files.
 * The code will look for the specified output flag directions in the specified `output_flags` in `input/`. This tells the code what variables you want to dump. See below for more details.
 * If the restart flag is set in the input file, it will look for information in the `restart` folder.
+* you can also optionally add the filename of a precomputed weight file as 
+
+`mpirun -n <num_tasks> boltz_ input_file output_flags weight_filename`
+
+The code will load the weights from `Weights/weight_filename`
 
 #### How many MPI ranks, OMP threads should/can I use?
 
