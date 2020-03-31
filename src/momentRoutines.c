@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "species.h"
 #include "constants.h"
 
@@ -23,7 +24,7 @@ void initialize_moments(int nodes, double *vel, species *mix) {
   dv3 = dv*dv*dv;
 
   mixture = mix;
-  if(mixture[0].mass == 1)
+  if(strcmp(mixture[0].name,"default") == 0)
     KB = 1;
   else
     KB = KB_in_Joules_per_Kelvin;
@@ -68,7 +69,10 @@ double getDensity(double *in, int spec_id)
 		result += dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)];
 	      }
 	}
-	  return mixture[spec_id].mass*result;
+	//return mixture[spec_id].mass*result;
+
+	//Let's just use the number density for now
+	return mixture[spec_id].mass*result;
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/

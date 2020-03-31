@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 #include "boundaryConditions.h"
 #include "species.h"
 #include "constants.h"
@@ -28,7 +29,7 @@ void initializeBC(int nv, double *vel, species *mix) {
   wtN[N-1] = 0.5;
 
   mixture = mix;
-  if(mixture[0].mass == 1.0)
+  if(strcmp(mixture[0].name,"default") == 0)
     KB = 1.0;
   else
     KB = KB_in_Joules_per_Kelvin;

@@ -53,9 +53,9 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
   int spec;
 
   if(strcmp(mixture[0].name,"default") == 0)
-    KB = KB_in_Joules_per_Kelvin;
-  else
     KB = 1.;
+  else
+    KB = KB_in_Joules_per_Kelvin;
 
   double maxTemp,rho;
 
@@ -180,7 +180,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 
   case 6:
     printf("Cutout Maxwellian\n");
-    double n_cutout = 1.0e23;
+    double n_cutout = 1.0e20;
     double T_cutout_K = 11000.0;
     double m_cutout = 9.1e-31;
     double v_th2 = KB * T_cutout_K / m_cutout;
@@ -194,6 +194,20 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 
     break;
     
+  case 7:
+    printf("Dimensional Maxwellian\n");
+    n_cutout = 1.0e23;
+    T_cutout_K = 11000.0;
+    m_cutout = 9.1e-31;
+
+    for(j=0;j<N;j++)
+      for(k=0;k<N;k++)
+	for(i=0;i<N;i++) {
+	  double v2 = v[i]*v[i] + v[j]*v[j] + v[k]*v[k];
+	  f[spec][k + N*(j + N*i)] = n_cutout*pow(m_cutout / (2.0 * M_PI * KB * T_cutout_K),1.5) * exp(-0.5*m_cutout*v2 / KB / T_cutout_K);
+	}
+
+    break;
 
     /*
   case 6:

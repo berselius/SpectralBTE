@@ -121,7 +121,7 @@ void initialize_output_hom(int nodes, double Lv, int restart, char *inputFile, c
 	strcat(topline,tmpbuff);
       }
       if(entFlag) {
-	sprintf(tmpbuff,"Entropy");
+	sprintf(tmpbuff,"Entropy ");
 	strcat(topline,tmpbuff);
       }
       if(sliceFlag) {
