@@ -183,7 +183,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
     double n_cutout = 1.0e23;
     double T_cutout_K = 11000.0;
     double m_cutout = 9.1e-31;
-    double v_th2 = KB * T_coutout_K / m_cutout;
+    double v_th2 = KB * T_cutout_K / m_cutout;
 
     for(j=0;j<N;j++)
       for(k=0;k<N;k++)
