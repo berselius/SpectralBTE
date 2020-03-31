@@ -72,7 +72,7 @@ double getDensity(double *in, int spec_id)
 	//return mixture[spec_id].mass*result;
 
 	//Let's just use the number density for now
-	return mixture[spec_id].mass*result;
+	return result;
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
