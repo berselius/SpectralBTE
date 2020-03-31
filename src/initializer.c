@@ -182,7 +182,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
     printf("Cutout Maxwellian\n");
     double n_cutout = 1.0e20;
     double T_cutout_K = 11000.0;
-    double m_cutout = 9.1e-31;
+    double m_cutout = mixture[0].mass;
     double v_th2 = KB * T_cutout_K / m_cutout;
 
     for(j=0;j<N;j++)
@@ -196,9 +196,9 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
     
   case 7:
     printf("Dimensional Maxwellian\n");
-    n_cutout = 1.0e23;
+    n_cutout = 1.0e20;
     T_cutout_K = 11000.0;
-    m_cutout = 9.1e-31;
+    m_cutout = mixture[0].mass;
 
     for(j=0;j<N;j++)
       for(k=0;k<N;k++)
