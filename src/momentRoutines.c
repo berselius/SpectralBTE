@@ -182,7 +182,7 @@ double getTemperature(double *in, double *bulkV, double n, int spec_id)
 	for(k=0;k<N;k++)
 	{
 		temp = (v[i] - bulkV[0])*(v[i] - bulkV[0]) + (v[j] - bulkV[1])*(v[j] - bulkV[1]) + (v[k] - bulkV[2])*(v[k] - bulkV[2]);
-		result += temp*dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)]);
+		result += temp*dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)];
 	}
 	return (mass/KB/3.0/n)*result;
 }
