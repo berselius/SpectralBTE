@@ -96,7 +96,7 @@ double getEntropy(double *in)
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
-double Kullback(double *in, double rho, double T) {
+double Kullback(double *in, double n, double T) {
   double result = 0.0, max;
   int i, j, k;
 
@@ -105,7 +105,7 @@ double Kullback(double *in, double rho, double T) {
     for(j=0;j<N;j++)
       for(k=0;k<N;k++)
 	{
-	  max = rho * pow(0.5/(M_PI*T),1.5)*exp(-(0.5/T) *((v[i])*(v[i]) + v[j]*v[j] + v[k]*v[k]));
+	  max = n * pow(0.5/(M_PI*T),1.5)*exp(-(0.5/T) *((v[i])*(v[i]) + v[j]*v[j] + v[k]*v[k]));
 	  if(in[k + N*(j + N*i)] > 0)
 	    result += dv3*wtN[i]*wtN[j]*wtN[k]*(in[k + N*(j + N*i)]*log(in[k + N*(j + N*i)]/max) - in[k + N*(j + N*i)] + max);
 	}
@@ -117,7 +117,7 @@ double Kullback(double *in, double rho, double T) {
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
-void getBulkVelocity(double *in, double *out, double rho, int spec_id)
+void getBulkVelocity(double *in, double *out, double n, int spec_id)
 {
 	double temp1, temp2, temp3;
 	int i, j, k;
@@ -131,18 +131,19 @@ void getBulkVelocity(double *in, double *out, double rho, int spec_id)
 	for(j=0;j<N;j++)
 	for(k=0;k<N;k++)
 	{
-		temp1 = v[i]*dv3*wtN[i]*wtN[j]*wtN[k]/rho;
-		temp2 = v[j]*dv3*wtN[i]*wtN[j]*wtN[k]/rho;
-		temp3 = v[k]*dv3*wtN[i]*wtN[j]*wtN[k]/rho;
+		temp1 = v[i]*dv3*wtN[i]*wtN[j]*wtN[k];
+		temp2 = v[j]*dv3*wtN[i]*wtN[j]*wtN[k];
+		temp3 = v[k]*dv3*wtN[i]*wtN[j]*wtN[k];
 
 		out[0] += temp1*in[k + N*(j + N*i)];
 		out[1] += temp2*in[k + N*(j + N*i)];
 		out[2] += temp3*in[k + N*(j + N*i)];
 	}
 
-	out[0] = mass*out[0];
-	out[1] = mass*out[1];
-	out[2] = mass*out[2];
+	out[0] /= n;
+	out[1] /= n;
+	out[2] /= n;
+
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
@@ -169,7 +170,7 @@ void getEnergy(double *in, double *out)
 }
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
-double getTemperature(double *in, double *bulkV, double rho, int spec_id)
+double getTemperature(double *in, double *bulkV, double n, int spec_id)
 {
 	double result = 0.0, temp;
 	int i, j, k;
@@ -181,16 +182,16 @@ double getTemperature(double *in, double *bulkV, double rho, int spec_id)
 	for(k=0;k<N;k++)
 	{
 		temp = (v[i] - bulkV[0])*(v[i] - bulkV[0]) + (v[j] - bulkV[1])*(v[j] - bulkV[1]) + (v[k] - bulkV[2])*(v[k] - bulkV[2]);
-		result += temp*dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)]/(3.0*rho);
+		result += temp*dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)]);
 	}
-	return (mass/KB)*result;
+	return (mass/KB/3.0/n)*result;
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
-double getPressure(double rho, double temperature)
+double getPressure(double n, double temperature)
 {
-	return rho*temperature;
+	return n*temperature;
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
