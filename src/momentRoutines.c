@@ -183,7 +183,7 @@ double getTemperature(double *in, double *bulkV, double rho, int spec_id)
 		temp = (v[i] - bulkV[0])*(v[i] - bulkV[0]) + (v[j] - bulkV[1])*(v[j] - bulkV[1]) + (v[k] - bulkV[2])*(v[k] - bulkV[2]);
 		result += temp*dv3*wtN[i]*wtN[j]*wtN[k]*in[k + N*(j + N*i)]/(3.0*rho);
 	}
-	return (mass*mass/KB)*result;
+	return (mass/KB)*result;
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
