@@ -238,8 +238,8 @@ int main(int argc, char **argv) {
 
       for(l=0;l<num_species;l++) {
 	for(m=0;m<num_species;m++) {	  
-	  //ComputeQ(f_hom[l],f_hom[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
-	  ComputeQ_maxPreserve(f_hom[l],f_hom[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
+	  ComputeQ(f_hom[l],f_hom[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
+	  //ComputeQ_maxPreserve(f_hom[l],f_hom[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
 	}  
       }
 
@@ -269,8 +269,8 @@ int main(int argc, char **argv) {
 	//compute new collision ops
 	for(l=0;l<num_species;l++) {
 	  for(m=0;m<num_species;m++) {
-	    //ComputeQ(f_hom1[l],f_hom1[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
-	    ComputeQ_maxPreserve(f_hom1[l],f_hom1[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
+	    ComputeQ(f_hom1[l],f_hom1[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
+	    //ComputeQ_maxPreserve(f_hom1[l],f_hom1[m],Q[m*num_species + l],conv_weights[m*num_species + l]);
 	  }  
 	}
 	
