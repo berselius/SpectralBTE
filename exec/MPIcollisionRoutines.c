@@ -47,6 +47,7 @@ double C_1 = (2.566e-38) / (8.0 * M_PI * 8.854e-12 * 9.109e-31);
 double I_three_Boltz(double theta, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
   // I_3,1 = \int_\sqrt(\theta_m)^\pi ghat_theta dth
+  // the "normal"/"non Taylor" part of I_3,1 and I_3,2 	
 
   //double theta_m = 2 * atan(C_1 / (pow(r, 2) * lambda_d));
   // eps-linear cross section
@@ -54,29 +55,32 @@ double I_three_Boltz(double theta, void *args) {
   // Rutherford xsec
   // double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) /
   // (-M_PI*log(sin(0.5*glance)));
+  // reminder: 	
+  // A = intargs.rcosphi_zetadotxi_over_zetalen 
+  // B = intargs.half_rcosphi_zetadotxi_over_zetalen
+  // C = intargs.half_rsinphi_zetadotxi_over_zetalen 	
+
   double bcos = cos(0.5 * theta) / (pow(sin(0.5 * theta), 3)); // / log(sin(0.5*theta_m));
   return bcos * (cos(intargs.half_rcosphi_zetadotxi_over_zetalen * (1 - cos(theta)) - intargs.rcosphi_zetadotxi_over_zetalen) *
                      gsl_sf_bessel_J0(intargs.half_rsinphi_zetadotxi_over_zetalen * sin(theta)) -
                  intargs.cos_rcosphi_zetadotxi_over_zetalen);
+	// bcos*(cos(B(1-cos(\theta))-A)*J_0(C*sin(\theta)) - cos(A)) 
+	// this is stored in F_h
 }
 
-double I_three_Boltz_small(double theta, void *args) {
+double I_three_Boltz_small(double theta, void *args) {   
   struct integration_args intargs = *((struct integration_args *)args);
-  // I_3,1 = \int_\sqrt(\theta_m)^\pi ghat_theta dth
 
-  double r = intargs.r;
-  double B = 0.5 * intargs.zetalen *
-             intargs.cosphi; 
-  // note: no 'r' included in this definition of B as
-  // it is factored out in the below expansion
-  
-  //double C = 0.5 * r * intargs.zetalen * intargs.sinphi;
-  double A = r * intargs.xizeta_over_zetalen * intargs.cosphi;
+  // I_3,3 integrand as in manuscript
+  // 4\frac{\cos (\theta /2)}{ \sin ^{3}(\theta /2)}(4 \tilde{A}\tilde{B} - 2\tilde{A}^2 -\tilde{C}^2 )	 
+	
+  double tA = intargs.zetalen * pow(sin(0.5* theta),2)              // \tilde{A}
+  double tB = xizeta_over_zetalen * intargs.cosphi                  // \tilde{B}
+  double tC = 0.5 * intargs.zetalen * intargs.sinphi * sin(theta)   // \tilde{C}	  
 
-  double bcos =  cos(0.5 * theta) / (sin(0.5 * theta)); // / log(sin(0.5*theta_m));
-  return bcos *
-         (-B * sin(A) - r * B * B * pow(sin(0.5 * theta), 2) * cos(A) +
-          2.0 / 3.0 * r * r * B * B * B * pow(sin(0.5 * theta), 4) * sin(A));
+  double bcos =  cos(0.5 * theta) / (pow(sin(0.5 * theta), 3)); // / log(sin(0.5*theta_m));
+  return bcos * 4* (4*tA*tB - 2*tA*tA-tC*tC)
+  //stored in F_th_small	  
 }
 
 // Computes the Taylor expansion portion
@@ -121,10 +125,10 @@ double I_two_Boltz_small(double phi, void *args) {
  // double theta_m = 1e-9;
   intargs.cosphi = cos(phi);
   intargs.sinphi = sin(phi);
-  intargs.rcosphi_zetadotxi_over_zetalen = r * intargs.cosphi * intargs.xizeta_over_zetalen;
-  intargs.half_rcosphi_zetadotxi_over_zetalen = 0.5 * r * intargs.cosphi * intargs.zetalen;
-  intargs.half_rsinphi_zetadotxi_over_zetalen = 0.5 * r * intargs.sinphi * intargs.zetalen;
-  intargs.cos_rcosphi_zetadotxi_over_zetalen = cos(r * intargs.cosphi * intargs.xizeta_over_zetalen);
+  intargs.rcosphi_zetadotxi_over_zetalen = r * intargs.cosphi * intargs.xizeta_over_zetalen;  //A
+  intargs.half_rcosphi_zetadotxi_over_zetalen = 0.5 * r * intargs.cosphi * intargs.zetalen;   //B
+  intargs.half_rsinphi_zetadotxi_over_zetalen = 0.5 * r * intargs.sinphi * intargs.zetalen;   //C
+  intargs.cos_rcosphi_zetadotxi_over_zetalen = cos(r * intargs.cosphi * intargs.xizeta_over_zetalen); //cos(A)
 
   F_th_small.params = &intargs;
 
@@ -147,9 +151,11 @@ double I_two_Boltz_small(double phi, void *args) {
   return intargs.sinphi *
          gsl_sf_bessel_J0(intargs.r * intargs.sinphi * intargs.xiperp) *
          (result);
+	//gets stored in F_ph_small
 }
 
 double I_two_Boltz(double phi, void *args) {
+  // Computes the integrand of I_2 from the manuscript  
   struct integration_args intargs = *((struct integration_args *)args);
   double result, result1, result2;
 
@@ -163,11 +169,11 @@ double I_two_Boltz(double phi, void *args) {
   //double theta_m = 1e-9;
   intargs.cosphi = cos(phi);
   intargs.sinphi = sin(phi);
-  intargs.rcosphi_zetadotxi_over_zetalen = r * intargs.cosphi * intargs.xizeta_over_zetalen;
-  intargs.half_rcosphi_zetadotxi_over_zetalen = 0.5 * r * intargs.cosphi * intargs.zetalen;
-  intargs.half_rsinphi_zetadotxi_over_zetalen = 0.5 * r * intargs.sinphi * intargs.zetalen;
-  intargs.cos_rcosphi_zetadotxi_over_zetalen = cos(r * intargs.cosphi * intargs.xizeta_over_zetalen);
-
+  intargs.rcosphi_zetadotxi_over_zetalen = r * intargs.cosphi * intargs.xizeta_over_zetalen;  //A
+  intargs.half_rcosphi_zetadotxi_over_zetalen = 0.5 * r * intargs.cosphi * intargs.zetalen;   //B
+  intargs.half_rsinphi_zetadotxi_over_zetalen = 0.5 * r * intargs.sinphi * intargs.zetalen;   //C
+  intargs.cos_rcosphi_zetadotxi_over_zetalen = cos(r * intargs.cosphi * intargs.xizeta_over_zetalen);  //cos(A)
+ 
   F_th.params = &intargs;
 
   double B = 0.5 * r * intargs.zetalen * intargs.cosphi;
@@ -178,11 +184,13 @@ double I_two_Boltz(double phi, void *args) {
     status = gsl_integration_cquad(&F_th, theta_m, M_PI, 1e-6, 1e-6, intargs.w_th,
                           &result, NULL, NULL);
   } // computes full integral, gets stored in "result"
+    // I_{3,1} + I_{3,2} when theta > epsilon_theta	
   else {
     status = gsl_integration_cquad(&F_th, sqrt(theta_m), M_PI, 1e-6, 1e-6, intargs.w_th,
                           &result1, NULL, NULL); // stored in "result1"
-    result2 = (0.5*C*C*cos(A) - B*sin(A))* log(theta_m);   // 
+    result2 = 2.0*(0.5*C*C*cos(A) - B*sin(A))* log(theta_m);   // 
     result = result1 + result2;
+    // computes I_{3,1} + I_{3,2} when theta < epsilon_theta
   }
 
   if(status) {
@@ -200,7 +208,7 @@ double I_two_Boltz(double phi, void *args) {
   }
 
   // printf("taylor expansion computed at theta_m = %g and yielded a result2= %g
-  // \n", theta_m, result2);}   //add taylor expansion for small theta_m values
+  // \n", theta_m, result2);}   //add taylor expansiJon for small theta_m values
 
   // return
   // intargs.sinphi*gsl_sf_bessel_J0(intargs.r*intargs.sinphi*intargs.xiperp)*(result1
@@ -208,6 +216,8 @@ double I_two_Boltz(double phi, void *args) {
   return intargs.sinphi *
          gsl_sf_bessel_J0(intargs.r * intargs.sinphi * intargs.xiperp) *
          (result);
+	// sin\phi J_0(r * sin\phi |xi perp|) I_3
+	// gets stored in F_ph
 }
 
 
@@ -240,6 +250,7 @@ double I_one_Boltz(double r, void *args) {
   }
 
   return pow(r, lambda + 2) * result;
+	// gets stored in F_r
 }
 
 double I_one_Boltz_small(double r, void *args) {
@@ -264,7 +275,9 @@ double I_one_Boltz_small(double r, void *args) {
     exit(-1);
   }
 
-  return result; // power of r cancels out
+  return r* result; // power of r cancels out
+	// integrand of the r integraton, r*I_2
+	// gets stored in F_r_small
 }
 
 /*
@@ -333,11 +346,11 @@ double gHat3_Boltz(double zeta1, double zeta2, double zeta3, double xi1, double 
   F_r_small.params = &intargs;
 
   int status, status1;
-
+  //split up the integration into two parts:
   status = gsl_integration_cquad(&F_r_small, 0, 1e-3, 1e-6, 1e-6, w_r_small, &result1,
-                                 NULL, NULL);
+                                 NULL, NULL); // small values of r
   status1 = gsl_integration_cquad(&F_r, 1e-3, L_v, 1e-6, 1e-6, w_r, &result2,
-                                  NULL, NULL);
+                                  NULL, NULL); // large values of r
 
   if (status == GSL_EMAXITER) {
     printf("(expansion)r integration failed %g %g %g %g %g %g %g %g %g \n",
@@ -350,7 +363,8 @@ double gHat3_Boltz(double zeta1, double zeta2, double zeta3, double xi1, double 
            zeta3, xi1, xi2, xi3, zetalen, xizeta / zetalen, xiperp);
     exit(-1);
   }
-  result = 2.0*sqrt(2.0*M_PI))*pow(C_1, 2)*(result1 + result2);
+  result = 2.0*pow(C_1, 2)*sqrt(2.0*M_PI))(result1 + result2);  //add the two pieces together and multiply by outside constant
+	// 2C_1^1\sqrt(2\pi) I_1 
 
   // gsl_integration_workspace_free(w_r);
   gsl_integration_cquad_workspace_free(w_r);
