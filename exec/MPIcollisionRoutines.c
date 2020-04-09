@@ -33,18 +33,18 @@ struct integration_args {
 
   gsl_integration_cquad_workspace *w_th;
   gsl_function F_th;
-  gsl_integration_cquad_workspace *w_thE;
-  gsl_function F_thE;
+  gsl_integration_cquad_workspace *w_th_small;
+  gsl_function F_th_small;
   gsl_integration_workspace *w_ph;
   gsl_function F_ph;
-  gsl_integration_workspace *w_phE;
-  gsl_function F_phE;
+  gsl_integration_workspace *w_ph_small;
+  gsl_function F_ph_small;
 };
 
 const double eightPi = 8.0 / M_PI;
 double C_1 = (1.602e-38) / (8.0 * M_PI * 8.854e-12 * 9.109e-31);
 
-double ghat_theta(double theta, void *args) {
+double I_three_Boltz(double theta, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
   // I_3,1 = \int_\sqrt(\theta_m)^\pi ghat_theta dth
 
@@ -60,14 +60,16 @@ double ghat_theta(double theta, void *args) {
                  intargs.cos_rcosphi_zetadotxi_over_zetalen);
 }
 
-double ghat_thetaE(double theta, void *args) {
+double I_three_Boltz_small(double theta, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
   // I_3,1 = \int_\sqrt(\theta_m)^\pi ghat_theta dth
 
   double r = intargs.r;
   double B = 0.5 * intargs.zetalen *
-             intargs.cosphi; // note: no 'r' included in this definition of B as
-                           // it is factored out in the below expansion
+             intargs.cosphi; 
+  // note: no 'r' included in this definition of B as
+  // it is factored out in the below expansion
+  
   //double C = 0.5 * r * intargs.zetalen * intargs.sinphi;
   double A = r * intargs.xizeta_over_zetalen * intargs.cosphi;
 
@@ -78,7 +80,8 @@ double ghat_thetaE(double theta, void *args) {
 }
 
 // Computes the Taylor expansion portion
-double ghat_theta2(double theta, void *args) {
+/*
+double I_three_Boltz_small(double theta, void *args) {
 
   double *dargs = (double *)args;
 
@@ -104,8 +107,49 @@ double ghat_theta2(double theta, void *args) {
   // 0.5*c1*sin(c3)) + (glance/192.0)*(-8.0*(3.0*c2*c2 +1)*c1*sin(c3)
   // -24.0*c1*c1*cos(c3) + c2*c2*(3.0*c2 + 16.0)*cos(c3)));
 }
+*/
 
-double ghat_phi(double phi, void *args) {
+double I_two_Boltz_small(double phi, void *args) {
+  struct integration_args intargs = *((struct integration_args *)args);
+  double result, result1, result2;
+
+  gsl_function F_th_small = intargs.F_th_small;
+
+  double r = intargs.r;
+ // double u = 4.11e5;
+  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
+ // double theta_m = 1e-9;
+  intargs.cosphi = cos(phi);
+  intargs.sinphi = sin(phi);
+  intargs.rcosphi_zetadotxi_over_zetalen = r * intargs.cosphi * intargs.xizeta_over_zetalen;
+  intargs.half_rcosphi_zetadotxi_over_zetalen = 0.5 * r * intargs.cosphi * intargs.zetalen;
+  intargs.half_rsinphi_zetadotxi_over_zetalen = 0.5 * r * intargs.sinphi * intargs.zetalen;
+  intargs.cos_rcosphi_zetadotxi_over_zetalen = cos(r * intargs.cosphi * intargs.xizeta_over_zetalen);
+
+  F_th_small.params = &intargs;
+
+  double B = 0.5 * r * intargs.zetalen * intargs.cosphi;
+  double C = 0.5 * r * intargs.zetalen * intargs.sinphi;
+  double A = r * intargs.xizeta_over_zetalen * intargs.cosphi;
+
+  if (theta_m > 1e-4) {
+    gsl_integration_cquad(&F_th_small, theta_m, M_PI, 1e-6, 1e-6, intargs.w_th_small,
+                          &result, NULL, NULL);
+  } //"good" part gets stored in "result"
+  else {
+    gsl_integration_cquad(&F_th_small, sqrt(theta_m), M_PI, 1e-6, 1e-6,
+                          intargs.w_th_small, &result1, NULL,
+                          NULL);               // stored in "result1"
+    result2 = (0.5*C*C*cos(A) - B*sin(A)) * log(theta_m); // 
+    result = result1 + result2;
+  }
+
+  return intargs.sinphi *
+         gsl_sf_bessel_J0(intargs.r * intargs.sinphi * intargs.xiperp) *
+         (result);
+}
+
+double I_two_Boltz(double phi, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
   double result, result1, result2;
 
@@ -166,47 +210,8 @@ double ghat_phi(double phi, void *args) {
          (result);
 }
 
-double ghat_phiE(double phi, void *args) {
-  struct integration_args intargs = *((struct integration_args *)args);
-  double result, result1, result2;
 
-  gsl_function F_thE = intargs.F_thE;
-
-  double r = intargs.r;
- // double u = 4.11e5;
-  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
- // double theta_m = 1e-9;
-  intargs.cosphi = cos(phi);
-  intargs.sinphi = sin(phi);
-  intargs.rcosphi_zetadotxi_over_zetalen = r * intargs.cosphi * intargs.xizeta_over_zetalen;
-  intargs.half_rcosphi_zetadotxi_over_zetalen = 0.5 * r * intargs.cosphi * intargs.zetalen;
-  intargs.half_rsinphi_zetadotxi_over_zetalen = 0.5 * r * intargs.sinphi * intargs.zetalen;
-  intargs.cos_rcosphi_zetadotxi_over_zetalen = cos(r * intargs.cosphi * intargs.xizeta_over_zetalen);
-
-  F_thE.params = &intargs;
-
-  double B = 0.5 * r * intargs.zetalen * intargs.cosphi;
-  double C = 0.5 * r * intargs.zetalen * intargs.sinphi;
-  double A = r * intargs.xizeta_over_zetalen * intargs.cosphi;
-
-  if (theta_m > 1e-4) {
-    gsl_integration_cquad(&F_thE, theta_m, M_PI, 1e-6, 1e-6, intargs.w_thE,
-                          &result, NULL, NULL);
-  } //"good" part gets stored in "result"
-  else {
-    gsl_integration_cquad(&F_thE, sqrt(theta_m), M_PI, 1e-6, 1e-6,
-                          intargs.w_thE, &result1, NULL,
-                          NULL);               // stored in "result1"
-    result2 = (0.5*C*C*cos(A) - B*sin(A)) * log(theta_m); // 
-    result = result1 + result2;
-  }
-
-  return intargs.sinphi *
-         gsl_sf_bessel_J0(intargs.r * intargs.sinphi * intargs.xiperp) *
-         (result);
-}
-
-double ghat_r(double r, void *args) {
+double I_one_Boltz(double r, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
   double result, error;
 
@@ -237,19 +242,19 @@ double ghat_r(double r, void *args) {
   return pow(r, lambda + 2) * result;
 }
 
-double ghat_rE(double r, void *args) {
+double I_one_Boltz_small(double r, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
   double result, error;
 
-  gsl_function F_phE = intargs.F_phE;
+  gsl_function F_ph_small = intargs.F_ph_small;
 
   intargs.r = r;
 
-  F_phE.params = &intargs;
+  F_ph_small.params = &intargs;
 
   // I_2 = \int_0^\pi F_ph dph
   int status;
-  status = gsl_integration_qag(&F_phE, 0, M_PI, 1e-6, 1e-6, 10000, 6, intargs.w_phE,
+  status = gsl_integration_qag(&F_ph_small, 0, M_PI, 1e-6, 1e-6, 10000, 6, intargs.w_ph_small,
                                 &result, &error);
   if (status == GSL_EMAXITER) {
     printf("(expansion)phi integration failed %g %g %g %g %g %g %g %g %g %g\n",
@@ -263,30 +268,30 @@ double ghat_rE(double r, void *args) {
 }
 
 /*
-function gHat3
+function gHat3_Boltz
 --------------
 computes integral for each convolution weight using gauss-legendre quadrature
 inputs
 ki, eta: wavenumbers for the convolution weight
  */
 
-double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
+double gHat3_Boltz(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
              double xi3) {
   double result, result1, result2;
   // double args[3];
   // gsl_integration_workspace *w_r  = gsl_integration_workspace_alloc(10000);
   gsl_integration_cquad_workspace *w_r =
       gsl_integration_cquad_workspace_alloc(10000);
-  gsl_integration_cquad_workspace *w_rE =
+  gsl_integration_cquad_workspace *w_r_small =
       gsl_integration_cquad_workspace_alloc(10000);
 
-  gsl_function F_r, F_rE, F_th, F_thE, F_ph, F_phE;
-  F_r.function = &ghat_r;
-  F_rE.function = &ghat_rE;
-  F_th.function = &ghat_theta;
-  F_thE.function = &ghat_thetaE;
-  F_ph.function = &ghat_phi;
-  F_phE.function = &ghat_phiE;
+  gsl_function F_r, F_r_small, F_th, F_th_small, F_ph, F_ph_small;
+  F_r.function = &I_one_Boltz;
+  F_r_small.function = &I_one_Boltz_small;
+  F_ph.function = &I_two_Boltz;
+  F_ph_small.function = &I_two_Boltz_small;
+  F_th.function = &I_three_Boltz;
+  F_th_small.function = &I_three_Boltz_small;
 
   struct integration_args intargs;
 
@@ -317,19 +322,19 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
 
   intargs.w_th = gsl_integration_cquad_workspace_alloc(1000);
   intargs.F_th = F_th;
-  intargs.w_thE = gsl_integration_cquad_workspace_alloc(1000);
-  intargs.F_thE = F_thE;
+  intargs.w_th_small = gsl_integration_cquad_workspace_alloc(1000);
+  intargs.F_th_small = F_th_small;
   intargs.w_ph = gsl_integration_workspace_alloc(10000);
   intargs.F_ph = F_ph;
-  intargs.w_phE = gsl_integration_workspace_alloc(10000);
-  intargs.F_phE = F_phE;
+  intargs.w_ph_small = gsl_integration_workspace_alloc(10000);
+  intargs.F_ph_small = F_ph_small;
 
   F_r.params = &intargs;
-  F_rE.params = &intargs;
+  F_r_small.params = &intargs;
 
   int status, status1;
 
-  status = gsl_integration_cquad(&F_rE, 0, 1e-3, 1e-6, 1e-6, w_rE, &result1,
+  status = gsl_integration_cquad(&F_r_small, 0, 1e-3, 1e-6, 1e-6, w_r_small, &result1,
                                  NULL, NULL);
   status1 = gsl_integration_cquad(&F_r, 1e-3, L_v, 1e-6, 1e-6, w_r, &result2,
                                   NULL, NULL);
@@ -349,16 +354,16 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
 
   // gsl_integration_workspace_free(w_r);
   gsl_integration_cquad_workspace_free(w_r);
-  gsl_integration_cquad_workspace_free(w_rE);
+  gsl_integration_cquad_workspace_free(w_r_small);
   gsl_integration_cquad_workspace_free(intargs.w_th);
-  gsl_integration_cquad_workspace_free(intargs.w_thE);
+  gsl_integration_cquad_workspace_free(intargs.w_th_small);
   gsl_integration_workspace_free(intargs.w_ph);
-  gsl_integration_workspace_free(intargs.w_phE);
+  gsl_integration_workspace_free(intargs.w_ph_small);
 
   return 2.0 * sqrt(2 * M_PI)  * result;
 }
 
-double ghatL2(double theta, void *args) {
+double I_two_Landau(double theta, void *args) {
   double *dargs = (double *)args;
   double r = dargs[4];
 
@@ -368,16 +373,16 @@ double ghatL2(double theta, void *args) {
           4 * r * dargs[3] * sin(dargs[2] * cos(theta)) * cos(theta));
 }
 
-double ghatL_couple(double r, void *args) {
+double I_one_Landau_couple(double r, void *args) {
   double *dargs = (double *)args;
   dargs[4] = r;
 
   return pow(r, lambda + 3) * log(1 + pow(Gamma_couple, -3.0) * pow(r, 4)) /
          log(1 + pow(Gamma_couple, -3.0)) *
-         gauss_legendre(GL, ghatL2, dargs, 0, M_PI);
+         gauss_legendre(GL, I_two_Landau, dargs, 0, M_PI);
 }
 
-double ghatL(double r, void *args) {
+double I_one_Landau(double r, void *args) {
   double *dargs = (double *)args;
   dargs[4] = r;
 
@@ -387,10 +392,10 @@ double C_L = 0.5*gamma*log(1 + (lambda_d*lambda_d*pow(u,4))/(4*C_1*C_1) );
   
 
   
-  return pow(r, lambda + 2) * C_L * gauss_legendre(GL, ghatL2, dargs, 0, M_PI);
+  return pow(r, lambda + 2) * C_L * gauss_legendre(GL, I_two_Landau, dargs, 0, M_PI);
 }
 
-double gHat3L(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
+double gHat3_Landau(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
               double xi3) {
   double result = 0.0;
   double args[5];
@@ -415,9 +420,9 @@ double gHat3L(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
   args[3] = zetalen;
 
   if (Gamma_couple == 0)
-    result = 1.0/sqrt(2.0 * M_PI) * gauss_legendre(GL, ghatL, args, 0, L_v);
+    result = 1.0/sqrt(2.0 * M_PI) * gauss_legendre(GL, I_one_Landau, args, 0, L_v);
   else
-    result = 1.0/sqrt(2.0 * M_PI) * gauss_legendre(GL, ghatL_couple, args, 0, L_v);
+    result = 1.0/sqrt(2.0 * M_PI) * gauss_legendre(GL, I_one_Landau_couple, args, 0, L_v);
 
   return result;
 }
@@ -444,10 +449,10 @@ void generate_conv_weights(double **conv_weights) {
         for (n = 0; n < N; n++) {
           if (glance == 0) {
             conv_weights[z % (N * N * N / numNodes)][n + N * (m + N * l)] =
-                gHat3L(eta[i], eta[j], eta[k], eta[l], eta[m], eta[n]);
+                gHat3_Landau(eta[i], eta[j], eta[k], eta[l], eta[m], eta[n]);
           } else {
             conv_weights[z % (N * N * N / numNodes)][n + N * (m + N * l)] =
-                gHat3(eta[i], eta[j], eta[k], eta[l], eta[m], eta[n]);
+                gHat3_Boltz(eta[i], eta[j], eta[k], eta[l], eta[m], eta[n]);
           }
           if (isnan(conv_weights[z % (N * N * N / numNodes)]
                                 [n + N * (m + N * l)]))
