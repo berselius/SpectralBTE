@@ -42,7 +42,7 @@ struct integration_args {
 };
 
 const double eightPi = 8.0 / M_PI;
-double C_1 = (1.602e-38) / (8.0 * M_PI * 8.854e-12 * 9.109e-31);
+double C_1 = (2.566e-38) / (8.0 * M_PI * 8.854e-12 * 9.109e-31);
 
 double I_three_Boltz(double theta, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
@@ -350,7 +350,7 @@ double gHat3_Boltz(double zeta1, double zeta2, double zeta3, double xi1, double 
            zeta3, xi1, xi2, xi3, zetalen, xizeta / zetalen, xiperp);
     exit(-1);
   }
-  result = pow(C_1, 2)*(result1 + result2);
+  result = 2.0*sqrt(2.0*M_PI))*pow(C_1, 2)*(result1 + result2);
 
   // gsl_integration_workspace_free(w_r);
   gsl_integration_cquad_workspace_free(w_r);
@@ -360,7 +360,7 @@ double gHat3_Boltz(double zeta1, double zeta2, double zeta3, double xi1, double 
   gsl_integration_workspace_free(intargs.w_ph);
   gsl_integration_workspace_free(intargs.w_ph_small);
 
-  return 2.0 * sqrt(2 * M_PI)  * result;
+  return result;
 }
 
 double I_two_Landau(double theta, void *args) {
