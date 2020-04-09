@@ -121,7 +121,7 @@ double I_two_Boltz_small(double phi, void *args) {
 
   double r = intargs.r;
  // double u = 4.11e5;
-  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
+  double theta_m = 2.0 * atan(2.0*C_1 / (pow(r, 2) * lambda_d));
  // double theta_m = 1e-9;
   intargs.cosphi = cos(phi);
   intargs.sinphi = sin(phi);
@@ -165,7 +165,7 @@ double I_two_Boltz(double phi, void *args) {
 
   double r = intargs.r;
   //double u = 4.11e5;
-  double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
+  double theta_m = 2.0 * atan(2.0*C_1 / (pow(r, 2) * lambda_d));
   //double theta_m = 1e-9;
   intargs.cosphi = cos(phi);
   intargs.sinphi = sin(phi);
