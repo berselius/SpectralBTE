@@ -14,22 +14,22 @@ extern double glance, lambda, Z, lambda_d, L_v, *eta;
 extern double Gamma_couple;
 
 struct integration_args {
-  double arg0; // zetalen
-  double arg1; // xizeta/zetalen
-  double arg2; // xiperp
-  double arg3; // r
-  double arg4; // cosphi
-  double arg5; // sinphi
-  double arg6; // r cosphi zetadot
-  double arg7; // r cosphi 0.5 zetalen
-  double arg8; // 0.5 r zetalen sinphi
-  double arg9; // cos(r cosphi zetadot)
-  double arg11;
-  double arg12;
-  double arg13;
-  double arg14;
-  double arg15;
-  double arg16;
+  double zetalen; // zetalen
+  double xizeta_over_zetalen; // xizeta/zetalen
+  double xiperp; // xiperp
+  double r; // r
+  double cosphi; // cosphi
+  double sinphi; // sinphi
+  double rcosphi_zetadotxi_over_zetalen; // r cosphi zetadotxi_over_zetalen
+  double half_rcosphi_zetadotxi_over_zetalen; // r cosphi 0.5 zetalen
+  double half_rsinphi_zetadotxi_over_zetalen; // 0.5 r zetalen sinphi
+  double cos_rcosphi_zetadotxi_over_zetalen; // cos(r cosphi zetadotxi_over_zetalen)
+  double zeta1;
+  double zeta2;
+  double zeta3;
+  double xi1;
+  double xi2;
+  double xi3;
 
   gsl_integration_cquad_workspace *w_th;
   gsl_function F_th;
@@ -47,19 +47,6 @@ double C_1 = (1.602e-38) / (8.0 * M_PI * 8.854e-12 * 9.109e-31);
 double ghat_theta(double theta, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
   // I_3,1 = \int_\sqrt(\theta_m)^\pi ghat_theta dth
-  /*
-    Just to remind ourselves...
-  double arg0; //zetalen
-  double arg1; //xizeta/zetalen
-  double arg2; //xiperp
-  double arg3; //r
-  double arg4; //cosphi
-  double arg5; //sinphi
-  double arg6; //r cosphi zetadot
-  double arg7; //0.5 r cosphi zetalen
-  double arg8; //0.5 r sinphi zetalen
-  double arg9; //cos(r cosphi zetadot)
-  */
 
   //double theta_m = 2 * atan(C_1 / (pow(r, 2) * lambda_d));
   // eps-linear cross section
@@ -68,21 +55,21 @@ double ghat_theta(double theta, void *args) {
   // double bcos = (cos(0.5*theta)/pow(sin(0.5*theta),3) ) /
   // (-M_PI*log(sin(0.5*glance)));
   double bcos = cos(0.5 * theta) / (pow(sin(0.5 * theta), 3)); // / log(sin(0.5*theta_m));
-  return bcos * (cos(intargs.arg7 * (1 - cos(theta)) - intargs.arg6) *
-                     gsl_sf_bessel_J0(intargs.arg8 * sin(theta)) -
-                 intargs.arg9);
+  return bcos * (cos(intargs.half_rcosphi_zetadotxi_over_zetalen * (1 - cos(theta)) - intargs.rcosphi_zetadotxi_over_zetalen) *
+                     gsl_sf_bessel_J0(intargs.half_rsinphi_zetadotxi_over_zetalen * sin(theta)) -
+                 intargs.cos_rcosphi_zetadotxi_over_zetalen);
 }
 
 double ghat_thetaE(double theta, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
   // I_3,1 = \int_\sqrt(\theta_m)^\pi ghat_theta dth
 
-  double r = intargs.arg3;
-  double B = 0.5 * intargs.arg0 *
-             intargs.arg4; // note: no 'r' included in this definition of B as
+  double r = intargs.r;
+  double B = 0.5 * intargs.zetalen *
+             intargs.cosphi; // note: no 'r' included in this definition of B as
                            // it is factored out in the below expansion
-  //double C = 0.5 * r * intargs.arg0 * intargs.arg5;
-  double A = r * intargs.arg1 * intargs.arg4;
+  //double C = 0.5 * r * intargs.zetalen * intargs.sinphi;
+  double A = r * intargs.xizeta_over_zetalen * intargs.cosphi;
 
   double bcos =  cos(0.5 * theta) / (sin(0.5 * theta)); // / log(sin(0.5*theta_m));
   return bcos *
@@ -99,7 +86,7 @@ double ghat_theta2(double theta, void *args) {
   double cosphi = dargs[1];
   double sinphi = dargs[2];
   double zetalen = dargs[3];
-  double zetadot = dargs[4];
+  double zetadotxi_over_zetalen = dargs[4];
 
   //double u = 4.11e5;
   double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
@@ -109,7 +96,7 @@ double ghat_theta2(double theta, void *args) {
 
   double c1 = 0.5 * r * zetalen * cosphi;
   double c2 = 0.5 * r * zetalen * sinphi;
-  double c3 = r * zetadot * cosphi;
+  double c3 = r * zetadotxi_over_zetalen * cosphi;
 
   return eightPi * (((theta_m / theta) / theta) *
                     (-0.25 * c2 * c2 * cos(c3) + 0.5 * c1 * sin(c3)));
@@ -126,22 +113,22 @@ double ghat_phi(double phi, void *args) {
 
   int status;
 
-  double r = intargs.arg3;
+  double r = intargs.r;
   //double u = 4.11e5;
   double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
   //double theta_m = 1e-9;
-  intargs.arg4 = cos(phi);
-  intargs.arg5 = sin(phi);
-  intargs.arg6 = r * intargs.arg4 * intargs.arg1;
-  intargs.arg7 = 0.5 * r * intargs.arg4 * intargs.arg0;
-  intargs.arg8 = 0.5 * r * intargs.arg5 * intargs.arg0;
-  intargs.arg9 = cos(r * intargs.arg4 * intargs.arg1);
+  intargs.cosphi = cos(phi);
+  intargs.sinphi = sin(phi);
+  intargs.rcosphi_zetadotxi_over_zetalen = r * intargs.cosphi * intargs.xizeta_over_zetalen;
+  intargs.half_rcosphi_zetadotxi_over_zetalen = 0.5 * r * intargs.cosphi * intargs.zetalen;
+  intargs.half_rsinphi_zetadotxi_over_zetalen = 0.5 * r * intargs.sinphi * intargs.zetalen;
+  intargs.cos_rcosphi_zetadotxi_over_zetalen = cos(r * intargs.cosphi * intargs.xizeta_over_zetalen);
 
   F_th.params = &intargs;
 
-  double B = 0.5 * r * intargs.arg0 * intargs.arg4;
-  double C = 0.5 * r * intargs.arg0 * intargs.arg5;
-  double A = r * intargs.arg1 * intargs.arg4;
+  double B = 0.5 * r * intargs.zetalen * intargs.cosphi;
+  double C = 0.5 * r * intargs.zetalen * intargs.sinphi;
+  double A = r * intargs.xizeta_over_zetalen * intargs.cosphi;
 
   if (theta_m > 1e-4) {
     status = gsl_integration_cquad(&F_th, theta_m, M_PI, 1e-6, 1e-6, intargs.w_th,
@@ -172,10 +159,10 @@ double ghat_phi(double phi, void *args) {
   // \n", theta_m, result2);}   //add taylor expansion for small theta_m values
 
   // return
-  // intargs.arg5*gsl_sf_bessel_J0(intargs.arg3*intargs.arg5*intargs.arg2)*(result1
+  // intargs.sinphi*gsl_sf_bessel_J0(intargs.r*intargs.sinphi*intargs.xiperp)*(result1
   // + result2);
-  return intargs.arg5 *
-         gsl_sf_bessel_J0(intargs.arg3 * intargs.arg5 * intargs.arg2) *
+  return intargs.sinphi *
+         gsl_sf_bessel_J0(intargs.r * intargs.sinphi * intargs.xiperp) *
          (result);
 }
 
@@ -185,22 +172,22 @@ double ghat_phiE(double phi, void *args) {
 
   gsl_function F_thE = intargs.F_thE;
 
-  double r = intargs.arg3;
+  double r = intargs.r;
  // double u = 4.11e5;
   double theta_m = 2 * atan(2*C_1 / (pow(r, 2) * lambda_d));
  // double theta_m = 1e-9;
-  intargs.arg4 = cos(phi);
-  intargs.arg5 = sin(phi);
-  intargs.arg6 = r * intargs.arg4 * intargs.arg1;
-  intargs.arg7 = 0.5 * r * intargs.arg4 * intargs.arg0;
-  intargs.arg8 = 0.5 * r * intargs.arg5 * intargs.arg0;
-  intargs.arg9 = cos(r * intargs.arg4 * intargs.arg1);
+  intargs.cosphi = cos(phi);
+  intargs.sinphi = sin(phi);
+  intargs.rcosphi_zetadotxi_over_zetalen = r * intargs.cosphi * intargs.xizeta_over_zetalen;
+  intargs.half_rcosphi_zetadotxi_over_zetalen = 0.5 * r * intargs.cosphi * intargs.zetalen;
+  intargs.half_rsinphi_zetadotxi_over_zetalen = 0.5 * r * intargs.sinphi * intargs.zetalen;
+  intargs.cos_rcosphi_zetadotxi_over_zetalen = cos(r * intargs.cosphi * intargs.xizeta_over_zetalen);
 
   F_thE.params = &intargs;
 
-  double B = 0.5 * r * intargs.arg0 * intargs.arg4;
-  double C = 0.5 * r * intargs.arg0 * intargs.arg5;
-  double A = r * intargs.arg1 * intargs.arg4;
+  double B = 0.5 * r * intargs.zetalen * intargs.cosphi;
+  double C = 0.5 * r * intargs.zetalen * intargs.sinphi;
+  double A = r * intargs.xizeta_over_zetalen * intargs.cosphi;
 
   if (theta_m > 1e-4) {
     gsl_integration_cquad(&F_thE, theta_m, M_PI, 1e-6, 1e-6, intargs.w_thE,
@@ -214,8 +201,8 @@ double ghat_phiE(double phi, void *args) {
     result = result1 + result2;
   }
 
-  return intargs.arg5 *
-         gsl_sf_bessel_J0(intargs.arg3 * intargs.arg5 * intargs.arg2) *
+  return intargs.sinphi *
+         gsl_sf_bessel_J0(intargs.r * intargs.sinphi * intargs.xiperp) *
          (result);
 }
 
@@ -225,7 +212,7 @@ double ghat_r(double r, void *args) {
 
   gsl_function F_ph = intargs.F_ph;
 
-  intargs.arg3 = r;
+  intargs.r = r;
 
   F_ph.params = &intargs;
 
@@ -237,9 +224,9 @@ double ghat_r(double r, void *args) {
   if(status) {
     if (status == GSL_EMAXITER) {
       printf("phi integration failed %g %g %g %g %g %g %g %g %g %g result %g error %g\n",
-	     intargs.arg3, intargs.arg11, intargs.arg12, intargs.arg13,
-	     intargs.arg0, intargs.arg14, intargs.arg15, intargs.arg16,
-	     intargs.arg1, intargs.arg2, result, error);
+	     intargs.r, intargs.zeta1, intargs.zeta2, intargs.zeta3,
+	     intargs.zetalen, intargs.xi1, intargs.xi2, intargs.xi3,
+	     intargs.xizeta_over_zetalen, intargs.xiperp, result, error);
     }
     else {
       printf("Some other error occured in phi integration\n");
@@ -256,7 +243,7 @@ double ghat_rE(double r, void *args) {
 
   gsl_function F_phE = intargs.F_phE;
 
-  intargs.arg3 = r;
+  intargs.r = r;
 
   F_phE.params = &intargs;
 
@@ -266,9 +253,9 @@ double ghat_rE(double r, void *args) {
                                 &result, &error);
   if (status == GSL_EMAXITER) {
     printf("(expansion)phi integration failed %g %g %g %g %g %g %g %g %g %g\n",
-           intargs.arg3, intargs.arg11, intargs.arg12, intargs.arg13,
-           intargs.arg0, intargs.arg14, intargs.arg15, intargs.arg16,
-           intargs.arg1, intargs.arg2);
+           intargs.r, intargs.zeta1, intargs.zeta2, intargs.zeta3,
+           intargs.zetalen, intargs.xi1, intargs.xi2, intargs.xi3,
+           intargs.xizeta_over_zetalen, intargs.xiperp);
     exit(-1);
   }
 
@@ -314,19 +301,19 @@ double gHat3(double zeta1, double zeta2, double zeta3, double xi1, double xi2,
   else
     xiperp = sqrt(xilen2 - xizeta * xizeta / zetalen2);
 
-  intargs.arg0 = zetalen;
+  intargs.zetalen = zetalen;
   if (zetalen != 0)
-    intargs.arg1 = xizeta / zetalen;
+    intargs.xizeta_over_zetalen = xizeta / zetalen;
   else
-    intargs.arg1 = 0.0;
-  intargs.arg2 = xiperp;
+    intargs.xizeta_over_zetalen = 0.0;
+  intargs.xiperp = xiperp;
 
-  intargs.arg11 = zeta1;
-  intargs.arg12 = zeta2;
-  intargs.arg13 = zeta3;
-  intargs.arg14 = xi1;
-  intargs.arg15 = xi2;
-  intargs.arg16 = xi3;
+  intargs.zeta1 = zeta1;
+  intargs.zeta2 = zeta2;
+  intargs.zeta3 = zeta3;
+  intargs.xi1 = xi1;
+  intargs.xi2 = xi2;
+  intargs.xi3 = xi3;
 
   intargs.w_th = gsl_integration_cquad_workspace_alloc(1000);
   intargs.F_th = F_th;
