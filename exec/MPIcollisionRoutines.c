@@ -120,7 +120,7 @@ double I_two_Boltz_small(double phi, void *args) {
   gsl_function F_th_small = intargs.F_th_small;
 
   double r = intargs.r;
- // double u = 4.11e5;
+ // double u = 4.084e5;
   double theta_m = 2.0 * atan(2.0*C_1 / (pow(r, 2) * lambda_d));
  // double theta_m = 1e-9;
   intargs.cosphi = cos(phi);
@@ -164,7 +164,7 @@ double I_two_Boltz(double phi, void *args) {
   int status;
 
   double r = intargs.r;
-  //double u = 4.11e5;
+  //double u = 4.084e5;
   double theta_m = 2.0 * atan(2.0*C_1 / (pow(r, 2) * lambda_d));
   //double theta_m = 1e-9;
   intargs.cosphi = cos(phi);
@@ -384,7 +384,8 @@ double I_two_Landau(double theta, void *args) {
   return sin(theta) * gsl_sf_bessel_J0(r * dargs[0] * sin(theta)) *
          (-r*r * dargs[1] * sin(theta) * sin(theta) *
               cos(r * dargs[2] * cos(theta)) +
-          4 * r * dargs[3] * sin(dargs[2] * cos(theta)) * cos(theta));
+          4 * r * dargs[3] * sin(r * dargs[2] * cos(theta)) * cos(theta));
+	// \sin\theta J_0(r\sin\theta |\m^\perp|) [4r|\k|\cos\theta \sin( r\cos\theta \frac{\k \cdot \m}{|\k|}) - r^2 \sin^2\theta|\k|^2 \cos( r\cos\theta \frac{\k \cdot \m}{|\k|})]
 }
 
 double I_one_Landau_couple(double r, void *args) {
@@ -400,11 +401,8 @@ double I_one_Landau(double r, void *args) {
   double *dargs = (double *)args;
   dargs[4] = r;
 
-double u = 1.69e11; 
-double gamma = M_PI*C_1*C_1;
-double C_L = 0.5*gamma*log(1 + (lambda_d*lambda_d*pow(u,4))/(4*C_1*C_1) );	
-  
-
+double u = 4.084e5; 
+double C_L = 0.5*log(1 + (lambda_d*lambda_d*pow(u,4))/(4.0*C_1*C_1) );
   
   return pow(r, lambda + 2) * C_L * gauss_legendre(GL, I_two_Landau, dargs, 0, M_PI);
 }
@@ -434,9 +432,9 @@ double gHat3_Landau(double zeta1, double zeta2, double zeta3, double xi1, double
   args[3] = zetalen;
 
   if (Gamma_couple == 0)
-    result = 1.0/sqrt(2.0 * M_PI) * gauss_legendre(GL, I_one_Landau, args, 0, L_v);
+    result = 1.0/sqrt(2.0 * M_PI)*2.0*M_PI*C_1*C_1 * gauss_legendre(GL, I_one_Landau, args, 0, L_v);
   else
-    result = 1.0/sqrt(2.0 * M_PI) * gauss_legendre(GL, I_one_Landau_couple, args, 0, L_v);
+    result = 1.0/sqrt(2.0 * M_PI)*2.0*M_PI*C_1*C_1 * gauss_legendre(GL, I_one_Landau_couple, args, 0, L_v);
 
   return result;
 }
