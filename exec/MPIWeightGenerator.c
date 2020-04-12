@@ -82,8 +82,8 @@ int main(int argc, char *argv[]) {
     sprintf(buffer_weights, "../Weights/Constcutoff_Landau_N%d_L_v%g.wts", N,
             L_v);
   else
-    sprintf(buffer_weights, "../Weights/Constcutoff_Boltz_N%d_L_v%g.wts",
-            N, L_v);
+    sprintf(buffer_weights, "../Weights/Constcutoff_Boltz_N%d_L_v%g.wts", N,
+            L_v);
 
   // generate convolution weights - only do an even chunk of them
   conv_weights = malloc((N * N * N / numNodes) * sizeof(double *));
