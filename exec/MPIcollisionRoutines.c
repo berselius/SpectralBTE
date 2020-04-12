@@ -80,16 +80,15 @@ double I_three_Boltz_small(double theta, void *args) {
   // 4\frac{\cos (\theta /2)}{ \sin ^{3}(\theta /2)}(4 \tilde{A}\tilde{B} -
   // 2\tilde{A}^2 -\tilde{C}^2 )
 
-  double tA = intargs.zetalen * pow(sin(0.5 * theta), 2)      // \tilde{A}
-              double tB = xizeta_over_zetalen *intargs.cosphi // \tilde{B}
-                          double tC =
-                  0.5 * intargs.zetalen * intargs.sinphi *
-                  sin(theta) // \tilde{C}
+  double tA = intargs.zetalen * pow(sin(0.5 * theta), 2);      // \tilde{A}
+  double tB = intargs.xizeta_over_zetalen * intargs.cosphi; // \tilde{B}
+  double tC = 0.5 * intargs.zetalen * intargs.sinphi *
+    sin(theta); // \tilde{C}
 
-                  double bcos =
-                      cos(0.5 * theta) /
-                      (pow(sin(0.5 * theta), 3)); // / log(sin(0.5*theta_m));
-  return bcos * 4 * (4 * tA * tB - 2 * tA * tA - tC * tC)
+  double bcos =
+    cos(0.5 * theta) /
+    (pow(sin(0.5 * theta), 3)); // / log(sin(0.5*theta_m));
+  return bcos * 4 * (4 * tA * tB - 2 * tA * tA - tC * tC);
   // stored in F_th_small
 }
 
@@ -381,8 +380,9 @@ double gHat3_Boltz(double zeta1, double zeta2, double zeta3, double xi1,
            zeta3, xi1, xi2, xi3, zetalen, xizeta / zetalen, xiperp);
     exit(-1);
   }
-  result = 2.0*pow(C_1, 2)*sqrt(2.0*M_PI))(result1 + result2);  //add the two pieces together and multiply by outside constant
-	// 2C_1^1\sqrt(2\pi) I_1
+  result = 2.0*pow(C_1, 2)*sqrt(2.0*M_PI)*(result1 + result2);  
+  //add the two pieces together and multiply by outside constant
+  // 2C_1^1\sqrt(2\pi) I_1
 
   // gsl_integration_workspace_free(w_r);
   gsl_integration_cquad_workspace_free(w_r);
