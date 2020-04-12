@@ -1,6 +1,8 @@
 #ifndef _INPUT_H
 #define _INPUT_H
 
+#include <stdio.h>
+
 void read_input(int *N, double *L_v, double *Kn, double *lambda, double *dt,
                 int *nT, int *order, int *dataFreq, int *restart,
                 double *restart_time, int *initFlag, int *bcFlag,
