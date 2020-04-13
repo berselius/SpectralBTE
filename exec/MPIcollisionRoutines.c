@@ -79,12 +79,12 @@ double I_three_Boltz_small(double theta, void *args) {
   //\frac{\cos (\theta /2)}{ \sin ^{3}(\theta /2)}(\tilde{A}\tilde{B} -
   // \frac12\tilde{A}^2 - \frac14 \tilde{C}^2 )
 
-  double tA = intargs.zetalen * intargs.cosphi * pow(sin(0.5 * theta), 2);      // \tilde{A}
-  double tB = intargs.xizeta_over_zetalen * intargs.cosphi; // \tilde{B}
+  double tA =
+      intargs.zetalen * intargs.cosphi * pow(sin(0.5 * theta), 2); // \tilde{A}
+  double tB = intargs.xizeta_over_zetalen * intargs.cosphi;        // \tilde{B}
   double tC = 0.5 * intargs.zetalen * intargs.sinphi * sin(theta); // \tilde{C}
 
-  double bcos =
-    cos(0.5 * theta) / pow(sin(0.5 * theta), 3);
+  double bcos = cos(0.5 * theta) / pow(sin(0.5 * theta), 3);
   return bcos * (tA * tB - 0.5 * tA * tA - 0.25 * tC * tC);
   // stored in F_th_small
 }
@@ -289,8 +289,8 @@ double I_one_Boltz_small(double r, void *args) {
     exit(-1);
   }
 
-  //We pick up two extra powers of r due to the expansion
-  return pow(r, lambda + 4) * result; 
+  // We pick up two extra powers of r due to the expansion
+  return pow(r, lambda + 4) * result;
 }
 
 /*
@@ -377,10 +377,10 @@ double gHat3_Boltz(double zeta1, double zeta2, double zeta3, double xi1,
     exit(-1);
   }
 
-  //add the two pieces together and multiply by outside constant
+  // add the two pieces together and multiply by outside constant
   // 2C_1^1\sqrt(2\pi) I_1
-  result = 2.0*pow(C_1, 2)*sqrt(2.0*M_PI)*(result1 + result2);  
-  
+  result = 2.0 * pow(C_1, 2) * sqrt(2.0 * M_PI) * (result1 + result2);
+
   gsl_integration_cquad_workspace_free(w_r);
   gsl_integration_cquad_workspace_free(w_r_small);
   gsl_integration_cquad_workspace_free(intargs.w_th);
@@ -441,7 +441,7 @@ double gHat3_Landau(double zeta1, double zeta2, double zeta3, double xi1,
   args[3] = zetalen;
 
   result = 1.0 / sqrt(2.0 * M_PI) * 2.0 * M_PI * C_1 * C_1 *
-    gauss_legendre(GL, I_one_Landau_couple, args, 0, L_v);
+           gauss_legendre(GL, I_one_Landau_couple, args, 0, L_v);
 
   return result;
 }
