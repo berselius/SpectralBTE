@@ -80,15 +80,13 @@ double I_three_Boltz_small(double theta, void *args) {
   // 4\frac{\cos (\theta /2)}{ \sin ^{3}(\theta /2)}(4 \tilde{A}\tilde{B} -
   // 2\tilde{A}^2 -\tilde{C}^2 )
 
-  double tA = intargs.zetalen * pow(sin(0.5 * theta), 2);      // \tilde{A}
+  double tA = intargs.zetalen * intargs.cosphi * pow(sin(0.5 * theta), 2);      // \tilde{A}
   double tB = intargs.xizeta_over_zetalen * intargs.cosphi; // \tilde{B}
-  double tC = 0.5 * intargs.zetalen * intargs.sinphi *
-    sin(theta); // \tilde{C}
+  double tC = 0.5 * intargs.zetalen * intargs.sinphi * sin(theta); // \tilde{C}
 
   double bcos =
-    cos(0.5 * theta) /
-    (pow(sin(0.5 * theta), 3)); // / log(sin(0.5*theta_m));
-  return bcos * 4 * (4 * tA * tB - 2 * tA * tA - tC * tC);
+    cos(0.5 * theta) / pow(sin(0.5 * theta), 3);
+  return bcos * (tA * tB - 0.5 * tA * tA - 0.25 * tC * tC);
   // stored in F_th_small
 }
 
