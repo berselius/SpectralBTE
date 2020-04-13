@@ -177,8 +177,15 @@ double I_two_Boltz(double phi, void *args) {
   int status;
 
   double r = intargs.r;
-  // double u = 4.084e5;
-  double theta_m = 2.0 * atan(2.0 * C_1 / (pow(r, 2) * lambda_d));
+
+  double u;
+  //Uncomment this line if using constant cutoff 
+  //u = v_th;
+
+  //Uncomment this line if using velocity dependent cutoff
+  u = r;
+  
+  double theta_m = 2.0 * atan(2.0 * C_1 / (pow(u, 2) * lambda_d));
   // double theta_m = 1e-9;
   intargs.cosphi = cos(phi);
   intargs.sinphi = sin(phi);
@@ -198,17 +205,18 @@ double I_two_Boltz(double phi, void *args) {
   double A = r * intargs.xizeta_over_zetalen * intargs.cosphi;
 
   if (theta_m > 1e-4) {
+    // computes full integral, gets stored in "result"
+    // I_{3,1} + I_{3,2} when theta > epsilon_theta
     status = gsl_integration_cquad(&F_th, theta_m, M_PI, 1e-6, 1e-6,
                                    intargs.w_th, &result, NULL, NULL);
-  } // computes full integral, gets stored in "result"
-    // I_{3,1} + I_{3,2} when theta > epsilon_theta
+  } 
   else {
+    // computes I_{3,1} + I_{3,2} when theta < epsilon_theta
     status = gsl_integration_cquad(&F_th, sqrt(theta_m), M_PI, 1e-6, 1e-6,
                                    intargs.w_th, &result1, NULL,
                                    NULL); // stored in "result1"
     result2 = 2.0 * (0.5 * C * C * cos(A) - B * sin(A)) * log(theta_m); //
     result = result1 + result2;
-    // computes I_{3,1} + I_{3,2} when theta < epsilon_theta
   }
 
   if (status) {
@@ -228,12 +236,10 @@ double I_two_Boltz(double phi, void *args) {
   // printf("taylor expansion computed at theta_m = %g and yielded a result2= %g
   // \n", theta_m, result2);}   //add taylor expansiJon for small theta_m values
 
-  // return
-  // intargs.sinphi*gsl_sf_bessel_J0(intargs.r*intargs.sinphi*intargs.xiperp)*(result1
-  // + result2);
   return intargs.sinphi *
          gsl_sf_bessel_J0(intargs.r * intargs.sinphi * intargs.xiperp) *
-         (result);
+         result;
+
   // sin\phi J_0(r * sin\phi |xi perp|) I_3
   // gets stored in F_ph
 }
