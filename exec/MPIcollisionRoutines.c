@@ -441,7 +441,7 @@ double gHat3_Landau(double zeta1, double zeta2, double zeta3, double xi1,
   args[3] = zetalen;
 
   result = 1.0 / sqrt(2.0 * M_PI) * 2.0 * M_PI * C_1 * C_1 *
-           gauss_legendre(GL, I_one_Landau_couple, args, 0, L_v);
+           gauss_legendre(GL, I_one_Landau, args, 0, L_v);
 
   return result;
 }
