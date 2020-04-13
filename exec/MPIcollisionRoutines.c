@@ -12,6 +12,9 @@
 extern int GL, rank, numNodes, N;
 extern double glance, lambda, Z, lambda_d, L_v, *eta;
 
+//Thermal speed, used for calculating constant CL
+static double v_th = 4.084e5;
+
 struct integration_args {
   double zetalen;                             // zetalen
   double xizeta_over_zetalen;                 // xizeta/zetalen
@@ -408,10 +411,17 @@ double I_one_Landau(double r, void *args) {
   double *dargs = (double *)args;
   dargs[4] = r;
 
-  double u = 4.084e5;
-  double C_L =
-      0.5 * log(1 + (lambda_d * lambda_d * pow(u, 4)) / (4.0 * C_1 * C_1));
+  double u;
 
+  //Set to this if using thermal speed cutoff
+  u = v_th;
+  //Set to this if using velo-dep CL
+  //u = r;
+
+  double C_L =
+    0.5 * log(1 + pow(lambda_d * pow(u, 2) / (2.0 * C_1), 2));
+
+  //Note: pulled out extra r from the Landau I2 formula
   return pow(r, lambda + 3) * C_L *
          gauss_legendre(GL, I_two_Landau, dargs, 0, M_PI);
 }
