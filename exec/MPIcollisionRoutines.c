@@ -11,7 +11,6 @@
 // kludgy, but whatever...
 extern int GL, rank, numNodes, N;
 extern double glance, lambda, Z, lambda_d, L_v, *eta;
-extern double Gamma_couple;
 
 struct integration_args {
   double zetalen;                             // zetalen
@@ -77,8 +76,8 @@ double I_three_Boltz_small(double theta, void *args) {
   struct integration_args intargs = *((struct integration_args *)args);
 
   // I_3,3 integrand as in manuscript
-  // 4\frac{\cos (\theta /2)}{ \sin ^{3}(\theta /2)}(4 \tilde{A}\tilde{B} -
-  // 2\tilde{A}^2 -\tilde{C}^2 )
+  //\frac{\cos (\theta /2)}{ \sin ^{3}(\theta /2)}(\tilde{A}\tilde{B} -
+  // \frac12\tilde{A}^2 - \frac14 \tilde{C}^2 )
 
   double tA = intargs.zetalen * intargs.cosphi * pow(sin(0.5 * theta), 2);      // \tilde{A}
   double tB = intargs.xizeta_over_zetalen * intargs.cosphi; // \tilde{B}
@@ -290,9 +289,8 @@ double I_one_Boltz_small(double r, void *args) {
     exit(-1);
   }
 
-  return r * result; // power of r cancels out
-                     // integrand of the r integraton, r*I_2
-                     // gets stored in F_r_small
+  //We pick up two extra powers of r due to the expansion
+  return pow(r, lambda + 4) * result; 
 }
 
 /*
@@ -305,9 +303,9 @@ ki, eta: wavenumbers for the convolution weight
 
 double gHat3_Boltz(double zeta1, double zeta2, double zeta3, double xi1,
                    double xi2, double xi3) {
+
   double result, result1, result2;
-  // double args[3];
-  // gsl_integration_workspace *w_r  = gsl_integration_workspace_alloc(10000);
+
   gsl_integration_cquad_workspace *w_r =
       gsl_integration_cquad_workspace_alloc(10000);
   gsl_integration_cquad_workspace *w_r_small =
@@ -378,11 +376,11 @@ double gHat3_Boltz(double zeta1, double zeta2, double zeta3, double xi1,
            zeta3, xi1, xi2, xi3, zetalen, xizeta / zetalen, xiperp);
     exit(-1);
   }
-  result = 2.0*pow(C_1, 2)*sqrt(2.0*M_PI)*(result1 + result2);  
+
   //add the two pieces together and multiply by outside constant
   // 2C_1^1\sqrt(2\pi) I_1
-
-  // gsl_integration_workspace_free(w_r);
+  result = 2.0*pow(C_1, 2)*sqrt(2.0*M_PI)*(result1 + result2);  
+  
   gsl_integration_cquad_workspace_free(w_r);
   gsl_integration_cquad_workspace_free(w_r_small);
   gsl_integration_cquad_workspace_free(intargs.w_th);
@@ -398,21 +396,12 @@ double I_two_Landau(double theta, void *args) {
   double r = dargs[4];
 
   return sin(theta) * gsl_sf_bessel_J0(r * dargs[0] * sin(theta)) *
-         (-r * r * dargs[1] * sin(theta) * sin(theta) *
+         (-r * dargs[1] * sin(theta) * sin(theta) *
               cos(r * dargs[2] * cos(theta)) +
-          4 * r * dargs[3] * sin(r * dargs[2] * cos(theta)) * cos(theta));
+          4 * dargs[3] * sin(r * dargs[2] * cos(theta)) * cos(theta));
   // \sin\theta J_0(r\sin\theta |\m^\perp|) [4r|\k|\cos\theta \sin( r\cos\theta
   // \frac{\k \cdot \m}{|\k|}) - r^2 \sin^2\theta|\k|^2 \cos( r\cos\theta
   // \frac{\k \cdot \m}{|\k|})]
-}
-
-double I_one_Landau_couple(double r, void *args) {
-  double *dargs = (double *)args;
-  dargs[4] = r;
-
-  return pow(r, lambda + 3) * log(1 + pow(Gamma_couple, -3.0) * pow(r, 4)) /
-         log(1 + pow(Gamma_couple, -3.0)) *
-         gauss_legendre(GL, I_two_Landau, dargs, 0, M_PI);
 }
 
 double I_one_Landau(double r, void *args) {
@@ -423,7 +412,7 @@ double I_one_Landau(double r, void *args) {
   double C_L =
       0.5 * log(1 + (lambda_d * lambda_d * pow(u, 4)) / (4.0 * C_1 * C_1));
 
-  return pow(r, lambda + 2) * C_L *
+  return pow(r, lambda + 3) * C_L *
          gauss_legendre(GL, I_two_Landau, dargs, 0, M_PI);
 }
 
@@ -451,12 +440,8 @@ double gHat3_Landau(double zeta1, double zeta2, double zeta3, double xi1,
     args[2] = 0.0;
   args[3] = zetalen;
 
-  if (Gamma_couple == 0)
-    result = 1.0 / sqrt(2.0 * M_PI) * 2.0 * M_PI * C_1 * C_1 *
-             gauss_legendre(GL, I_one_Landau, args, 0, L_v);
-  else
-    result = 1.0 / sqrt(2.0 * M_PI) * 2.0 * M_PI * C_1 * C_1 *
-             gauss_legendre(GL, I_one_Landau_couple, args, 0, L_v);
+  result = 1.0 / sqrt(2.0 * M_PI) * 2.0 * M_PI * C_1 * C_1 *
+    gauss_legendre(GL, I_one_Landau_couple, args, 0, L_v);
 
   return result;
 }
