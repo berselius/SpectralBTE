@@ -12,6 +12,9 @@
 extern int GL, rank, numNodes, N;
 extern double glance, lambda, Z, lambda_d, L_v, *eta;
 
+//Thermal speed, used for calculating constant CL
+static double v_th = 4.084e5;
+
 struct integration_args {
   double zetalen;                             // zetalen
   double xizeta_over_zetalen;                 // xizeta/zetalen
@@ -174,8 +177,15 @@ double I_two_Boltz(double phi, void *args) {
   int status;
 
   double r = intargs.r;
-  // double u = 4.084e5;
-  double theta_m = 2.0 * atan(2.0 * C_1 / (pow(r, 2) * lambda_d));
+
+  double u;
+  //Uncomment this line if using constant cutoff 
+  //u = v_th;
+
+  //Uncomment this line if using velocity dependent cutoff
+  u = r;
+  
+  double theta_m = 2.0 * atan(2.0 * C_1 / (pow(u, 2) * lambda_d));
   // double theta_m = 1e-9;
   intargs.cosphi = cos(phi);
   intargs.sinphi = sin(phi);
@@ -195,17 +205,18 @@ double I_two_Boltz(double phi, void *args) {
   double A = r * intargs.xizeta_over_zetalen * intargs.cosphi;
 
   if (theta_m > 1e-4) {
+    // computes full integral, gets stored in "result"
+    // I_{3,1} + I_{3,2} when theta > epsilon_theta
     status = gsl_integration_cquad(&F_th, theta_m, M_PI, 1e-6, 1e-6,
                                    intargs.w_th, &result, NULL, NULL);
-  } // computes full integral, gets stored in "result"
-    // I_{3,1} + I_{3,2} when theta > epsilon_theta
+  } 
   else {
+    // computes I_{3,1} + I_{3,2} when theta < epsilon_theta
     status = gsl_integration_cquad(&F_th, sqrt(theta_m), M_PI, 1e-6, 1e-6,
                                    intargs.w_th, &result1, NULL,
                                    NULL); // stored in "result1"
     result2 = 2.0 * (0.5 * C * C * cos(A) - B * sin(A)) * log(theta_m); //
     result = result1 + result2;
-    // computes I_{3,1} + I_{3,2} when theta < epsilon_theta
   }
 
   if (status) {
@@ -225,12 +236,10 @@ double I_two_Boltz(double phi, void *args) {
   // printf("taylor expansion computed at theta_m = %g and yielded a result2= %g
   // \n", theta_m, result2);}   //add taylor expansiJon for small theta_m values
 
-  // return
-  // intargs.sinphi*gsl_sf_bessel_J0(intargs.r*intargs.sinphi*intargs.xiperp)*(result1
-  // + result2);
   return intargs.sinphi *
          gsl_sf_bessel_J0(intargs.r * intargs.sinphi * intargs.xiperp) *
-         (result);
+         result;
+
   // sin\phi J_0(r * sin\phi |xi perp|) I_3
   // gets stored in F_ph
 }
@@ -408,10 +417,17 @@ double I_one_Landau(double r, void *args) {
   double *dargs = (double *)args;
   dargs[4] = r;
 
-  double u = 4.084e5;
-  double C_L =
-      0.5 * log(1 + (lambda_d * lambda_d * pow(u, 4)) / (4.0 * C_1 * C_1));
+  double u;
 
+  //Set to this if using thermal speed cutoff
+  u = v_th;
+  //Set to this if using velo-dep CL
+  //u = r;
+
+  double C_L =
+    0.5 * log(1 + pow(lambda_d * pow(u, 2) / (2.0 * C_1), 2));
+
+  //Note: pulled out extra r from the Landau I2 formula
   return pow(r, lambda + 3) * C_L *
          gauss_legendre(GL, I_two_Landau, dargs, 0, M_PI);
 }
@@ -441,7 +457,7 @@ double gHat3_Landau(double zeta1, double zeta2, double zeta3, double xi1,
   args[3] = zetalen;
 
   result = 1.0 / sqrt(2.0 * M_PI) * 2.0 * M_PI * C_1 * C_1 *
-           gauss_legendre(GL, I_one_Landau_couple, args, 0, L_v);
+           gauss_legendre(GL, I_one_Landau, args, 0, L_v);
 
   return result;
 }

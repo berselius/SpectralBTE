@@ -113,6 +113,9 @@ static void find_maxwellians(double *M_mat, double *g_mat, double *mat) {
 static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
   int index, x, y, z;
   double *conv_weight_chunk;
+  double deta3 = deta*deta*deta;
+
+  printf("WARNING: inegration quadrature weights are not in conv_weights - this will only work if you generated your weights from MPICollisionRotines \n");
 
   for (index = 0; index < N * N * N; index++) {
     qHat[index][0] = 0.0;
@@ -166,11 +169,9 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
       index = z + N * (y + N * x);
       // multiply the weighted fourier coeff product
       qHat[zeta][0] +=
-          conv_weight_chunk[xi] * (fftOut_g[xi][0] * fftOut_f[index][0] -
-                                   fftOut_g[xi][1] * fftOut_f[index][1]);
+	deta3 * wtN[x] * wtN[y] * wtN[z] * conv_weight_chunk[xi] * (fftOut_g[xi][0] * fftOut_f[index][0] - fftOut_g[xi][1] * fftOut_f[index][1]);
       qHat[zeta][1] +=
-          conv_weight_chunk[xi] * (fftOut_g[xi][0] * fftOut_f[index][1] +
-                                   fftOut_g[xi][1] * fftOut_f[index][0]);
+          deta3 * wtN[x] * wtN[y] * wtN[z] *conv_weight_chunk[xi] * (fftOut_g[xi][0] * fftOut_f[index][1] + fftOut_g[xi][1] * fftOut_f[index][0]);
     }
   }
 
