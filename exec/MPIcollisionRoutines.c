@@ -129,8 +129,15 @@ double I_two_Boltz_small(double phi, void *args) {
   gsl_function F_th_small = intargs.F_th_small;
 
   double r = intargs.r;
-  // double u = 4.084e5;
-  double theta_m = 2.0 * atan(2.0 * C_1 / (pow(r, 2) * lambda_d));
+  double u;
+     
+    //Uncomment this line if using constant cutoff
+    //u = v_th;
+
+    //Uncomment this line if using velocity dependent cutoff
+    u = r;
+
+  double theta_m = 2.0 * atan(2.0 * C_1 / (pow(u, 2) * lambda_d));
   // double theta_m = 1e-9;
   intargs.cosphi = cos(phi);
   intargs.sinphi = sin(phi);
@@ -177,7 +184,6 @@ double I_two_Boltz(double phi, void *args) {
   int status;
 
   double r = intargs.r;
-
   double u;
   //Uncomment this line if using constant cutoff 
   //u = v_th;
@@ -420,9 +426,9 @@ double I_one_Landau(double r, void *args) {
   double u;
 
   //Set to this if using thermal speed cutoff
-  u = v_th;
+  //u = v_th;
   //Set to this if using velo-dep CL
-  //u = r;
+  u = r;
 
   double C_L =
     0.5 * log(1 + pow(lambda_d * pow(u, 2) / (2.0 * C_1), 2));
