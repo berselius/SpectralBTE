@@ -206,27 +206,78 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f,
 
     case 6:
       printf("Cutout Maxwellian\n");
-      double n_cutout = 1.0e20;
-      double T_cutout_K = 11000.0;
+      //double n_cutout = 1.0e23;
+      double n_rescale = 2.43e19;
+      //double T_cutout_K = 11000.0;
+      double T_rescale = 294455.0;
       double m_cutout = mixture[spec].mass;
-      double v_th2 = KB * T_cutout_K / m_cutout;
+      
+      double v_rescale = 2050975.0;
+      
+      //double v_th2 = KB * T_cutout_K / m_cutout;
+      //double eps = 0.001;
 
       for (j = 0; j < N; j++)
         for (k = 0; k < N; k++)
           for (i = 0; i < N; i++) {
-            double v2 = v[i] * v[i] + v[j] * v[j] + v[k] * v[k];
-            f[spec][k + N * (j + N * i)] =
-                v2 / v_th2 * n_cutout *
-                pow(m_cutout / (2.0 * M_PI * KB * T_cutout_K), 1.5) *
-                exp(-0.5 * m_cutout * v2 / KB / T_cutout_K);
+              double v2= v[i] * v[i]  + v[j] * v[j] + v[k] * v[k];
+            
+
+              f[spec][k + N * (j + N * i)] =
+                    0.01 * n_rescale *
+                    pow(m_cutout / (KB * T_rescale), 1.5) *
+                    exp(-10.0 * m_cutout * pow((v2 - 0.3*v_rescale),2) / 0.09/ KB / T_rescale);
           }
+            
 
       break;
+            
+      case 7:
+      printf("Two Hump Maxwellian\n");
+      double n = 1.0e23;
+      double T = 11000.0;
+      double m = mixture[spec].mass;
+      double s = 3622517.0/5.0; // shift in Maxwellian
+      double v_th2 = KB * T / m;
+      for (j = 0; j < N; j++)
+        for (k = 0; k < N; k++)
+          for (i = 0; i < N; i++) {
+              double v2_shiftedright = (v[i] - s) * (v[i] - s) + v[j] * v[j] + v[k] * v[k];
+              double v2_shiftedleft = (v[i] + s) * (v[i] + s) + v[j] * v[j] + v[k] * v[k];
+              
+              f[spec][k + N * (j + N * i)] =
+                    0.50 *( n * pow(m / (2.0 * M_PI * KB * T), 1.5) * ( exp(-0.5 * m * v2_shiftedright / KB / T) +  exp(-0.5 * m * v2_shiftedleft / KB / T)));
+          }
+            
+       break;
+            
+            case 8:
+              printf("Eps Maxwellian\n");
+              double n_eps= 1.0e23;
+              double T_eps = 11000.0;
+              double m_eps = mixture[spec].mass;
+              double v_th2_eps = KB * T_eps/ m_eps;
+              double eps = 0.01;
 
-    case 7:
+              for (j = 0; j < N; j++)
+                for (k = 0; k < N; k++)
+                  for (i = 0; i < N; i++) {
+                      double v2_eps= v[i] * v[i]  + v[j] * v[j] + v[k] * v[k];
+                    
+
+                      f[spec][k + N * (j + N * i)] =
+                            (1 + eps*(v2_eps / v_th2_eps)) * n_eps *
+                            pow(m_eps / (2.0 * M_PI * KB * T_eps), 1.5) *
+                            exp(-0.5 * m_eps * v2_eps / KB / T_eps);
+                  }
+                    
+
+              break;
+
+    case 9:
       printf("Dimensional Maxwellian\n");
-      n_cutout = 1.0e20;
-      T_cutout_K = 11000.0;
+      double n_cutout = 1.0e20;
+      double T_cutout_K = 11000.0;
       m_cutout = mixture[spec].mass;
 
       for (j = 0; j < N; j++)
