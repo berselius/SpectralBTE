@@ -282,8 +282,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f,
             double T_rescale = 294455.0;
             double m_rescale = mixture[spec].mass;
             double v_rescale = 2050975.0;
-	    double m_cutout = mixture[spec].mass;
-
+	    double m_rescale = mixture[spec].mass;
 
             for (j = 0; j < N; j++)
               for (k = 0; k < N; k++)
@@ -292,7 +291,7 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f,
                     f[spec][k + N * (j + N * i)] =
                           0.01 * n_rescale *
                           pow(m_rescale / (KB * T_rescale), 1.5) *
-                          exp(-10.0 * m_cutout * pow((v22 - 0.3*v_rescale),2) / 0.09/ KB / T_rescale);
+                          exp(-10.0 * m_rescale * pow((v22 - 0.3*v_rescale),2) / 0.09/ KB / T_rescale);
                 }
                   
 
