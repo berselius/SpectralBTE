@@ -282,7 +282,6 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f,
             double T_rescale = 294455.0;
             double m_rescale = mixture[spec].mass;
             double v_rescale = 2050975.0;
-	    double m_rescale = mixture[spec].mass;
 
             for (j = 0; j < N; j++)
               for (k = 0; k < N; k++)
