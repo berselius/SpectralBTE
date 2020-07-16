@@ -206,13 +206,13 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f,
 
     case 6:
       printf("Cutout Maxwellian\n");
-      //double n_cutout = 1.0e23;
-      double n_rescale = 2.43e19;
-      //double T_cutout_K = 11000.0;
-      double T_rescale = 294455.0;
+      double n_cutout = 1.0e23;
+      //double n_rescale = 2.43e19;
+      double T_cutout_K = 11000.0;
+      //double T_rescale = 294455.0;
       double m_cutout = mixture[spec].mass;
       
-      double v_rescale = 2050975.0;
+      //double v_rescale = 2050975.0;
       
       //double v_th2 = KB * T_cutout_K / m_cutout;
       //double eps = 0.001;
@@ -220,13 +220,12 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f,
       for (j = 0; j < N; j++)
         for (k = 0; k < N; k++)
           for (i = 0; i < N; i++) {
-              double v2= v[i] * v[i]  + v[j] * v[j] + v[k] * v[k];
+              double v2=v[i] * v[i]  + v[j] * v[j] + v[k] * v[k];
             
-
               f[spec][k + N * (j + N * i)] =
-                    0.01 * n_rescale *
-                    pow(m_cutout / (KB * T_rescale), 1.5) *
-                    exp(-10.0 * m_cutout * pow((v2 - 0.3*v_rescale),2) / 0.09/ KB / T_rescale);
+                    0.01 * n_cutout  *
+                    pow(m_cutout / (KB * T_cutout_K), 1.5) *
+                    exp(-10.0 * m_cutout * pow((v2 ),2) / 0.09/ KB / T_cutout_K);
           }
             
 
@@ -274,22 +273,30 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f,
 
               break;
 
-    case 9:
-      printf("Dimensional Maxwellian\n");
-      double n_cutout = 1.0e20;
-      double T_cutout_K = 11000.0;
-      m_cutout = mixture[spec].mass;
+                    
+            
+     case 9:
+          printf("Comparison to older Paper\n");
+            
+            double n_rescale = 2.43e19;
+            double T_rescale = 294455.0;
+            double m_rescale = mixture[spec].mass;
+            double v_rescale = 2050975.0;
 
-      for (j = 0; j < N; j++)
-        for (k = 0; k < N; k++)
-          for (i = 0; i < N; i++) {
-            double v2 = v[i] * v[i] + v[j] * v[j] + v[k] * v[k];
-            f[spec][k + N * (j + N * i)] =
-                n_cutout * pow(m_cutout / (2.0 * M_PI * KB * T_cutout_K), 1.5) *
-                exp(-0.5 * m_cutout * v2 / KB / T_cutout_K);
-          }
 
-      break;
+            for (j = 0; j < N; j++)
+              for (k = 0; k < N; k++)
+                for (i = 0; i < N; i++) {
+                    double v22 =sqrt( v[i] * v[i]  + v[j] * v[j] + v[k] * v[k]) ;
+                    f[spec][k + N * (j + N * i)] =
+                          0.01 * n_rescale *
+                          pow(m_rescale / (KB * T_rescale), 1.5) *
+                          exp(-10.0 * m_cutout * pow((v22 - 0.3*v_rescale),2) / 0.09/ KB / T_rescale);
+                }
+                  
+
+            break;
+            
 
       /*
     case 6:
