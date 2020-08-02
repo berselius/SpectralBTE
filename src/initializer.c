@@ -176,6 +176,101 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f, int 
 	for(i=0;i<N;i++) {
 	  f[spec][k + N*(j + N*i)] = ( 1 + 0.1*sin(v[i]*v[i] + v[j]*v[j] + v[k]*v[k]) )*exp(-((v[i])*(v[i]) + v[j]*v[j] + v[k]*v[k]))/(M_PI*sqrt(M_PI));
 	}
+    //HS test case - sm of maxwellians
+  case 6:
+    printf("HardSphere1\n"); 
+    double m_ar = 6.6644e-26;
+    double n0 = 16.0e-3 / m_ar;
+    double T_ar = 300.0;
+    double kb_ar = 1.380649e-23;
+    double v0_ar = pow(kb_ar * T_ar / m_ar,0.5);
+
+    double n_ar = 2.0 * n0 / 7.0;
+
+    double vx = -v0_ar * 39.0 / 40.0;
+    double vy = -v0_ar * 24.0 / 35.0;
+    double vz = -v0_ar * 29.0 / 70.0;    
+
+    for(j=0;j<N;j++)
+      for(k=0;k<N;k++)
+	for(i=0;i<N;i++) {
+	  double v2 =  
+	      (v[i] - vx)*(v[i] - vx) 
+	    + (v[j] - vy)*(v[j] - vy) 
+	    + (v[k] - vz)*(v[k] - vz);
+
+	  f[spec][k + N*(j + N*i)] 
+	    = n_ar * pow(m_ar / (2.0 * M_PI * kb_ar *T_ar), 1.5) 
+   	       * exp(-m_ar * v2 / (2.0 * kb_ar * T_ar));
+	}   
+
+    n_ar = 3.0 * n0 / 7.0;
+
+    vx = v0_ar * (-39.0 / 40.0 + 1.0);
+    vy = v0_ar * (-24.0 / 35.0 + 1.0);
+    vz = v0_ar * (-29.0 / 70.0 + 1.0);    
+
+    for(j=0;j<N;j++)
+      for(k=0;k<N;k++)
+	for(i=0;i<N;i++) {
+	  double v2 =  
+	      (v[i] - vx)*(v[i] - vx) 
+	    + (v[j] - vy)*(v[j] - vy) 
+	    + (v[k] - vz)*(v[k] - vz);
+
+	  f[spec][k + N*(j + N*i)] 
+	    += n_ar * pow(m_ar / (2.0 * M_PI * kb_ar *T_ar), 1.5) 
+   	       * exp(-m_ar * v2 / (2.0 * kb_ar * T_ar));
+	}   
+
+    n_ar = 2.0 * n0 / 7.0;
+
+    vx = v0_ar * (-39.0 / 40.0 + 2.0);
+    vy = v0_ar * (-24.0 / 35.0 + 1.0);
+    vz = v0_ar * (-29.0 / 70.0);    
+
+    for(j=0;j<N;j++)
+      for(k=0;k<N;k++)
+	for(i=0;i<N;i++) {
+	  double v2 =  
+	      (v[i] - vx)*(v[i] - vx) 
+	    + (v[j] - vy)*(v[j] - vy) 
+	    + (v[k] - vz)*(v[k] - vz);
+
+	  f[spec][k + N*(j + N*i)] 
+	    += n_ar * pow(m_ar / (2.0 * M_PI * kb_ar *T_ar), 1.5) 
+   	       * exp(-m_ar * v2 / (2.0 * kb_ar * T_ar));
+	}   
+    //Polynomial on Maxwell for HS test
+  case 7:
+    printf("HardSphere2\n"); 
+    m_ar = 6.6644e-26;
+    n_ar = 0.5 * 16.0e-3 / m_ar;
+    T_ar = 300.0;
+    kb_ar = 1.380649e-23;
+    v0_ar = pow(kb_ar * T_ar / m_ar,0.5);
+
+    vx = -v0_ar * 39.0 / 40.0;
+    vy = -v0_ar * 24.0 / 35.0;
+    vz = -v0_ar * 29.0 / 70.0;    
+
+    for(j=0;j<N;j++)
+      for(k=0;k<N;k++)
+	for(i=0;i<N;i++) {
+	  double poly = 2.0 - 3.0 * sqrt(2.0/3.0) 
+	    + (sqrt(2.0) - 0.5) / sqrt(3.0) * pow((v[i] - vx)/v0_ar, 2)
+	    + (sqrt(2.0) - 0.5) / sqrt(3.0) * pow((v[j] - vy)/v0_ar, 2)
+	    + (sqrt(2.0) + 0.5) / sqrt(3.0) * pow((v[k] - vz)/v0_ar, 2);
+
+	  double v2 =  
+	      (v[i] - vx)*(v[i] - vx) 
+	    + (v[j] - vy)*(v[j] - vy) 
+	    + (v[k] - vz)*(v[k] - vz);
+
+	  f[spec][k + N*(j + N*i)] 
+	    = n_ar * poly * pow(m_ar / (2.0 * M_PI * kb_ar *T_ar), 1.5) 
+   	       * exp(-m_ar * v2 / (2.0 * kb_ar * T_ar));
+	}   
 
     break;
 
@@ -420,10 +515,10 @@ void initialize_inhom(int N, int Ns, double L_v, double *v, double *zeta, double
 	break;
       }
     }
-
+    
     }
   }
-
+  
 }
 
 void dealloc_inhom(int nX, int order, double *v, double *zeta, double ***f, double ***f_conv, double ***f_1, double **Q) {

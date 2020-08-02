@@ -41,12 +41,13 @@ void initialize_weights(int nodes, double *eta, double Lv, double lam, int weigh
   deta = eta[1]-eta[0];
   L_v = Lv;
   lambda = lam;
-  prefactor = 16.0*M_PI*M_PI*deta*deta*deta/pow(2.0*M_PI,1.5)/(4.0*M_PI);
   diam_i = species_i.d_ref;
   diam_j = species_j.d_ref;
   mass_i = species_i.mass;
   mass_j = species_j.mass;
   mu_ij = mass_i*mass_j/(mass_i + mass_j);
+
+  prefactor = 4.0 * pow(2.0 * M_PI,0.5);
 
   wtN = malloc(N*sizeof(double));
   wtN[0] = 0.5;
@@ -135,7 +136,7 @@ void dealloc_weights(int N, double **conv_weights) {
 
 double sinc(double x) {
   double res;
-  if (x != 0.0)
+  if (x > 1e-8)
     res = sin(x) / x;
   else
     res = 1.0;
@@ -155,6 +156,9 @@ args[2]: |ki - 0.5*zeta|
  */
 double ghat(double r, void *args) {
   double *dargs = (double *)args;
+
+  if(dargs[0] - dargs[1] < 1e-8)
+    return 0;
 
   return  pow(r,lambda+2)*(sinc(r*dargs[0])*sinc(r*dargs[2]) - sinc(r*dargs[1]));
 }
@@ -186,20 +190,22 @@ double gHat3(double ki1, double ki2, double ki3, double zeta1, double zeta2, dou
   gsl_integration_workspace *w_r;
 
 
-  //double mu = 0.5;
-  double mu = mass_j / (mass_i + mass_j);
+  double mu = 0.5;
+  //double mu = mass_j / (mass_i + mass_j);
   
   args[0] = mu*sqrt(zeta1*zeta1 + zeta2*zeta2 + zeta3*zeta3);
   args[1] = sqrt(ki1*ki1 + ki2*ki2 + ki3*ki3);
   args[2] = sqrt( (ki1 - mu*zeta1)*(ki1 - mu*zeta1) + (ki2 - mu*zeta2)*(ki2 - mu*zeta2) + (ki3 - mu*zeta3)*(ki3 - mu*zeta3) );
  
-
+  if(args[2] < 1e-8)
+    args[2] = 0;
   
   w_r = gsl_integration_workspace_alloc(10000);
   
   F_ghat.function = &ghat;
   F_ghat.params = args;
-  
+
+  //printf("|k| %g, |m| %g, |m - k/2| %g\n", args[0], args[1], args[2]);
   gsl_integration_qag(&F_ghat, 0.0, L_v, 1e-8,1e-8,10000,2,w_r,&result,&error);
   //result = gauss_legendre(64,ghat,args,0.,L_v);
   
@@ -274,7 +280,7 @@ void generate_conv_weights_iso(double **conv_weights)
   for(m=0;m<N;m++)
   for(n=0;n<N;n++) {
 
-    conv_weights[k + N*(j + N*i)][n + N*(m + N*l)] = wtN[l]*wtN[m]*wtN[n]*0.25*pow(0.5*(diam_i+diam_j),2) * gHat3(zeta[l], zeta[m], zeta[n], zeta[i], zeta[j], zeta[k]);
+    conv_weights[k + N*(j + N*i)][n + N*(m + N*l)] = 0.25*pow(0.5*(diam_i+diam_j),2) * gHat3(zeta[l], zeta[m], zeta[n], zeta[i], zeta[j], zeta[k]);
     //conv_weights[k + N*(j + N*i)][n + N*(m + N*l)] = wtN[l]*wtN[m]*wtN[n]*gHat3(zeta[l], zeta[m], zeta[n], zeta[i], zeta[j], zeta[k]);
     //conv_weights[k + N*(j + N*i)][n + N*(m + N*l)] = 0.0;
   }

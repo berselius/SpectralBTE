@@ -22,7 +22,7 @@
 //#include "pot_weights.h"
 #include "aniso_weights.h"
 
-
+#define PRINT_UPDATE TRUE
 
 int main(int argc, char **argv) {
   //**********************
@@ -199,6 +199,23 @@ int main(int argc, char **argv) {
 
       //conserve
       conserveAllMoments(Q);
+
+      #ifdef PRINT_UPDATE
+      if(t == 0) {
+	FILE *Qupdate = fopen("Data/Q_update.dat","w");
+	FILE *Qupdate_bin = fopen("Data/Q_update.raw","w");
+	fprintf(Qupdate,"vx        vy        vz          Q\n");
+	for(int index = 0; index < N*N*N; index++) {
+	  i = index / (N * N);
+	  j = (index - i * N * N) / N;
+	  k = index - N * (j + N * i);
+	  fprintf(Qupdate, "%8g %8g %8g %8g\n", v[i], v[j], v[k], Q[0][index]);         
+	}
+	fwrite(Q,sizeof(double),N*N*N,Qupdate_bin);
+	fclose(Qupdate);
+	fclose(Qupdate_bin);
+      }
+      #endif
 
       t2 = omp_get_wtime();
       printf("Time elapsed: %g\n",t2-t1);

@@ -22,6 +22,7 @@ static double deta;
 static int N;
 static double *wtN;
 static double scale3;
+static double deta3;
 
 static int inverse = 1;
 static int noinverse = 0;
@@ -39,7 +40,8 @@ void initialize_coll(int nodes, double length, double *vel, double *zeta) {
   dv = v[1] - v[0];
 
   eta = zeta;
-  deta = zeta[1]-zeta[0];;
+  deta = zeta[1]-zeta[0];
+  deta3 = deta*deta*deta;
   L_eta = -zeta[0];
   //L_eta = 0.0;
 
@@ -159,8 +161,8 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
 
       index = z + N * (y + N * x);
       //multiply the weighted fourier coeff product
-      qHat[zeta][0] += conv_weight_chunk[xi]*(fftOut_g[xi][0]*fftOut_f[index][0] - fftOut_g[xi][1]*fftOut_f[index][1]);
-      qHat[zeta][1] += conv_weight_chunk[xi]*(fftOut_g[xi][0]*fftOut_f[index][1] + fftOut_g[xi][1]*fftOut_f[index][0]);
+      qHat[zeta][0] += wtN[xi_x]*wtN[xi_y]*wtN[xi_z]*deta3*conv_weight_chunk[xi]*(fftOut_g[xi][0]*fftOut_f[index][0] - fftOut_g[xi][1]*fftOut_f[index][1]);
+      qHat[zeta][1] += wtN[xi_x]*wtN[xi_y]*wtN[xi_z]*deta3*conv_weight_chunk[xi]*(fftOut_g[xi][0]*fftOut_f[index][1] + fftOut_g[xi][1]*fftOut_f[index][0]);
     }
   }
 
