@@ -278,18 +278,20 @@ void initialize_hom(int N, double L_v, double *v, double *zeta, double **f,
      case 9:
           printf("Comparison to older Paper\n");
             
-            double n_rescale = 2.43e19;
-            double T_rescale = 294455.0;
-            double m_rescale = mixture[spec].mass;
-            double v_rescale = 2050975.0;
+	  double n_rescale = 2.43e19; // 1/m^3
+	  double T_rescale = 294455.0; // K
+	  double m_rescale = mixture[spec].mass; //kg 
+	  double v_rescale = 2050975.0; // m/s
+
+	  printf("n %g T %g m %g v %g kb %g\n", n_rescale, T_rescale, m_rescale, v_rescale, KB);
 
             for (j = 0; j < N; j++)
               for (k = 0; k < N; k++)
                 for (i = 0; i < N; i++) {
-                    double v22 =sqrt( v[i] * v[i]  + v[j] * v[j] + v[k] * v[k]) ;
+		  double v22 =sqrt( v[i] * v[i]  + v[j] * v[j] + v[k] * v[k]) ; //m/s
                     f[spec][k + N * (j + N * i)] =
-                          0.01 * n_rescale *
-                          pow(m_rescale / (KB * T_rescale), 1.5) *
+		      0.01 * n_rescale * //1/m^3
+		      pow(m_rescale / (KB * T_rescale), 1.5) * //s^3 / m^3
                           exp(-10.0 * m_rescale * pow((v22 - 0.3*v_rescale),2) / 0.09/ KB / T_rescale);
                 }
                   

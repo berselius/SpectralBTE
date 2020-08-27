@@ -115,8 +115,6 @@ static void compute_Qhat(double **conv_weights, double *f_mat, double *g_mat) {
   double *conv_weight_chunk;
   double deta3 = deta*deta*deta;
 
-  printf("WARNING: inegration quadrature weights are not in conv_weights - this will only work if you generated your weights from MPICollisionRotines \n");
-
   for (index = 0; index < N * N * N; index++) {
     qHat[index][0] = 0.0;
     qHat[index][1] = 0.0;
