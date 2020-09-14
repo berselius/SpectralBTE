@@ -13,6 +13,7 @@ static double *wtN;
 static species *mixture;
 static double KB;
 
+
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
 void initialize_moments(int nodes, double *vel, species *mix) {
@@ -74,9 +75,38 @@ double getDensity(double *in, int spec_id) {
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
+static void find_maxwellian(double *f, double *M) {
+  int i, j, k, index;
+  double n, vel[3], T, prefactor;
+
+  double m = mixture[0].mass;
+
+  n = getDensity(f, 0);
+  getBulkVelocity(f, vel, n, 0);
+  T = getTemperature(f, vel, n, 0);
+  prefactor = n * pow(m / (2.0 * M_PI * KB *T), 1.5);
+
+  for (index = 0; index < N * N * N; index++) {
+    i = index / (N * N);
+    j = (index - i * N * N) / N;
+    k = index - N * (j + N * i);
+    M[index] =
+        prefactor * exp(-(m * 0.5 / KB / T) * ((v[i] - vel[0]) * (v[i] - vel[0]) +
+                                      (v[j] - vel[1]) * (v[j] - vel[1]) +
+                                      (v[k] - vel[2]) * (v[k] - vel[2])));
+  }
+}
+
+
+/*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
+
 double getEntropy(double *in) {
   double result = 0.0;
   int i, j, k;
+
+  double *M = malloc(N*N*N*sizeof(double));
+
+  find_maxwellian(in, M);
 
   // Original
   for (i = 0; i < N; i++)
@@ -84,11 +114,14 @@ double getEntropy(double *in) {
       for (k = 0; k < N; k++) {
         if (in[k + N * (j + N * i)] > 0)
           result += dv3 * wtN[i] * wtN[j] * wtN[k] * in[k + N * (j + N * i)] *
-                    log(in[k + N * (j + N * i)]);
+	    log(in[k + N * (j + N * i)]/M[k + N* (j + N*i)]);
       }
+
+  free(M);
 
   return result;
 }
+
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 double Kullback(double *in, double n, double T) {
