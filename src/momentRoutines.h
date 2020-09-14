@@ -9,7 +9,7 @@ void initialize_moments_fast(int nodes, double *v);
 
 double getDensity(double *in, int spec_id);
 
-double getEntropy(double *in);
+double getEntropy(double *in, int spec_id);
 
 double Kullback(double *in, double rho, double T);
 

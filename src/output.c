@@ -181,7 +181,7 @@ void write_streams(double **f, double time) {
     }
     getBulkVelocity(f[i], bulkV, density, 0);
     kinTemp = getTemperature(f[i], bulkV, density, 0);
-    entropy = getEntropy(f[i]);
+    entropy = getEntropy(f[i],0);
 
     sprintf(line, "%le ", time);
 

@@ -75,15 +75,15 @@ double getDensity(double *in, int spec_id) {
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
-static void find_maxwellian(double *f, double *M) {
+static void find_maxwellian(double *f, double *M, int sp) {
   int i, j, k, index;
   double n, vel[3], T, prefactor;
 
-  double m = mixture[0].mass;
+  double m = mixture[sp].mass;
 
-  n = getDensity(f, 0);
-  getBulkVelocity(f, vel, n, 0);
-  T = getTemperature(f, vel, n, 0);
+  n = getDensity(f, sp);
+  getBulkVelocity(f, vel, n, sp);
+  T = getTemperature(f, vel, n, sp);
   prefactor = n * pow(m / (2.0 * M_PI * KB *T), 1.5);
 
   for (index = 0; index < N * N * N; index++) {
@@ -100,13 +100,15 @@ static void find_maxwellian(double *f, double *M) {
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 
-double getEntropy(double *in) {
+double getEntropy(double *in, int sp) {
   double result = 0.0;
   int i, j, k;
 
   double *M = malloc(N*N*N*sizeof(double));
 
-  find_maxwellian(in, M);
+  find_maxwellian(in, M, sp);
+
+  double n = getDensity(in, sp);
 
   // Original
   for (i = 0; i < N; i++)
@@ -119,7 +121,7 @@ double getEntropy(double *in) {
 
   free(M);
 
-  return result;
+  return result / n;
 }
 
 
