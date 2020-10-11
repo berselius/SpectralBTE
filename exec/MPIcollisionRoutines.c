@@ -23,8 +23,8 @@ struct integration_args {
   double cosphi;                              // cosphi
   double sinphi;                              // sinphi
   double rcosphi_zetadotxi_over_zetalen;      // r cosphi zetadotxi_over_zetalen
-  double half_rcosphi_zetadotxi_over_zetalen; // r cosphi 0.5 zetalen
-  double half_rsinphi_zetadotxi_over_zetalen; // 0.5 r zetalen sinphi
+  double half_rcosphi_zetalen;                // 0.5 r cosphi zetalen 
+  double half_rsinphi_zetalen;                // 0.5 r sinphi zetalen 
   double cos_rcosphi_zetadotxi_over_zetalen;  // cos(r cosphi
                                               // zetadotxi_over_zetalen)
   double zeta1;
@@ -60,15 +60,15 @@ double I_three_Boltz(double theta, void *args) {
   // (-M_PI*log(sin(0.5*glance)));
   // reminder:
   // A = intargs.rcosphi_zetadotxi_over_zetalen
-  // B = intargs.half_rcosphi_zetadotxi_over_zetalen
-  // C = intargs.half_rsinphi_zetadotxi_over_zetalen
+  // B = intargs.half_rcosphi_zetalen
+  // C = intargs.half_rsinphi_zetalen
 
   double bcos =
       cos(0.5 * theta) / (pow(sin(0.5 * theta), 3)); // / log(sin(0.5*theta_m));
   return bcos *
-         (cos(intargs.half_rcosphi_zetadotxi_over_zetalen * (1 - cos(theta)) -
+         (cos(intargs.half_rcosphi_zetalen * (1 - cos(theta)) -
               intargs.rcosphi_zetadotxi_over_zetalen) *
-              gsl_sf_bessel_J0(intargs.half_rsinphi_zetadotxi_over_zetalen *
+              gsl_sf_bessel_J0(intargs.half_rsinphi_zetalen *
                                sin(theta)) -
           intargs.cos_rcosphi_zetadotxi_over_zetalen);
   // bcos*(cos(B(1-cos(\theta))-A)*J_0(C*sin(\theta)) - cos(A))
@@ -143,9 +143,9 @@ double I_two_Boltz_small(double phi, void *args) {
   intargs.sinphi = sin(phi);
   intargs.rcosphi_zetadotxi_over_zetalen =
       r * intargs.cosphi * intargs.xizeta_over_zetalen; // A
-  intargs.half_rcosphi_zetadotxi_over_zetalen =
+  intargs.half_rcosphi_zetalen =
       0.5 * r * intargs.cosphi * intargs.zetalen; // B
-  intargs.half_rsinphi_zetadotxi_over_zetalen =
+  intargs.half_rsinphi_zetalen =
       0.5 * r * intargs.sinphi * intargs.zetalen; // C
   intargs.cos_rcosphi_zetadotxi_over_zetalen =
       cos(r * intargs.cosphi * intargs.xizeta_over_zetalen); // cos(A)
@@ -197,9 +197,9 @@ double I_two_Boltz(double phi, void *args) {
   intargs.sinphi = sin(phi);
   intargs.rcosphi_zetadotxi_over_zetalen =
       r * intargs.cosphi * intargs.xizeta_over_zetalen; // A
-  intargs.half_rcosphi_zetadotxi_over_zetalen =
+  intargs.half_rcosphi_zetalen =
       0.5 * r * intargs.cosphi * intargs.zetalen; // B
-  intargs.half_rsinphi_zetadotxi_over_zetalen =
+  intargs.half_rsinphi_zetalen =
       0.5 * r * intargs.sinphi * intargs.zetalen; // C
   intargs.cos_rcosphi_zetadotxi_over_zetalen =
       cos(r * intargs.cosphi * intargs.xizeta_over_zetalen); // cos(A)
@@ -501,5 +501,7 @@ void generate_conv_weights(double **conv_weights) {
                    eta[m], eta[n]);
         }
       }
+    printf("Rank: %d value: %d %d %d complete!\n", rank, i, j, k);
   }
+  printf("All weights complete!\n");
 }
