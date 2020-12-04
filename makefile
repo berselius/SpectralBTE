@@ -10,10 +10,10 @@ MPICC=mpicc
 WEIGHTCC=mpicc
 
 # Compiler flags
-CFLAGS= -O2 -fopenmp -Wall
-FFTFLAGS = -lgsl -lgslcblas -lfftw3_omp -lfftw3 -lm
+CFLAGS= -O2 -fopenmp -Wall -I/opt/apps/gcc7_1/gsl/2.6/include -L/opt/apps/gcc7_1/gsl/2.6/lib -I/opt/apps/gcc7_1/impi17_0/fftw3/3.3.6/include -L/opt/apps/gcc7_1/impi17_0/fftw3/3.3.6/lib
+FFTFLAGS = -lgsl -lgslcblas -lfftw3_omp -lfftw3 -lm 
 
-WEIGHTCFLAGS = -O2 -fopenmp -Wall
+WEIGHTCFLAGS = -O2 -fopenmp -Wall -I/opt/apps/gcc7_1/gsl/2.6/include -L/opt/apps/gcc7_1/gsl/2.6/lib -I/opt/apps/gcc7_1/impi17_0/fftw3/3.3.6/include -L/opt/apps/gcc7_1/impi17_0/fftw3/3.3.6/lib
 WEIGHTFFTFLAGS = -lgsl -lgslcblas -lfftw3 -lm
 
 # Command definition
@@ -28,13 +28,13 @@ sources2 = $(SRCDIR)fractional.c $(SRCDIR)initializer.c $(SRCDIR)restart.c
 
 sources_fast = $(SRCDIR)main_fast.c $(SRCDIR)initializer_fast.c
 
-objects = weights.o collisions.o output.o input.o gauss_legendre.o momentRoutines.o conserve.o transportroutines.o boundaryConditions.o mesh_setup.o species.o pot_weights.o aniso_weights.o poisson.o
+objects = weights.o collisions.o output.o input.o gauss_legendre.o momentRoutines.o conserve.o transportroutines.o boundaryConditions.o mesh_setup.o species.o aniso_weights.o poisson.o
 
-objects_adapt = weights.o collisions.o output.o input.o gauss_legendre.o momentRoutines.o conserve.o Flowadapt_transportroutines.o boundaryConditions.o mesh_setup.o species.o pot_weights.o aniso_weights.o flowadapt.o
+objects_adapt = weights.o collisions.o output.o input.o gauss_legendre.o momentRoutines.o conserve.o Flowadapt_transportroutines.o boundaryConditions.o mesh_setup.o species.o aniso_weights.o flowadapt.o
 
 objects_fast = collisions_fast.o output.o input.o gauss_legendre.o momentRoutines.o conserve.o species.o
 
-weight_sources = $(SRCDIR)MPIWeightGenerator.c $(SRCDIR)MPIcollisionroutines.c $(SRCDIR)gauss_legendre.c
+weight_sources = $(SRCDIR)MPIWeightGenerator.c $(SRCDIR)MPIcollisionRoutines.c $(SRCDIR)gauss_legendre.c
 
 pref_objects = $(addprefix $(OBJDIR), $(objects))
 
@@ -46,7 +46,6 @@ pref_objects_fast = $(addprefix $(OBJDIR), $(objects_fast))
 boltz: $(pref_objects) $(sources)
 	@echo "Building Boltzmann deterministic solver"
 	$(CC) $(CFLAGS) -o $(EXECDIR)boltz_ $(sources) $(pref_objects) $(FFTFLAGS)
-	codesign -f -s haack-boltz $(EXECDIR)boltz_
 
 flowadapt: $(pref_objects_adapt) $(sources_adapt)
 	@echo "Building Flow-adapted Boltzmann deterministic solver"
@@ -55,7 +54,6 @@ flowadapt: $(pref_objects_adapt) $(sources_adapt)
 fast: $(pref_objects_fast) $(sources_fast)
 	@echo "Building NLogN Boltzmann deterministic solver"
 	$(CC) $(CFLAGS) -o $(EXECDIR)Fastboltz_ $(sources_fast) $(pref_objects_fast) $(FFTFLAGS)
-	codesign -f -s haack-boltz $(EXECDIR)Fastboltz_
 
 fractional: $(pref_objects) $(sources2)
 	@echo "Building Boltzmann deterministic solver with fractional calculus"
@@ -179,13 +177,6 @@ $(OBJDIR)mesh_setup.o : $(SRCDIR)mesh_setup.c
 	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
 
 $(OBJDIR)species.o : $(SRCDIR)species.c
-	@echo "Compiling  $< ... " ; \
-	if [ -f  $@ ] ; then \
-		rm $@ ;\
-	fi ; \
-	$(CC)  -c $(CFLAGS)  $< -o $@ 2>&1 ;
-
-$(OBJDIR)pot_weights.o : $(SRCDIR)pot_weights.c
 	@echo "Compiling  $< ... " ; \
 	if [ -f  $@ ] ; then \
 		rm $@ ;\
